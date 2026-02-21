@@ -45,7 +45,13 @@ export function Navbar() {
               </Button>
               {user ? (
                 <div className="hidden sm:flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground" data-testid="text-user-name">{user.name}</span>
+                  <a
+                    href="/profile"
+                    className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                    data-testid="link-profile"
+                  >
+                    {user.name}
+                  </a>
                   <Button
                     size="sm"
                     variant="outline"
@@ -104,9 +110,11 @@ export function Navbar() {
                   How It Works
                 </Button>
                 {user ? (
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm font-medium" data-testid="text-user-name-mobile">{user.name}</span>
-                    <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={logout} data-testid="button-sign-out-mobile">
+                  <div className="flex flex-col gap-1 mt-2">
+                    <a href="/profile" className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5" data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>
+                      My Profile ({user.name})
+                    </a>
+                    <Button size="sm" variant="outline" className="rounded-full text-xs self-start" onClick={logout} data-testid="button-sign-out-mobile">
                       Sign Out
                     </Button>
                   </div>

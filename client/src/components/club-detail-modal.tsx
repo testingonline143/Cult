@@ -226,12 +226,24 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
             </div>
 
             {joinSuccess ? (
-              <div className="text-center py-6 space-y-2" data-testid="card-join-success">
+              <div className="text-center py-6 space-y-3" data-testid="card-join-success">
                 <div className="text-4xl">🌱</div>
                 <h3 className="font-serif text-xl font-bold text-primary">You're in the tribe!</h3>
                 <p className="text-sm text-muted-foreground">
                   Organizer will add you to WhatsApp group within 24 hours.
                 </p>
+                {club.whatsappNumber && (
+                  <a
+                    href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just joined ${club.name} on Sangh. Please add me to the group!`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl px-5 py-3 text-sm font-semibold transition-all"
+                    data-testid="button-join-whatsapp"
+                  >
+                    <span className="text-lg">💬</span>
+                    Message Organizer on WhatsApp
+                  </a>
+                )}
               </div>
             ) : showJoinForm ? (
               <div className="space-y-3" data-testid="form-join">

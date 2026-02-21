@@ -15,7 +15,7 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), 404
+- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), 404
 - **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
@@ -44,6 +44,9 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `GET /api/organizer/join-requests/:clubId` — get join requests for organizer's club
   - `PATCH /api/organizer/join-requests/:id/contacted` — mark join request as contacted
   - `PATCH /api/organizer/club/:id` — update club details (shortDesc, schedule, location, healthStatus)
+  - `POST /api/admin/club-submissions/:id/approve` — approve submission and create a live club
+  - `GET /api/user/join-requests` — get authenticated user's join requests (requires x-user-id header)
+  - `PATCH /api/user/profile` — update authenticated user's name (requires x-user-id header)
 - **OTP**: Mock OTP system (always 123456) stored in memory Map with 5-minute expiry
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production

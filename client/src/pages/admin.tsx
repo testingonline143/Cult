@@ -159,6 +159,17 @@ function ClubSubmissionsTab() {
     },
   });
 
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/club-submissions/${id}/approve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/club-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+    },
+  });
+
   if (isLoading) {
     return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
   }
@@ -198,14 +209,24 @@ function ClubSubmissionsTab() {
             </div>
           </div>
           {!sub.markedDone && (
-            <button
-              onClick={() => markDoneMutation.mutate(sub.id)}
-              disabled={markDoneMutation.isPending}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all whitespace-nowrap"
-              data-testid={`button-mark-done-sub-${sub.id}`}
-            >
-              Mark as Done
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => approveMutation.mutate(sub.id)}
+                disabled={approveMutation.isPending}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all whitespace-nowrap"
+                data-testid={`button-approve-sub-${sub.id}`}
+              >
+                {approveMutation.isPending ? "Creating..." : "Approve & Create Club"}
+              </button>
+              <button
+                onClick={() => markDoneMutation.mutate(sub.id)}
+                disabled={markDoneMutation.isPending}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 transition-all whitespace-nowrap"
+                data-testid={`button-mark-done-sub-${sub.id}`}
+              >
+                Dismiss
+              </button>
+            </div>
           )}
           {sub.markedDone && (
             <span className="text-xs font-semibold text-muted-foreground" data-testid={`text-done-sub-${sub.id}`}>Done ✓</span>

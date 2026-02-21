@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClubSubmissionSchema, insertJoinRequestSchema } from "@shared/schema";
+import { insertClubSubmissionSchema, insertJoinRequestSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -104,6 +104,48 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/club-submissions/:id/approve", async (req, res) => {
+    try {
+      const submission = await storage.getClubSubmission(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ success: false, message: "Submission not found" });
+      }
+      if (submission.markedDone) {
+        return res.status(400).json({ success: false, message: "Submission already processed" });
+      }
+      const emoji = CATEGORY_EMOJI[submission.category] || "🎯";
+      const club = await storage.createClub({
+        name: submission.clubName,
+        category: submission.category,
+        emoji,
+        shortDesc: `New ${submission.category.toLowerCase()} club in Tirupati. ${submission.meetupFrequency ? `Meets ${submission.meetupFrequency}.` : ""}`.trim(),
+        fullDesc: `${submission.clubName} is a newly formed ${submission.category.toLowerCase()} community in Tirupati, organized by ${submission.organizerName}. Join us and be a founding member!`,
+        organizerName: submission.organizerName,
+        organizerYears: "New organizer",
+        organizerAvatar: "🧑",
+        organizerResponse: "Responds within 24 hrs",
+        memberCount: 1,
+        schedule: submission.meetupFrequency || "To be announced",
+        location: "Tirupati",
+        activeSince: new Date().getFullYear().toString(),
+        whatsappNumber: submission.whatsappNumber,
+        healthStatus: "green",
+        healthLabel: "Very Active",
+        lastActive: "Just started",
+        foundingTaken: 1,
+        foundingTotal: 20,
+        bgColor: "#f0f9f0",
+        timeOfDay: "morning",
+        isActive: true,
+      });
+      await storage.markClubSubmissionDone(submission.id);
+      res.json({ success: true, message: "Club created and live!", club });
+    } catch (err) {
+      console.error("Error approving submission:", err);
+      res.status(500).json({ success: false, message: "Failed to approve submission" });
+    }
+  });
+
   app.post("/api/club-submissions", async (req, res) => {
     try {
       const validated = insertClubSubmissionSchema.parse(req.body);
@@ -151,6 +193,47 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error verifying OTP:", err);
       res.status(500).json({ success: false, message: "Failed to verify OTP" });
+    }
+  });
+
+  // User profile routes (require x-user-id header matching a real user)
+  app.get("/api/user/join-requests", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || !user.phone) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const requests = await storage.getJoinRequestsByPhone(user.phone);
+      res.json(requests);
+    } catch (err) {
+      console.error("Error fetching user join requests:", err);
+      res.status(500).json({ message: "Failed to fetch join requests" });
+    }
+  });
+
+  app.patch("/api/user/profile", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser || !existingUser.phone) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const { name } = req.body;
+      if (!name || name.length < 2) {
+        return res.status(400).json({ success: false, message: "Name is required (minimum 2 characters)" });
+      }
+      const user = await storage.createOrUpdateUserByPhone(existingUser.phone, name);
+      res.json({ success: true, user: { id: user.id, name: user.name, phone: user.phone } });
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      res.status(500).json({ success: false, message: "Failed to update profile" });
     }
   });
 

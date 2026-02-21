@@ -83,3 +83,12 @@ export const CATEGORIES = [
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+export const CATEGORY_EMOJI: Record<string, string> = {
+  Trekking: "🏔️",
+  Books: "📚",
+  Cycling: "🚴",
+  Photography: "📷",
+  Fitness: "💪",
+  Art: "🎨",
+};

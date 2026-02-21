@@ -10,10 +10,12 @@ export interface IStorage {
   updateClub(id: string, data: Partial<InsertClub>): Promise<Club | undefined>;
   incrementMemberCount(clubId: string): Promise<Club | undefined>;
   createClubSubmission(submission: InsertClubSubmission): Promise<ClubSubmission>;
+  getClubSubmission(id: string): Promise<ClubSubmission | undefined>;
   getClubSubmissions(): Promise<ClubSubmission[]>;
   createJoinRequest(request: InsertJoinRequest): Promise<JoinRequest>;
   getJoinRequests(): Promise<JoinRequest[]>;
   getJoinRequestsByClub(clubId: string): Promise<JoinRequest[]>;
+  getJoinRequestsByPhone(phone: string): Promise<JoinRequest[]>;
   markJoinRequestDone(id: string): Promise<JoinRequest | undefined>;
   markClubSubmissionDone(id: string): Promise<ClubSubmission | undefined>;
   getClubByWhatsapp(whatsappNumber: string): Promise<Club | undefined>;
@@ -49,6 +51,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async getClubSubmission(id: string): Promise<ClubSubmission | undefined> {
+    const [submission] = await db.select().from(clubSubmissions).where(eq(clubSubmissions.id, id));
+    return submission;
+  }
+
   async getClubSubmissions(): Promise<ClubSubmission[]> {
     return db.select().from(clubSubmissions).orderBy(desc(clubSubmissions.createdAt));
   }
@@ -77,6 +84,10 @@ export class DatabaseStorage implements IStorage {
 
   async getJoinRequestsByClub(clubId: string): Promise<JoinRequest[]> {
     return db.select().from(joinRequests).where(eq(joinRequests.clubId, clubId)).orderBy(desc(joinRequests.createdAt));
+  }
+
+  async getJoinRequestsByPhone(phone: string): Promise<JoinRequest[]> {
+    return db.select().from(joinRequests).where(eq(joinRequests.phone, phone)).orderBy(desc(joinRequests.createdAt));
   }
 
   async markJoinRequestDone(id: string): Promise<JoinRequest | undefined> {
