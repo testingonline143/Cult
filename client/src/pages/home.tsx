@@ -5,7 +5,6 @@ import { HeroSection } from "@/components/hero-section";
 import { MatcherSection } from "@/components/matcher-section";
 import { ClubsSection } from "@/components/clubs-section";
 import { ProcessSection } from "@/components/process-section";
-import { CompareSection } from "@/components/compare-section";
 import { OrganizerSection } from "@/components/organizer-section";
 import { Footer } from "@/components/footer";
 import type { Club } from "@shared/schema";
@@ -37,7 +36,6 @@ export default function Home() {
         onCategoryChange={setActiveCategory}
       />
       <ProcessSection />
-      <CompareSection />
       <OrganizerSection />
       <Footer />
     </div>

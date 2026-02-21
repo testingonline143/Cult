@@ -39,9 +39,6 @@ export function Navbar() {
             <Button variant="ghost" size="sm" onClick={() => scrollTo("process")} data-testid="link-process">
               How It Works
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => scrollTo("compare")} data-testid="link-compare">
-              Why Sangh
-            </Button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -91,9 +88,6 @@ export function Navbar() {
               </Button>
               <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("process")} data-testid="link-process-mobile">
                 How It Works
-              </Button>
-              <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("compare")} data-testid="link-compare-mobile">
-                Why Sangh
               </Button>
               <Button size="sm" className="mt-2" onClick={() => scrollTo("organizer")} data-testid="button-list-club-mobile">
                 List Your Club
