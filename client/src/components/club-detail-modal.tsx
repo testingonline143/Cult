@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 import type { Club } from "@shared/schema";
 
 const HEALTH_STYLES: Record<string, { dot: string; text: string }> = {
@@ -17,6 +18,7 @@ interface ClubDetailModalProps {
 }
 
 export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
+  const { user } = useAuth();
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState(false);
   const [joinName, setJoinName] = useState("");
@@ -34,6 +36,7 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
       setJoinName("");
       setJoinPhone("");
       setJoinError("");
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
     },
     onError: () => {
       setJoinError("Something went wrong. Please try again.");
@@ -45,8 +48,8 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
       document.body.style.overflow = "hidden";
       setShowJoinForm(false);
       setJoinSuccess(false);
-      setJoinName("");
-      setJoinPhone("");
+      setJoinName(user?.name || "");
+      setJoinPhone(user?.phone || "");
       setJoinError("");
     } else {
       document.body.style.overflow = "";
@@ -54,7 +57,7 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [club]);
+  }, [club, user]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

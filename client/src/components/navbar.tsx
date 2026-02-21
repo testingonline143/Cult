@@ -3,10 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun, Menu, X } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/lib/auth";
+import { SignInModal } from "@/components/sign-in-modal";
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const { user, logout } = useAuth();
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -14,73 +18,113 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/88 backdrop-blur-xl border-b border-border/50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
-          <button
-            onClick={() => scrollTo("hero")}
-            className="flex items-center gap-2"
-            data-testid="link-home"
-          >
-            <span className="w-2 h-2 rounded-full bg-primary" />
-            <span className="text-xl font-serif font-black text-primary tracking-tight">Sangh</span>
-          </button>
+    <>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/88 backdrop-blur-xl border-b border-border/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            <button
+              onClick={() => scrollTo("hero")}
+              className="flex items-center gap-2"
+              data-testid="link-home"
+            >
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              <span className="text-xl font-serif font-black text-primary tracking-tight">Sangh</span>
+            </button>
 
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase text-muted-foreground px-3 py-1 bg-primary/10 rounded-full">
-              Tirupati
-            </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={toggleTheme}
-              data-testid="button-theme-toggle"
-            >
-              {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </Button>
-            <Button
-              size="sm"
-              className="rounded-full hidden sm:inline-flex"
-              onClick={() => scrollTo("organizer")}
-              data-testid="button-list-club-nav"
-            >
-              List Your Club
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="md:hidden"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              data-testid="button-mobile-menu"
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl"
-          >
-            <div className="px-4 py-3 flex flex-col gap-1">
-              <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("clubs")} data-testid="link-clubs-mobile">
-                Explore Clubs
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase text-muted-foreground px-3 py-1 bg-primary/10 rounded-full">
+                Tirupati
+              </span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={toggleTheme}
+                data-testid="button-theme-toggle"
+              >
+                {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </Button>
-              <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("process")} data-testid="link-process-mobile">
-                How It Works
-              </Button>
-              <Button size="sm" className="mt-2 rounded-full" onClick={() => scrollTo("organizer")} data-testid="button-list-club-mobile">
+              {user ? (
+                <div className="hidden sm:flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground" data-testid="text-user-name">{user.name}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full text-xs"
+                    onClick={logout}
+                    data-testid="button-sign-out"
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full hidden sm:inline-flex"
+                  onClick={() => setShowSignIn(true)}
+                  data-testid="button-sign-in"
+                >
+                  Sign In
+                </Button>
+              )}
+              <Button
+                size="sm"
+                className="rounded-full hidden sm:inline-flex"
+                onClick={() => scrollTo("organizer")}
+                data-testid="button-list-club-nav"
+              >
                 List Your Club
               </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="md:hidden"
+                onClick={() => setMobileOpen(!mobileOpen)}
+                data-testid="button-mobile-menu"
+              >
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl"
+            >
+              <div className="px-4 py-3 flex flex-col gap-1">
+                <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("clubs")} data-testid="link-clubs-mobile">
+                  Explore Clubs
+                </Button>
+                <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("process")} data-testid="link-process-mobile">
+                  How It Works
+                </Button>
+                {user ? (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm font-medium" data-testid="text-user-name-mobile">{user.name}</span>
+                    <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={logout} data-testid="button-sign-out-mobile">
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" className="justify-start" onClick={() => { setShowSignIn(true); setMobileOpen(false); }} data-testid="button-sign-in-mobile">
+                    Sign In
+                  </Button>
+                )}
+                <Button size="sm" className="mt-2 rounded-full" onClick={() => scrollTo("organizer")} data-testid="button-list-club-mobile">
+                  List Your Club
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+
+      <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
+    </>
   );
 }

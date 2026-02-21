@@ -36,6 +36,7 @@ export const joinRequests = pgTable("join_requests", {
   clubName: text("club_name").notNull(),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
+  markedDone: boolean("marked_done").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -46,6 +47,7 @@ export const clubSubmissions = pgTable("club_submissions", {
   whatsappNumber: text("whatsapp_number").notNull(),
   category: text("category").notNull(),
   meetupFrequency: text("meetup_frequency"),
+  markedDone: boolean("marked_done").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -53,6 +55,8 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  phone: text("phone"),
+  name: text("name"),
 });
 
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
