@@ -81,7 +81,7 @@ export function HeroSection() {
             { value: "10+", label: "Active Clubs" },
             { value: "500+", label: "Members" },
             { value: "Free", label: "To Join" },
-            { value: "8%", label: "Commission Only" },
+            { value: "7", label: "Categories" },
           ].map((stat) => (
             <div key={stat.label} className="text-center" data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, '-')}`}>
               <div className="text-2xl sm:text-3xl font-bold text-foreground">{stat.value}</div>

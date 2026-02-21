@@ -4,7 +4,6 @@ import { Check, X, Sparkles } from "lucide-react";
 const FEATURES = [
   { label: "Tirupati / Tier 2 cities", meetup: false, misfits: false, sangh: "Only us" },
   { label: "Free for organizers", meetup: false, misfits: "Partial", sangh: "Always" },
-  { label: "Commission rate", meetup: "High", misfits: "30-40%", sangh: "8% only" },
   { label: "Club Health Score", meetup: false, misfits: false, sangh: true },
   { label: "Founding Member badges", meetup: false, misfits: false, sangh: true },
   { label: "Organizer reputation", meetup: false, misfits: false, sangh: true },

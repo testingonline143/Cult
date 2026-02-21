@@ -80,7 +80,7 @@ export function OrganizerSection() {
                   List your club free. Get discovered by hundreds of people actively looking for exactly what you're building. No fees, no complexity.
                 </p>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm mb-6">
-                  {["Free forever", "5 minute setup", "More members", "8% commission only"].map((perk) => (
+                  {["Free forever", "5 minute setup", "More members", "Get discovered"].map((perk) => (
                     <span key={perk} className="inline-flex items-center gap-1.5 text-primary font-medium">
                       <Check className="w-4 h-4" />
                       {perk}
