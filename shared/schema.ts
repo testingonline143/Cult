@@ -6,29 +6,46 @@ import { z } from "zod";
 export const clubs = pgTable("clubs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  description: text("description").notNull(),
   category: text("category").notNull(),
   emoji: text("emoji").notNull(),
-  schedule: text("schedule").notNull(),
+  shortDesc: text("short_desc").notNull(),
+  fullDesc: text("full_desc").notNull(),
+  organizerName: text("organizer_name").notNull(),
+  organizerYears: text("organizer_years"),
+  organizerAvatar: text("organizer_avatar"),
+  organizerResponse: text("organizer_response"),
   memberCount: integer("member_count").notNull().default(0),
-  meetingPoint: text("meeting_point").notNull(),
-  activityLevel: text("activity_level").notNull().default("Moderate"),
-  foundingSpots: integer("founding_spots"),
+  schedule: text("schedule").notNull(),
+  location: text("location").notNull(),
+  activeSince: text("active_since"),
+  whatsappNumber: text("whatsapp_number"),
+  healthStatus: text("health_status").notNull().default("green"),
+  healthLabel: text("health_label").notNull().default("Very Active"),
+  lastActive: text("last_active"),
+  foundingTaken: integer("founding_taken").default(0),
+  foundingTotal: integer("founding_total").default(20),
+  bgColor: text("bg_color"),
   timeOfDay: text("time_of_day").notNull().default("morning"),
-  imageUrl: text("image_url"),
-  organizerName: text("organizer_name"),
-  organizerYears: integer("organizer_years"),
-  responseTime: text("response_time"),
-  lastMet: text("last_met"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const joinRequests = pgTable("join_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  clubName: text("club_name").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const clubSubmissions = pgTable("club_submissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clubName: text("club_name").notNull(),
   organizerName: text("organizer_name").notNull(),
-  phone: text("phone").notNull(),
+  whatsappNumber: text("whatsapp_number").notNull(),
   category: text("category").notNull(),
-  description: text("description"),
+  meetupFrequency: text("meetup_frequency"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -38,12 +55,15 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
-export const insertClubSchema = createInsertSchema(clubs).omit({ id: true });
+export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
+export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertClubSubmissionSchema = createInsertSchema(clubSubmissions).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, password: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
+export type JoinRequest = typeof joinRequests.$inferSelect;
+export type InsertJoinRequest = z.infer<typeof insertJoinRequestSchema>;
 export type ClubSubmission = typeof clubSubmissions.$inferSelect;
 export type InsertClubSubmission = z.infer<typeof insertClubSubmissionSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -56,19 +76,6 @@ export const CATEGORIES = [
   "Photography",
   "Fitness",
   "Art",
-  "Writing",
-  "Music",
 ] as const;
-
-export const CATEGORY_EMOJIS: Record<string, string> = {
-  Trekking: "mountain",
-  Books: "book-open",
-  Cycling: "bike",
-  Photography: "camera",
-  Fitness: "dumbbell",
-  Art: "palette",
-  Writing: "pen-tool",
-  Music: "music",
-};
 
 export type Category = (typeof CATEGORIES)[number];

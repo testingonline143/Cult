@@ -1,10 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Check, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -15,9 +13,9 @@ import { insertClubSubmissionSchema, CATEGORIES } from "@shared/schema";
 import { z } from "zod";
 
 const formSchema = insertClubSubmissionSchema.extend({
-  clubName: z.string().min(2, "Club name must be at least 2 characters"),
+  clubName: z.string().min(3, "Club name must be at least 3 characters"),
   organizerName: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  whatsappNumber: z.string().min(10, "Please enter a valid WhatsApp number"),
   category: z.string().min(1, "Please select a category"),
 });
 
@@ -33,9 +31,9 @@ export function OrganizerSection() {
     defaultValues: {
       clubName: "",
       organizerName: "",
-      phone: "",
+      whatsappNumber: "",
       category: "",
-      description: "",
+      meetupFrequency: "",
     },
   });
 
@@ -52,6 +50,16 @@ export function OrganizerSection() {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
+
+  useEffect(() => {
+    if (submitted) {
+      const timer = setTimeout(() => {
+        setSubmitted(false);
+        setShowForm(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [submitted]);
 
   const onSubmit = (data: FormValues) => {
     submitMutation.mutate(data);
@@ -88,7 +96,7 @@ export function OrganizerSection() {
 
             <AnimatePresence mode="wait">
               {!showForm && !submitted && (
-                <motion.div key="cta" exit={{ opacity: 0 }}>
+                <motion.div key="cta" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                   <button
                     onClick={() => setShowForm(true)}
                     className="bg-primary text-primary-foreground rounded-full px-9 py-4 text-[15px] font-semibold transition-all"
@@ -104,7 +112,8 @@ export function OrganizerSection() {
                   key="form"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   className="max-w-[400px] mx-auto text-left"
                 >
                   <Form {...form}>
@@ -145,14 +154,15 @@ export function OrganizerSection() {
                       />
                       <FormField
                         control={form.control}
-                        name="phone"
+                        name="whatsappNumber"
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
                               <Input
                                 placeholder="WhatsApp Number"
+                                type="tel"
                                 className="rounded-xl"
-                                data-testid="input-phone"
+                                data-testid="input-whatsapp"
                                 {...field}
                               />
                             </FormControl>
@@ -184,15 +194,14 @@ export function OrganizerSection() {
                       />
                       <FormField
                         control={form.control}
-                        name="description"
+                        name="meetupFrequency"
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Textarea
-                                placeholder="Tell us about your club..."
-                                className="resize-none rounded-xl"
-                                rows={3}
-                                data-testid="input-description"
+                              <Input
+                                placeholder="Meetup Frequency (e.g. Every Sunday)"
+                                className="rounded-xl"
+                                data-testid="input-meetup-frequency"
                                 {...field}
                                 value={field.value ?? ""}
                               />

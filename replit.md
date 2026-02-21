@@ -28,9 +28,10 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **Framework**: Express 5 on Node.js with TypeScript (run via tsx)
 - **API Pattern**: RESTful JSON API under `/api/` prefix
 - **Endpoints**:
-  - `GET /api/clubs` — list all clubs
-  - `GET /api/clubs/:id` — get single club
-  - `POST /api/club-submissions` — submit a new club (organizer form)
+  - `GET /api/clubs` — list all clubs (supports `?category=` query param for filtering)
+  - `GET /api/clubs/:id` — get single club with full details
+  - `POST /api/join` — submit a join request (body: clubId, clubName, name, phone)
+  - `POST /api/club-submissions` — submit a new club (body: clubName, organizerName, whatsappNumber, category, meetupFrequency?)
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`
@@ -40,8 +41,9 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **ORM**: Drizzle ORM with `drizzle-orm/node-postgres` driver
 - **Schema Location**: `shared/schema.ts` — shared between client and server
 - **Tables**:
-  - `clubs` — id (UUID), name, description, category, emoji, schedule, memberCount, meetingPoint, activityLevel, foundingSpots, timeOfDay, imageUrl
-  - `club_submissions` — id (UUID), clubName, organizerName, phone, category, description, createdAt
+  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, createdAt
+  - `join_requests` — id (UUID), clubId, clubName, name, phone, createdAt
+  - `club_submissions` — id (UUID), clubName, organizerName, whatsappNumber, category, meetupFrequency, createdAt
   - `users` — id (UUID), username, password (exists but not actively used for auth yet)
 - **Migrations**: Drizzle Kit with `drizzle-kit push` command (schema-push approach, no migration files)
 - **Seeding**: `server/seed.ts` contains hardcoded club data for initial population
