@@ -2,13 +2,14 @@
 
 ## Overview
 
-Sangh is a club discovery platform specifically built for Tirupati, India. It helps users find and join local community clubs (trekking, books, cycling, photography, fitness, art, etc.). The app features a single-page landing experience with club browsing, a matcher tool to find clubs by interest/schedule, a comparison section against competitors, and a form for organizers to submit new clubs.
+Sangh is a club discovery platform specifically built for Tirupati, India. It helps users find and join local community clubs (trekking, books, cycling, photography, fitness, art, etc.). The app features a single-page landing experience with an integrated matcher widget in the hero, club browsing with emoji-based cards, a process section, and a form for organizers to submit new clubs.
 
 The project follows a full-stack TypeScript monorepo pattern with a React frontend, Express backend, and PostgreSQL database.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML reference. Uses Fraunces serif for headings and Instrument Sans for body text. Forest green primary with cream/paper backgrounds and clay accents. Emojis used extensively for category icons, step icons, and decorative elements. No commission/pricing mentions. No comparison table section.
 
 ## System Architecture
 

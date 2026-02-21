@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
-import { MatcherSection } from "@/components/matcher-section";
 import { ClubsSection } from "@/components/clubs-section";
 import { ProcessSection } from "@/components/process-section";
 import { OrganizerSection } from "@/components/organizer-section";
@@ -27,8 +26,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <HeroSection />
-      <MatcherSection onMatch={handleMatch} />
+      <HeroSection onMatch={handleMatch} />
       <ClubsSection
         clubs={clubs}
         isLoading={isLoading}

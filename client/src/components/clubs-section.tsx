@@ -2,17 +2,16 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClubCard } from "@/components/club-card";
-import { Leaf, Mountain, BookOpen, Bike, Camera, Dumbbell, Palette } from "lucide-react";
 import type { Club } from "@shared/schema";
 
 const FILTER_TABS = [
-  { id: "All", label: "All", icon: Leaf },
-  { id: "Trekking", label: "Trekking", icon: Mountain },
-  { id: "Books", label: "Books", icon: BookOpen },
-  { id: "Cycling", label: "Cycling", icon: Bike },
-  { id: "Photography", label: "Photography", icon: Camera },
-  { id: "Fitness", label: "Fitness", icon: Dumbbell },
-  { id: "Art", label: "Art", icon: Palette },
+  { id: "All", emoji: "\u{1F33F}" },
+  { id: "Trekking", emoji: "\u{1F3D4}\uFE0F" },
+  { id: "Books", emoji: "\u{1F4DA}" },
+  { id: "Cycling", emoji: "\u{1F6B4}" },
+  { id: "Photography", emoji: "\u{1F4F7}" },
+  { id: "Fitness", emoji: "\u{1F4AA}" },
+  { id: "Art", emoji: "\u{1F3A8}" },
 ];
 
 interface ClubsSectionProps {
@@ -28,17 +27,20 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
     : clubs.filter((c) => c.category === activeCategory);
 
   return (
-    <section id="clubs" className="py-20 sm:py-28">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <section id="clubs" className="py-16 sm:py-24">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-10"
+          className="mb-10"
         >
-          <p className="text-sm font-medium text-primary mb-3">Explore</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase text-primary mb-3">
+            <span className="w-5 h-px bg-primary" />
+            Explore
+          </div>
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-primary leading-tight">
             All Clubs in Tirupati
           </h2>
         </motion.div>
@@ -48,22 +50,23 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex flex-wrap gap-2 justify-center mb-10"
+          className="flex flex-wrap gap-2 mb-9"
         >
           {FILTER_TABS.map((tab) => {
             const isActive = activeCategory === tab.id;
-            const Icon = tab.icon;
             return (
-              <Button
+              <button
                 key={tab.id}
-                variant={isActive ? "default" : "outline"}
-                size="sm"
                 onClick={() => onCategoryChange(tab.id)}
+                className={`px-4 py-2 rounded-full border-[1.5px] text-[13px] font-medium flex items-center gap-1.5 transition-all ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-muted-foreground"
+                }`}
                 data-testid={`button-filter-${tab.id.toLowerCase()}`}
               >
-                <Icon className="w-4 h-4 mr-1.5" />
-                {tab.label}
-              </Button>
+                {tab.emoji} {tab.id}
+              </button>
             );
           })}
         </motion.div>
@@ -71,9 +74,9 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-md border border-border p-6 space-y-4">
+              <div key={i} className="rounded-2xl border border-border p-5 space-y-4 bg-card">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="w-10 h-10 rounded-md" />
+                  <Skeleton className="w-[52px] h-[52px] rounded-[14px]" />
                   <Skeleton className="h-5 w-24" />
                 </div>
                 <Skeleton className="h-5 w-48" />
@@ -97,7 +100,7 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
             <p className="text-sm text-muted-foreground">
               Want to start one?{" "}
               <Button
-                variant="link"
+                variant="ghost"
                 size="sm"
                 onClick={() => document.getElementById("organizer")?.scrollIntoView({ behavior: "smooth" })}
                 data-testid="button-list-club-empty"
