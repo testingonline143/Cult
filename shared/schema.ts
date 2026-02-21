@@ -16,6 +16,10 @@ export const clubs = pgTable("clubs", {
   foundingSpots: integer("founding_spots"),
   timeOfDay: text("time_of_day").notNull().default("morning"),
   imageUrl: text("image_url"),
+  organizerName: text("organizer_name"),
+  organizerYears: integer("organizer_years"),
+  responseTime: text("response_time"),
+  lastMet: text("last_met"),
 });
 
 export const clubSubmissions = pgTable("club_submissions", {

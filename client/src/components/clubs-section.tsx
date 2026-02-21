@@ -19,9 +19,10 @@ interface ClubsSectionProps {
   isLoading: boolean;
   activeCategory: string;
   onCategoryChange: (category: string) => void;
+  onViewClub?: (club: Club) => void;
 }
 
-export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChange }: ClubsSectionProps) {
+export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChange, onViewClub }: ClubsSectionProps) {
   const filteredClubs = activeCategory === "All"
     ? clubs
     : clubs.filter((c) => c.category === activeCategory);
@@ -112,7 +113,7 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredClubs.map((club, i) => (
-              <ClubCard key={club.id} club={club} index={i} />
+              <ClubCard key={club.id} club={club} index={i} onViewClub={onViewClub} />
             ))}
           </div>
         )}

@@ -6,10 +6,12 @@ import { ClubsSection } from "@/components/clubs-section";
 import { ProcessSection } from "@/components/process-section";
 import { OrganizerSection } from "@/components/organizer-section";
 import { Footer } from "@/components/footer";
+import { ClubDetailModal } from "@/components/club-detail-modal";
 import type { Club } from "@shared/schema";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
 
   const { data: clubs = [], isLoading } = useQuery<Club[]>({
     queryKey: ["/api/clubs"],
@@ -32,10 +34,12 @@ export default function Home() {
         isLoading={isLoading}
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
+        onViewClub={setSelectedClub}
       />
       <ProcessSection />
       <OrganizerSection />
       <Footer />
+      <ClubDetailModal club={selectedClub} onClose={() => setSelectedClub(null)} />
     </div>
   );
 }

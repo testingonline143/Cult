@@ -33,9 +33,10 @@ const HEALTH_STYLES: Record<string, { dot: string; bg: string; text: string }> =
 interface ClubCardProps {
   club: Club;
   index: number;
+  onViewClub?: (club: Club) => void;
 }
 
-export function ClubCard({ club, index }: ClubCardProps) {
+export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
   const emoji = CATEGORY_EMOJIS[club.category] || "\u{1F33F}";
   const emojiBg = CATEGORY_BG[club.category] || "bg-muted";
   const health = HEALTH_STYLES[club.activityLevel] || HEALTH_STYLES["Moderate"];
@@ -104,6 +105,7 @@ export function ClubCard({ club, index }: ClubCardProps) {
             <button
               className="flex-1 bg-primary text-primary-foreground rounded-[10px] py-2.5 text-[13px] font-semibold transition-all"
               data-testid={`button-view-club-${club.id}`}
+              onClick={() => onViewClub?.(club)}
             >
               View Club →
             </button>
