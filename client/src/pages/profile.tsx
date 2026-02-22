@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
-import { ArrowLeft, Edit2, Check, X } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin } from "lucide-react";
 
 export default function Profile() {
   const { user, login } = useAuth();
@@ -29,6 +29,7 @@ export default function Profile() {
         </a>
 
         <ProfileHeader user={user} onUpdate={login} />
+        <UserEvents userId={user.id} />
         <JoinedClubs userId={user.id} />
       </div>
     </div>
@@ -120,6 +121,71 @@ function ProfileHeader({ user, onUpdate }: { user: { id: string; name: string; p
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface UserRsvp {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  eventStartsAt: string;
+  eventLocation: string;
+  clubName: string;
+  clubEmoji: string;
+  status: string;
+}
+
+function UserEvents({ userId }: { userId: string }) {
+  const { data: rsvps = [], isLoading } = useQuery<UserRsvp[]>({
+    queryKey: ["/api/user/events", userId],
+    queryFn: async () => {
+      const res = await fetch("/api/user/events", {
+        headers: { "x-user-id": userId },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const upcomingRsvps = rsvps.filter((r) => new Date(r.eventStartsAt) > new Date());
+
+  if (isLoading || upcomingRsvps.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="font-serif text-lg font-bold text-foreground mb-4" data-testid="text-your-events-title">
+        Your Upcoming Events ({upcomingRsvps.length})
+      </h2>
+      <div className="space-y-2" data-testid="list-user-events">
+        {upcomingRsvps.map((rsvp) => {
+          const d = new Date(rsvp.eventStartsAt);
+          return (
+            <div
+              key={rsvp.id}
+              className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl"
+              data-testid={`card-rsvp-event-${rsvp.eventId}`}
+            >
+              <div className="text-2xl shrink-0">{rsvp.clubEmoji}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-foreground">{rsvp.eventTitle}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{rsvp.clubName}</div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {rsvp.eventLocation}
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-green-600 dark:text-green-400 shrink-0">Going ✓</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

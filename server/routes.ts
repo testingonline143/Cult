@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClubSubmissionSchema, insertJoinRequestSchema, CATEGORY_EMOJI } from "@shared/schema";
+import { insertClubSubmissionSchema, insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -14,9 +14,9 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.get("/api/clubs", async (req, res) => {
     try {
-      const category = req.query.category as string | undefined;
-      if (category && category !== "all") {
-        const clubs = await storage.getClubsByCategory(category);
+      const { category, search, city, vibe } = req.query as Record<string, string | undefined>;
+      if (search || city || vibe || (category && category !== "all")) {
+        const clubs = await storage.searchClubs({ search, category, city, vibe });
         return res.json(clubs);
       }
       const clubs = await storage.getClubs();
@@ -127,6 +127,8 @@ export async function registerRoutes(
         memberCount: 1,
         schedule: submission.meetupFrequency || "To be announced",
         location: "Tirupati",
+        city: "Tirupati",
+        vibe: "casual",
         activeSince: new Date().getFullYear().toString(),
         whatsappNumber: submission.whatsappNumber,
         healthStatus: "green",
@@ -179,7 +181,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/verify-otp", async (req, res) => {
     try {
-      const { phone, otp, name } = req.body;
+      const { phone, otp, name, city } = req.body;
       if (!phone || !otp) {
         return res.status(400).json({ success: false, message: "Phone and OTP required" });
       }
@@ -189,7 +191,20 @@ export async function registerRoutes(
       }
       otpStore.delete(phone);
       const user = await storage.createOrUpdateUserByPhone(phone, name || "User");
-      res.json({ success: true, user: { id: user.id, name: user.name, phone: user.phone } });
+      if (city) {
+        await storage.updateUser(user.id, { city });
+      }
+      const quizAnswers = await storage.getQuizAnswers(user.id);
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          city: city || user.city,
+          quizCompleted: !!quizAnswers || user.quizCompleted,
+        },
+      });
     } catch (err) {
       console.error("Error verifying OTP:", err);
       res.status(500).json({ success: false, message: "Failed to verify OTP" });
@@ -234,6 +249,179 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error updating profile:", err);
       res.status(500).json({ success: false, message: "Failed to update profile" });
+    }
+  });
+
+  // Quiz routes
+  app.post("/api/quiz", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const validated = insertQuizAnswersSchema.parse({ ...req.body, userId });
+      const answers = await storage.saveQuizAnswers(validated);
+      await storage.updateUser(userId, { quizCompleted: true });
+      if (req.body.city) {
+        await storage.updateUser(userId, { city: req.body.city });
+      }
+      res.json({ success: true, answers });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const validationError = fromZodError(err);
+        return res.status(400).json({ success: false, message: validationError.message });
+      }
+      console.error("Error saving quiz:", err);
+      res.status(500).json({ success: false, message: "Failed to save quiz answers" });
+    }
+  });
+
+  app.get("/api/quiz/matches", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const quizAnswers = await storage.getQuizAnswers(userId);
+      if (!quizAnswers) {
+        return res.status(404).json({ message: "No quiz answers found" });
+      }
+      const user = await storage.getUser(userId);
+      const allClubs = await storage.getClubs();
+      const scored = allClubs.map((club) => {
+        let score = 0;
+        const interestMatch = quizAnswers.interests.some(
+          (i) => i.toLowerCase() === club.category.toLowerCase()
+        );
+        if (interestMatch) score += 50;
+        if (club.vibe === quizAnswers.vibePreference) score += 25;
+        if (user?.city && club.city === user.city) score += 15;
+        if (club.memberCount > 0) score += Math.min(10, club.memberCount);
+        return { ...club, matchScore: Math.min(score, 99) };
+      });
+      scored.sort((a, b) => b.matchScore - a.matchScore);
+      res.json(scored.slice(0, 6));
+    } catch (err) {
+      console.error("Error fetching matches:", err);
+      res.status(500).json({ message: "Failed to fetch matches" });
+    }
+  });
+
+  // Event routes
+  app.get("/api/events", async (req, res) => {
+    try {
+      const city = req.query.city as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const events = await storage.getUpcomingEvents(city, limit);
+      res.json(events);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      const rsvps = await storage.getRsvpsByEvent(event.id);
+      const club = await storage.getClub(event.clubId);
+      res.json({ ...event, rsvps, club });
+    } catch (err) {
+      console.error("Error fetching event:", err);
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  app.get("/api/clubs/:id/events", async (req, res) => {
+    try {
+      const clubEvents = await storage.getEventsByClub(req.params.id);
+      const eventsWithRsvps = await Promise.all(
+        clubEvents.map(async (event) => {
+          const rsvpCount = await storage.getRsvpCount(event.id);
+          return { ...event, rsvpCount };
+        })
+      );
+      res.json(eventsWithRsvps);
+    } catch (err) {
+      console.error("Error fetching club events:", err);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.post("/api/clubs/:id/events", async (req, res) => {
+    try {
+      const whatsappNumber = req.headers["x-organizer-whatsapp"] as string;
+      if (!whatsappNumber) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const club = await storage.getClub(req.params.id);
+      if (!club) {
+        return res.status(404).json({ success: false, message: "Club not found" });
+      }
+      if (club.whatsappNumber !== whatsappNumber) {
+        return res.status(403).json({ success: false, message: "Not authorized for this club" });
+      }
+      const eventData = {
+        title: req.body.title,
+        description: req.body.description || "",
+        clubId: req.params.id,
+        startsAt: new Date(req.body.startsAt),
+        endsAt: req.body.endsAt ? new Date(req.body.endsAt) : null,
+        locationText: req.body.locationText,
+        maxCapacity: parseInt(req.body.maxCapacity) || 20,
+      };
+      const event = await storage.createEvent(eventData);
+      res.status(201).json({ success: true, event });
+    } catch (err) {
+      console.error("Error creating event:", err);
+      res.status(500).json({ success: false, message: "Failed to create event" });
+    }
+  });
+
+  app.post("/api/events/:id/rsvp", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+      const existingRsvp = await storage.getUserRsvp(event.id, userId);
+      if (existingRsvp && existingRsvp.status === "going") {
+        return res.json({ success: true, rsvp: existingRsvp, alreadyRsvpd: true });
+      }
+      const rsvpCount = await storage.getRsvpCount(event.id);
+      if (rsvpCount >= event.maxCapacity) {
+        return res.status(400).json({ success: false, message: "Event is full" });
+      }
+      const rsvp = await storage.createRsvp({ eventId: event.id, userId, status: "going" });
+      res.json({ success: true, rsvp });
+    } catch (err) {
+      console.error("Error creating RSVP:", err);
+      res.status(500).json({ success: false, message: "Failed to RSVP" });
+    }
+  });
+
+  app.delete("/api/events/:id/rsvp", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      await storage.cancelRsvp(req.params.id, userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error cancelling RSVP:", err);
+      res.status(500).json({ success: false, message: "Failed to cancel RSVP" });
     }
   });
 
@@ -305,6 +493,20 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error updating club:", err);
       res.status(500).json({ message: "Failed to update club" });
+    }
+  });
+
+  app.get("/api/user/events", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const rsvps = await storage.getRsvpsByUser(userId);
+      res.json(rsvps);
+    } catch (err) {
+      console.error("Error fetching user events:", err);
+      res.status(500).json({ message: "Failed to fetch events" });
     }
   });
 

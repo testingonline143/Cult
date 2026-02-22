@@ -10,6 +10,9 @@ import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import OrganizerDashboard from "@/pages/organizer";
 import Profile from "@/pages/profile";
+import Onboarding from "@/pages/onboarding";
+import MatchedClubs from "@/pages/matched-clubs";
+import Explore from "@/pages/explore";
 
 function Router() {
   return (
@@ -18,6 +21,9 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/organizer" component={OrganizerDashboard} />
       <Route path="/profile" component={Profile} />
+      <Route path="/onboarding" component={Onboarding} />
+      <Route path="/matched-clubs" component={MatchedClubs} />
+      <Route path="/explore" component={Explore} />
       <Route component={NotFound} />
     </Switch>
   );

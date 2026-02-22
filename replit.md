@@ -47,6 +47,16 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `POST /api/admin/club-submissions/:id/approve` — approve submission and create a live club
   - `GET /api/user/join-requests` — get authenticated user's join requests (requires x-user-id header)
   - `PATCH /api/user/profile` — update authenticated user's name (requires x-user-id header)
+  - `GET /api/events` — list upcoming events (supports ?city=&limit= params)
+  - `GET /api/events/:id` — get single event with rsvps and club info
+  - `GET /api/clubs/:id/events` — get events for a specific club
+  - `POST /api/clubs/:id/events` — create event for a club (organizer use)
+  - `POST /api/events/:id/rsvp` — RSVP to an event (requires x-user-id header)
+  - `DELETE /api/events/:id/rsvp` — cancel RSVP (requires x-user-id header)
+  - `GET /api/user/events` — get authenticated user's RSVP'd events (requires x-user-id header)
+  - `GET /api/clubs/search` — search clubs with filters (search, category, city, vibe)
+  - `POST /api/quiz/submit` — submit quiz answers and get matched clubs
+  - `GET /api/quiz/results/:userId` — get previously saved quiz results
 - **OTP**: Mock OTP system (always 123456) stored in memory Map with 5-minute expiry
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
@@ -83,7 +93,12 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **Member count auto-increment**: Joining a club atomically increments memberCount and foundingTaken (if spots available)
 - **Admin dashboard** (/admin): Password "sangh2026", shows join requests and club submissions with Mark as Done
 - **Phone OTP login**: Mock OTP 123456, localStorage session, pre-fills join forms for logged-in users
-- **Organizer dashboard** (/organizer): WhatsApp + OTP login, club overview, manage join requests, edit club details
+- **Organizer dashboard** (/organizer): WhatsApp + OTP login, club overview, manage join requests, create events, edit club details
+- **Onboarding quiz** (/onboarding): 5-step quiz (interests, experience, vibe, availability, college) → matched clubs page
+- **Explore page** (/explore): Search, category/city/vibe filters, club cards with join
+- **Events system**: Organizers create events, users RSVP, homepage shows upcoming events
+- **Profile page** (/profile): Editable name, joined clubs list, RSVP'd events, request history
+- **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
 
 ## External Dependencies
 

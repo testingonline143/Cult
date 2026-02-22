@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -17,6 +17,8 @@ export const clubs = pgTable("clubs", {
   memberCount: integer("member_count").notNull().default(0),
   schedule: text("schedule").notNull(),
   location: text("location").notNull(),
+  city: text("city").notNull().default("Tirupati"),
+  vibe: text("vibe").notNull().default("casual"),
   activeSince: text("active_since"),
   whatsappNumber: text("whatsapp_number"),
   healthStatus: text("health_status").notNull().default("green"),
@@ -57,12 +59,52 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   phone: text("phone"),
   name: text("name"),
+  city: text("city"),
+  bio: text("bio"),
+  quizCompleted: boolean("quiz_completed").default(false),
+});
+
+export const userQuizAnswers = pgTable("user_quiz_answers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  interests: text("interests").array().notNull(),
+  experienceLevel: text("experience_level").notNull(),
+  vibePreference: text("vibe_preference").notNull(),
+  availability: text("availability").array().notNull(),
+  collegeOrWork: text("college_or_work"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  locationText: text("location_text").notNull(),
+  locationUrl: text("location_url"),
+  startsAt: timestamp("starts_at").notNull(),
+  endsAt: timestamp("ends_at"),
+  maxCapacity: integer("max_capacity").notNull(),
+  coverImageUrl: text("cover_image_url"),
+  isPublic: boolean("is_public").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const eventRsvps = pgTable("event_rsvps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  status: text("status").notNull().default("going"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertClubSubmissionSchema = createInsertSchema(clubSubmissions).omit({ id: true, createdAt: true });
 export const insertUserSchema = createInsertSchema(users).pick({ username: true, password: true });
+export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
+export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
+export const insertEventRsvpSchema = createInsertSchema(eventRsvps).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -72,6 +114,12 @@ export type ClubSubmission = typeof clubSubmissions.$inferSelect;
 export type InsertClubSubmission = z.infer<typeof insertClubSubmissionSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type QuizAnswers = typeof userQuizAnswers.$inferSelect;
+export type InsertQuizAnswers = z.infer<typeof insertQuizAnswersSchema>;
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type EventRsvp = typeof eventRsvps.$inferSelect;
+export type InsertEventRsvp = z.infer<typeof insertEventRsvpSchema>;
 
 export const CATEGORIES = [
   "Trekking",
@@ -80,6 +128,14 @@ export const CATEGORIES = [
   "Photography",
   "Fitness",
   "Art",
+  "Football",
+  "Cricket",
+  "Chess",
+  "Music",
+  "Gaming",
+  "Dance",
+  "Cooking",
+  "Yoga",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
@@ -91,4 +147,37 @@ export const CATEGORY_EMOJI: Record<string, string> = {
   Photography: "📷",
   Fitness: "💪",
   Art: "🎨",
+  Football: "⚽",
+  Cricket: "🏏",
+  Chess: "♟️",
+  Music: "🎵",
+  Gaming: "🎮",
+  Dance: "💃",
+  Cooking: "🍳",
+  Yoga: "🧘",
 };
+
+export const CITIES = [
+  "Tirupati",
+  "Chennai",
+  "Bengaluru",
+  "Hyderabad",
+  "Kochi",
+] as const;
+
+export type City = (typeof CITIES)[number];
+
+export const HOBBY_ICONS: { name: string; emoji: string }[] = [
+  { name: "Football", emoji: "⚽" },
+  { name: "Cricket", emoji: "🏏" },
+  { name: "Chess", emoji: "♟️" },
+  { name: "Music", emoji: "🎵" },
+  { name: "Books", emoji: "📚" },
+  { name: "Gaming", emoji: "🎮" },
+  { name: "Dance", emoji: "💃" },
+  { name: "Photography", emoji: "📷" },
+  { name: "Trekking", emoji: "🏔️" },
+  { name: "Art", emoji: "🎨" },
+  { name: "Cooking", emoji: "🍳" },
+  { name: "Yoga", emoji: "🧘" },
+];

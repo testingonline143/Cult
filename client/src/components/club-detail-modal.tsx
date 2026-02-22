@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { X, Star, Calendar, MapPin, Users } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import type { Club } from "@shared/schema";
@@ -15,6 +15,15 @@ const HEALTH_STYLES: Record<string, { dot: string; text: string }> = {
 interface ClubDetailModalProps {
   club: Club | null;
   onClose: () => void;
+}
+
+interface ClubEvent {
+  id: string;
+  title: string;
+  startsAt: string;
+  locationText: string;
+  maxCapacity: number;
+  rsvpCount: number;
 }
 
 export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
@@ -201,6 +210,8 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
               </div>
             </div>
 
+            <ClubEvents clubId={club.id} userId={user?.id} />
+
             <div className="bg-[hsl(var(--clay))]/[0.06] border border-[hsl(var(--clay))]/15 rounded-xl p-4" data-testid="card-founding">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -301,5 +312,79 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+function ClubEvents({ clubId, userId }: { clubId: string; userId?: string }) {
+  const { data: events = [] } = useQuery<ClubEvent[]>({
+    queryKey: ["/api/clubs", clubId, "events"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/events`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const rsvpMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const res = await fetch(`/api/events/${eventId}/rsvp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-id": userId || "" },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
+    },
+  });
+
+  const upcomingEvents = events.filter((e) => new Date(e.startsAt) > new Date());
+  if (upcomingEvents.length === 0) return null;
+
+  return (
+    <div data-testid="section-club-events">
+      <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+        <Calendar className="w-4 h-4 text-primary" />
+        Upcoming Events
+      </h3>
+      <div className="space-y-2">
+        {upcomingEvents.slice(0, 3).map((event) => {
+          const d = new Date(event.startsAt);
+          const spotsLeft = event.maxCapacity - event.rsvpCount;
+          return (
+            <div key={event.id} className="bg-muted/30 rounded-xl p-3" data-testid={`club-event-${event.id}`}>
+              <div className="font-medium text-sm text-foreground mb-1">{event.title}</div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {event.locationText}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
+                </span>
+                {userId && spotsLeft > 0 && (
+                  <button
+                    onClick={() => rsvpMutation.mutate(event.id)}
+                    disabled={rsvpMutation.isPending}
+                    className="bg-primary text-primary-foreground px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-50"
+                    data-testid={`button-rsvp-club-${event.id}`}
+                  >
+                    Count Me In
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

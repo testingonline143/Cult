@@ -1,9 +1,11 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   name: string;
   phone: string;
+  city?: string;
+  quizCompleted?: boolean;
 }
 
 interface AuthContextType {

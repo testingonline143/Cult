@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
+import { useAuth, type AuthUser } from "@/lib/auth";
+import { CITIES } from "@shared/schema";
 
 interface SignInModalProps {
   open: boolean;
@@ -14,6 +15,7 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
+  const [city, setCity] = useState("Tirupati");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const { login } = useAuth();
@@ -33,11 +35,11 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
   });
 
   const verifyOtpMutation = useMutation({
-    mutationFn: async (data: { phone: string; otp: string; name: string }) => {
+    mutationFn: async (data: { phone: string; otp: string; name: string; city: string }) => {
       const res = await apiRequest("POST", "/api/auth/verify-otp", data);
       return res.json();
     },
-    onSuccess: (data: { success: boolean; user: { id: string; name: string; phone: string } }) => {
+    onSuccess: (data: { success: boolean; user: AuthUser }) => {
       login(data.user);
       resetAndClose();
     },
@@ -50,6 +52,7 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
     setStep("phone");
     setPhone("");
     setName("");
+    setCity("Tirupati");
     setOtp("");
     setError("");
     onClose();
@@ -74,7 +77,7 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
       setError("Enter the 6-digit OTP");
       return;
     }
-    verifyOtpMutation.mutate({ phone, otp, name });
+    verifyOtpMutation.mutate({ phone, otp, name, city });
   };
 
   if (!open) return null;
@@ -107,7 +110,7 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
             <div className="text-3xl mb-2">📱</div>
             <h2 className="font-serif text-xl font-bold text-primary">Sign In</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              {step === "phone" ? "Enter your phone number to get started" : "Enter the 6-digit OTP sent to your phone"}
+              {step === "phone" ? "Enter your details to get started" : "Enter the 6-digit OTP sent to your phone"}
             </p>
           </div>
 
@@ -129,6 +132,16 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 data-testid="input-signin-phone"
               />
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                data-testid="select-signin-city"
+              >
+                {CITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
               {error && <p className="text-xs text-red-500 font-medium" data-testid="text-signin-error">{error}</p>}
               <button
                 onClick={handleSendOtp}

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Club, JoinRequest } from "@shared/schema";
+import { Calendar, MapPin, Users } from "lucide-react";
+import type { Club, JoinRequest, Event } from "@shared/schema";
 
 export default function Organizer() {
   const [whatsapp, setWhatsapp] = useState("");
@@ -9,7 +10,7 @@ export default function Organizer() {
   const [step, setStep] = useState<"phone" | "otp" | "dashboard">("phone");
   const [error, setError] = useState("");
   const [club, setClub] = useState<Club | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "edit">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "events" | "edit">("overview");
 
   const sendOtpMutation = useMutation({
     mutationFn: async (phone: string) => {
@@ -145,20 +146,21 @@ export default function Organizer() {
         </div>
 
         <div className="flex gap-2 mb-6 overflow-x-auto">
-          {(["overview", "requests", "edit"] as const).map((tab) => (
+          {(["overview", "requests", "events", "edit"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
               data-testid={`tab-organizer-${tab}`}
             >
-              {tab === "overview" ? "Overview" : tab === "requests" ? "Join Requests" : "Edit Club"}
+              {tab === "overview" ? "Overview" : tab === "requests" ? "Join Requests" : tab === "events" ? "Events" : "Edit Club"}
             </button>
           ))}
         </div>
 
         {activeTab === "overview" && club && <ClubOverview club={club} />}
         {activeTab === "requests" && club && <OrganizerRequests clubId={club.id} />}
+        {activeTab === "events" && club && <OrganizerEvents clubId={club.id} whatsapp={whatsapp} />}
         {activeTab === "edit" && club && <EditClub club={club} onUpdate={setClub} />}
       </div>
     </div>
@@ -266,6 +268,192 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function OrganizerEvents({ clubId, whatsapp }: { clubId: string; whatsapp: string }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [locationText, setLocationText] = useState("");
+  const [maxCapacity, setMaxCapacity] = useState("20");
+  const [createError, setCreateError] = useState("");
+
+  const { data: events = [], isLoading } = useQuery<(Event & { rsvpCount: number })[]>({
+    queryKey: ["/api/clubs", clubId, "events"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/events`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number }) => {
+      const res = await fetch(`/api/clubs/${clubId}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-organizer-whatsapp": whatsapp },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Failed" }));
+        throw new Error(err.message || "Failed to create event");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setShowCreate(false);
+      setTitle("");
+      setDescription("");
+      setStartsAt("");
+      setLocationText("");
+      setMaxCapacity("20");
+      setCreateError("");
+    },
+    onError: (err: Error) => {
+      setCreateError(err.message || "Failed to create event");
+    },
+  });
+
+  const handleCreate = () => {
+    if (!title.trim() || !startsAt || !locationText.trim()) return;
+    createMutation.mutate({
+      title: title.trim(),
+      description: description.trim(),
+      startsAt,
+      locationText: locationText.trim(),
+      maxCapacity: parseInt(maxCapacity) || 20,
+    });
+  };
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
+
+  return (
+    <div className="space-y-4" data-testid="section-organizer-events">
+      <button
+        onClick={() => setShowCreate(!showCreate)}
+        className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold"
+        data-testid="button-create-event"
+      >
+        {showCreate ? "Cancel" : "+ Create Event"}
+      </button>
+
+      {showCreate && (
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-3" data-testid="form-create-event">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Event Title</label>
+            <input
+              type="text"
+              placeholder="Weekend Trek to Talakona"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              data-testid="input-event-title"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Description</label>
+            <textarea
+              placeholder="What's this event about?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              data-testid="input-event-desc"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date & Time</label>
+              <input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                data-testid="input-event-datetime"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Max Capacity</label>
+              <input
+                type="number"
+                value={maxCapacity}
+                onChange={(e) => setMaxCapacity(e.target.value)}
+                min="2"
+                max="500"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                data-testid="input-event-capacity"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
+            <input
+              type="text"
+              placeholder="Sri Venkateswara University Ground"
+              value={locationText}
+              onChange={(e) => setLocationText(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              data-testid="input-event-location"
+            />
+          </div>
+          {createError && <p className="text-xs text-red-500 font-medium text-center" data-testid="text-event-error">{createError}</p>}
+          <button
+            onClick={handleCreate}
+            disabled={createMutation.isPending || !title.trim() || !startsAt || !locationText.trim()}
+            className="w-full bg-[hsl(var(--clay))] text-white rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
+            data-testid="button-submit-event"
+          >
+            {createMutation.isPending ? "Creating..." : "Create Event"}
+          </button>
+        </div>
+      )}
+
+      {events.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground" data-testid="text-no-events">
+          No events yet. Create one to engage your members!
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {events.map((event) => {
+            const d = new Date(event.startsAt);
+            const isPast = d < new Date();
+            return (
+              <div
+                key={event.id}
+                className={`bg-card border border-border rounded-xl p-4 ${isPast ? "opacity-50" : ""}`}
+                data-testid={`event-card-${event.id}`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="font-semibold text-sm text-foreground">{event.title}</div>
+                  {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-muted rounded-full text-muted-foreground">Past</span>}
+                </div>
+                {event.description && (
+                  <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
+                )}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {event.locationText}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {event.rsvpCount}/{event.maxCapacity}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

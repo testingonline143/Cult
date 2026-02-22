@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import { Moon, Sun, Menu, X, Compass } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
@@ -22,18 +22,28 @@ export function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/88 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => scrollTo("hero")}
-              className="flex items-center gap-2"
-              data-testid="link-home"
-            >
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-xl font-serif font-black text-primary tracking-tight">Sangh</span>
-            </button>
+            <div className="flex items-center gap-4">
+              <a
+                href="/"
+                className="flex items-center gap-2"
+                data-testid="link-home"
+              >
+                <span className="w-2 h-2 rounded-full bg-primary" />
+                <span className="text-xl font-serif font-black text-primary tracking-tight">Sangh</span>
+              </a>
+              <a
+                href="/explore"
+                className="hidden sm:flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                data-testid="link-explore"
+              >
+                <Compass className="w-4 h-4" />
+                Explore
+              </a>
+            </div>
 
             <div className="flex items-center gap-3">
               <span className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase text-muted-foreground px-3 py-1 bg-primary/10 rounded-full">
-                Tirupati
+                {user?.city || "Tirupati"}
               </span>
               <Button
                 size="icon"
@@ -103,9 +113,10 @@ export function Navbar() {
               className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl"
             >
               <div className="px-4 py-3 flex flex-col gap-1">
-                <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("clubs")} data-testid="link-clubs-mobile">
+                <a href="/explore" className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary px-3 py-1.5" onClick={() => setMobileOpen(false)} data-testid="link-explore-mobile">
+                  <Compass className="w-4 h-4" />
                   Explore Clubs
-                </Button>
+                </a>
                 <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("process")} data-testid="link-process-mobile">
                   How It Works
                 </Button>
@@ -114,6 +125,11 @@ export function Navbar() {
                     <a href="/profile" className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3 py-1.5" data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>
                       My Profile ({user.name})
                     </a>
+                    {!user.quizCompleted && (
+                      <a href="/onboarding" className="text-sm font-medium text-primary px-3 py-1.5" data-testid="link-quiz-mobile" onClick={() => setMobileOpen(false)}>
+                        Take Quiz 🎯
+                      </a>
+                    )}
                     <Button size="sm" variant="outline" className="rounded-full text-xs self-start" onClick={logout} data-testid="button-sign-out-mobile">
                       Sign Out
                     </Button>
