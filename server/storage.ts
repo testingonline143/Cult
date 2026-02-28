@@ -46,6 +46,9 @@ export interface IStorage {
   getRsvpCount(eventId: string): Promise<number>;
   getRsvpsByUser(userId: string): Promise<(EventRsvp & { eventTitle: string; eventStartsAt: Date; eventLocation: string; clubName: string; clubEmoji: string })[]>;
   getStats(): Promise<{ totalMembers: number; totalClubs: number; upcomingEvents: number }>;
+  checkInRsvp(eventId: string, userId: string): Promise<EventRsvp | undefined>;
+  getCheckedInCount(eventId: string): Promise<number>;
+  getEventAttendees(eventId: string): Promise<(EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -288,6 +291,8 @@ export class DatabaseStorage implements IStorage {
       eventId: eventRsvps.eventId,
       userId: eventRsvps.userId,
       status: eventRsvps.status,
+      checkedIn: eventRsvps.checkedIn,
+      checkedInAt: eventRsvps.checkedInAt,
       createdAt: eventRsvps.createdAt,
       userName: users.name,
     })
@@ -317,6 +322,8 @@ export class DatabaseStorage implements IStorage {
         eventId: eventRsvps.eventId,
         userId: eventRsvps.userId,
         status: eventRsvps.status,
+        checkedIn: eventRsvps.checkedIn,
+        checkedInAt: eventRsvps.checkedInAt,
         createdAt: eventRsvps.createdAt,
         eventTitle: events.title,
         eventStartsAt: events.startsAt,
@@ -351,6 +358,38 @@ export class DatabaseStorage implements IStorage {
       totalClubs: clubsResult?.count ?? 0,
       upcomingEvents: eventsResult?.count ?? 0,
     };
+  }
+
+  async checkInRsvp(eventId: string, userId: string): Promise<EventRsvp | undefined> {
+    const [updated] = await db.update(eventRsvps)
+      .set({ checkedIn: true, checkedInAt: new Date() })
+      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.userId, userId), eq(eventRsvps.status, "going")))
+      .returning();
+    return updated;
+  }
+
+  async getCheckedInCount(eventId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(eventRsvps)
+      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.checkedIn, true)));
+    return result?.count ?? 0;
+  }
+
+  async getEventAttendees(eventId: string): Promise<(EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null })[]> {
+    const results = await db.select({
+      id: eventRsvps.id,
+      eventId: eventRsvps.eventId,
+      userId: eventRsvps.userId,
+      status: eventRsvps.status,
+      checkedIn: eventRsvps.checkedIn,
+      checkedInAt: eventRsvps.checkedInAt,
+      createdAt: eventRsvps.createdAt,
+      userName: users.name,
+    })
+      .from(eventRsvps)
+      .leftJoin(users, eq(eventRsvps.userId, users.id))
+      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.status, "going")));
+    return results;
   }
 }
 

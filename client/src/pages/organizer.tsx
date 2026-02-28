@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Calendar, MapPin, Users } from "lucide-react";
-import type { Club, JoinRequest, Event } from "@shared/schema";
+import { Calendar, MapPin, Users, QrCode, Check } from "lucide-react";
+import type { Club, JoinRequest, Event, EventRsvp } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import QRCodeLib from "qrcode";
 
 export default function Organizer() {
   const [whatsapp, setWhatsapp] = useState("");
@@ -419,42 +427,152 @@ function OrganizerEvents({ clubId, whatsapp }: { clubId: string; whatsapp: strin
         </div>
       ) : (
         <div className="space-y-2">
-          {events.map((event) => {
-            const d = new Date(event.startsAt);
-            const isPast = d < new Date();
-            return (
-              <div
-                key={event.id}
-                className={`bg-card border border-border rounded-xl p-4 ${isPast ? "opacity-50" : ""}`}
-                data-testid={`event-card-${event.id}`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="font-semibold text-sm text-foreground">{event.title}</div>
-                  {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-muted rounded-full text-muted-foreground">Past</span>}
-                </div>
-                {event.description && (
-                  <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
-                )}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {event.locationText}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {event.rsvpCount}/{event.maxCapacity}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} whatsapp={whatsapp} />
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
+
+function EventCard({ event, whatsapp }: { event: Event & { rsvpCount: number }; whatsapp: string }) {
+  const [showQr, setShowQr] = useState(false);
+  const [showAttendees, setShowAttendees] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const d = new Date(event.startsAt);
+  const isPast = d < new Date();
+
+  const { data: attendeeData } = useQuery<{ attendees: AttendeeData[]; checkedInCount: number; totalRsvps: number }>({
+    queryKey: ["/api/events", event.id, "attendees"],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${event.id}/attendees`, {
+        headers: { "x-organizer-whatsapp": whatsapp },
+      });
+      if (!res.ok) return { attendees: [], checkedInCount: 0, totalRsvps: 0 };
+      return res.json();
+    },
+  });
+
+  const checkedInCount = attendeeData?.checkedInCount ?? 0;
+  const totalRsvps = attendeeData?.totalRsvps ?? event.rsvpCount;
+  const attendees = attendeeData?.attendees ?? [];
+
+  useEffect(() => {
+    if (showQr && !qrDataUrl) {
+      const checkinUrl = `${window.location.origin}/checkin/${event.id}`;
+      QRCodeLib.toDataURL(checkinUrl, { width: 256, margin: 2 }).then((url: string) => {
+        setQrDataUrl(url);
+      });
+    }
+  }, [showQr, qrDataUrl, event.id]);
+
+  return (
+    <>
+      <div
+        className={`bg-card border border-border rounded-xl p-4 ${isPast ? "opacity-50" : ""}`}
+        data-testid={`event-card-${event.id}`}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="font-semibold text-sm text-foreground">{event.title}</div>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-muted rounded-full text-muted-foreground">Past</span>}
+            <button
+              onClick={() => setShowQr(true)}
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary"
+              data-testid={`button-show-qr-${event.id}`}
+            >
+              <QrCode className="w-3 h-3" />
+              Show QR
+            </button>
+          </div>
+        </div>
+        {event.description && (
+          <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
+        )}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+          <span className="flex items-center gap-1">
+            <MapPin className="w-3 h-3" />
+            {event.locationText}
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {event.rsvpCount}/{event.maxCapacity}
+          </span>
+        </div>
+        <div className="mt-3 pt-3 border-t border-border">
+          <button
+            onClick={() => setShowAttendees(!showAttendees)}
+            className="flex items-center gap-2 text-xs font-semibold text-foreground"
+            data-testid={`button-toggle-attendees-${event.id}`}
+          >
+            <span data-testid={`text-attendance-stats-${event.id}`}>
+              {checkedInCount}/{totalRsvps} checked in
+            </span>
+            <span className="text-muted-foreground">{showAttendees ? "Hide" : "Show"} attendees</span>
+          </button>
+          {showAttendees && (
+            <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>
+              {attendees.length === 0 ? (
+                <div className="text-xs text-muted-foreground py-2" data-testid={`text-no-attendees-${event.id}`}>No attendees yet</div>
+              ) : (
+                attendees.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg"
+                    data-testid={`attendee-row-${a.id}`}
+                  >
+                    {a.checkedIn ? (
+                      <Check className="w-3.5 h-3.5 text-green-500" data-testid={`icon-checked-in-${a.id}`} />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 text-muted-foreground/30" data-testid={`icon-not-checked-in-${a.id}`} />
+                    )}
+                    <span className="text-xs text-foreground" data-testid={`text-attendee-name-${a.id}`}>
+                      {a.userName || "Anonymous"}
+                    </span>
+                    {a.checkedIn && (
+                      <span className="text-[10px] text-green-600 dark:text-green-400 ml-auto" data-testid={`text-checkin-status-${a.id}`}>
+                        Checked in
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Dialog open={showQr} onOpenChange={setShowQr}>
+        <DialogContent data-testid={`modal-qr-${event.id}`}>
+          <DialogHeader>
+            <DialogTitle>Check-in QR Code</DialogTitle>
+            <DialogDescription>{event.title}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt="Check-in QR Code"
+                className="w-64 h-64"
+                data-testid={`img-qr-code-${event.id}`}
+              />
+            ) : (
+              <div className="w-64 h-64 flex items-center justify-center text-muted-foreground">Generating...</div>
+            )}
+            <p className="text-xs text-muted-foreground text-center break-all" data-testid={`text-qr-url-${event.id}`}>
+              {`${window.location.origin}/checkin/${event.id}`}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

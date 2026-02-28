@@ -14,15 +14,17 @@ import Profile from "@/pages/profile";
 import Onboarding from "@/pages/onboarding";
 import MatchedClubs from "@/pages/matched-clubs";
 import Explore from "@/pages/explore";
+import Checkin from "@/pages/checkin";
+import ClubDetail from "@/pages/club-detail";
 
-const QUIZ_EXEMPT_PATHS = ["/onboarding", "/matched-clubs", "/admin", "/organizer"];
+const QUIZ_EXEMPT_PATHS = ["/onboarding", "/matched-clubs", "/admin", "/organizer", "/checkin", "/club"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    if (user && user.quizCompleted === false && !QUIZ_EXEMPT_PATHS.includes(location)) {
+    if (user && user.quizCompleted === false && !QUIZ_EXEMPT_PATHS.some(p => location === p || location.startsWith(p + "/"))) {
       navigate("/onboarding");
     }
   }, [user, location, navigate]);
@@ -41,6 +43,8 @@ function Router() {
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/matched-clubs" component={MatchedClubs} />
         <Route path="/explore" component={Explore} />
+        <Route path="/checkin/:eventId" component={Checkin} />
+        <Route path="/club/:id" component={ClubDetail} />
         <Route component={NotFound} />
       </Switch>
     </QuizGate>

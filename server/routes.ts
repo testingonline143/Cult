@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { insertClubSubmissionSchema, insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import fs from "fs";
+import path from "path";
 
 const otpStore = new Map<string, { otp: string; expiresAt: number }>();
 const MOCK_OTP = "123456";
@@ -537,6 +539,51 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/events/:id/checkin", async (req, res) => {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+      const rsvp = await storage.getUserRsvp(event.id, userId);
+      if (!rsvp || rsvp.status !== "going") {
+        return res.status(400).json({ success: false, message: "You haven't RSVP'd to this event" });
+      }
+      if (rsvp.checkedIn) {
+        return res.json({ success: true, alreadyCheckedIn: true, rsvp });
+      }
+      const updated = await storage.checkInRsvp(event.id, userId);
+      res.json({ success: true, rsvp: updated });
+    } catch (err) {
+      console.error("Error checking in:", err);
+      res.status(500).json({ success: false, message: "Failed to check in" });
+    }
+  });
+
+  app.get("/api/events/:id/attendees", async (req, res) => {
+    try {
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      const club = await storage.getClub(event.clubId);
+      const whatsapp = req.headers["x-organizer-whatsapp"] as string;
+      if (!whatsapp || !club || club.whatsappNumber !== whatsapp) {
+        return res.status(403).json({ message: "Only the club organizer can view attendees" });
+      }
+      const attendees = await storage.getEventAttendees(req.params.id);
+      const checkedInCount = await storage.getCheckedInCount(req.params.id);
+      res.json({ attendees, checkedInCount, totalRsvps: attendees.length });
+    } catch (err) {
+      console.error("Error fetching attendees:", err);
+      res.status(500).json({ message: "Failed to fetch attendees" });
+    }
+  });
+
   app.get("/api/user/events", async (req, res) => {
     try {
       const userId = req.headers["x-user-id"] as string;
@@ -548,6 +595,32 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error fetching user events:", err);
       res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/club/:id", async (req, res, next) => {
+    try {
+      const ua = req.headers["user-agent"] || "";
+      const isBot = /bot|crawl|spider|facebook|whatsapp|telegram|twitter|slack|linkedin|discord/i.test(ua);
+      if (!isBot) {
+        return next();
+      }
+      const club = await storage.getClub(req.params.id);
+      if (!club) {
+        return next();
+      }
+      const safeDesc = club.shortDesc.replace(/"/g, "&quot;");
+      const safeName = club.name.replace(/"/g, "&quot;");
+      const html = `<!DOCTYPE html><html><head>
+        <title>${club.emoji} ${safeName} - Sangh</title>
+        <meta property="og:title" content="${club.emoji} ${safeName} - Sangh" />
+        <meta property="og:description" content="${safeDesc}" />
+        <meta property="og:type" content="website" />
+        <meta name="description" content="${safeDesc}" />
+      </head><body><p>${club.emoji} ${safeName} — ${safeDesc}</p></body></html>`;
+      res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    } catch (err) {
+      next();
     }
   });
 

@@ -15,7 +15,7 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Explore (/explore), 404
+- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Explore (/explore), Club Detail (/club/:id), Check-in (/checkin/:eventId), 404
 - **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
@@ -58,6 +58,8 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `GET /api/clubs/search` — search clubs with filters (search, category, city, vibe)
   - `POST /api/quiz` — submit quiz answers (requires x-user-id header)
   - `GET /api/quiz/matches` — get matched clubs based on quiz answers (requires x-user-id header)
+  - `POST /api/events/:id/checkin` — check in a user at an event (requires x-user-id header, validates RSVP exists)
+  - `GET /api/events/:id/attendees` — get attendees with check-in status (returns attendees, checkedInCount, totalRsvps)
 - **OTP**: Mock OTP system (always 123456) stored in memory Map with 5-minute expiry
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
@@ -97,11 +99,15 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **Member count auto-increment**: Joining a club atomically increments memberCount and foundingTaken (if spots available)
 - **Admin dashboard** (/admin): Password "sangh2026", shows join requests and club submissions with Mark as Done
 - **Phone OTP login**: Mock OTP 123456, localStorage session, pre-fills join forms for logged-in users; 6 individual OTP digit boxes with masked phone display and 60-second resend timer
-- **Organizer dashboard** (/organizer): WhatsApp + OTP login, club overview, manage join requests, create events, edit club details
+- **Organizer dashboard** (/organizer): WhatsApp + OTP login, club overview, manage join requests, create events, edit club details, QR codes for events, attendance tracking
 - **Onboarding quiz** (/onboarding): 5-step quiz (interests, availability, vibe, experience, user type) with progress bar, slide transitions, loading screen → matched clubs page
 - **Quiz gate**: New users redirected to quiz after first login; returning users skip quiz. "Redo Quiz" option in profile.
+- **Club detail page** (/club/:id): Dedicated shareable page with full club info, events, join form, organizer info, WhatsApp link
 - **Explore page** (/explore): Search, category/city/vibe filters, club cards with join
-- **Events system**: Organizers create events, users RSVP, homepage shows upcoming events
+- **Events system**: Organizers create events with QR codes, users RSVP, homepage shows upcoming events
+- **QR check-in** (/checkin/:eventId): Scan QR at event to check in; shows RSVP status, one-tap check-in
+- **WhatsApp sharing**: Share buttons on club cards, detail pages, and modals using Web Share API with WhatsApp fallback
+- **Open Graph meta tags**: Server-side OG tags for club pages (bot detection) for rich previews on WhatsApp/social media
 - **Profile page** (/profile): Editable name + bio (200 char), Real Profile badge (green check), joined clubs list, RSVP'd events, request history, redo quiz button
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi

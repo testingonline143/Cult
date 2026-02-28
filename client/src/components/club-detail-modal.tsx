@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, Calendar, MapPin, Users } from "lucide-react";
+import { X, Star, Calendar, MapPin, Users, Share2 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -128,13 +128,30 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
             className="relative p-6 pb-4 rounded-t-2xl sm:rounded-t-2xl"
             style={{ backgroundColor: club.bgColor || undefined }}
           >
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur flex items-center justify-center text-foreground/60 hover:text-foreground transition-colors"
-              data-testid="button-close-modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="absolute top-4 right-4 flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/club/${club.id}`;
+                  const text = `Check out ${club.name} on Sangh! ${url}`;
+                  if (navigator.share) {
+                    navigator.share({ title: club.name, text: `Check out ${club.name} on Sangh!`, url }).catch(() => {});
+                  } else {
+                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+                  }
+                }}
+                className="w-8 h-8 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur flex items-center justify-center text-foreground/60 hover:text-foreground transition-colors"
+                data-testid="button-share-modal"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur flex items-center justify-center text-foreground/60 hover:text-foreground transition-colors"
+                data-testid="button-close-modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             <div className="text-5xl mb-4">{club.emoji}</div>
 

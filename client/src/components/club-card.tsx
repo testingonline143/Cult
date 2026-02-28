@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
-import { Calendar, Users, MapPin, Star } from "lucide-react";
+import { Calendar, Users, MapPin, Star, Clock, ArrowRight, Share2 } from "lucide-react";
+import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Club } from "@shared/schema";
 
 const HEALTH_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
@@ -12,6 +15,18 @@ interface ClubCardProps {
   club: Club;
   index: number;
   onViewClub?: (club: Club) => void;
+}
+
+function shareClub(club: Club, e: React.MouseEvent) {
+  e.stopPropagation();
+  const url = `${window.location.origin}/club/${club.id}`;
+  const text = `Check out ${club.name} on Sangh! ${url}`;
+
+  if (navigator.share) {
+    navigator.share({ title: club.name, text: `Check out ${club.name} on Sangh!`, url }).catch(() => {});
+  } else {
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  }
 }
 
 export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
@@ -67,14 +82,23 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
             </div>
           )}
 
+          <div className="flex items-center flex-wrap gap-2 mb-4">
+            <Badge variant="secondary" data-testid={`badge-members-${club.id}`}>
+              <Users className="w-3 h-3 mr-1" />
+              {club.memberCount} members
+            </Badge>
+            {club.lastActive && (
+              <Badge variant="outline" data-testid={`badge-activity-${club.id}`}>
+                <Clock className="w-3 h-3 mr-1" />
+                {club.lastActive}
+              </Badge>
+            )}
+          </div>
+
           <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground pt-3.5 border-t border-border mb-4">
             <span className="inline-flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
               {club.schedule}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" />
-              {club.memberCount} members
             </span>
             <span className="inline-flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />
@@ -91,8 +115,25 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
                 onViewClub?.(club);
               }}
             >
-              View Club →
+              View Club
             </button>
+            <Link
+              href={`/club/${club.id}`}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2"
+              data-testid={`link-club-page-${club.id}`}
+            >
+              View
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => shareClub(club, e)}
+              data-testid={`button-share-club-${club.id}`}
+            >
+              <Share2 className="w-4 h-4" />
+            </Button>
             {club.whatsappNumber && (
               <a
                 href={`https://wa.me/${club.whatsappNumber}`}

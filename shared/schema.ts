@@ -97,6 +97,8 @@ export const eventRsvps = pgTable("event_rsvps", {
   eventId: varchar("event_id").notNull(),
   userId: varchar("user_id").notNull(),
   status: text("status").notNull().default("going"),
+  checkedIn: boolean("checked_in").default(false),
+  checkedInAt: timestamp("checked_in_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
