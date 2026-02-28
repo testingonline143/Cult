@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp } from "@shared/schema";
 import {
   Dialog,
@@ -242,6 +242,8 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
   const [locationText, setLocationText] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("20");
   const [createError, setCreateError] = useState("");
+  const [duplicatingFrom, setDuplicatingFrom] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const { data: events = [], isLoading } = useQuery<(Event & { rsvpCount: number })[]>({
     queryKey: ["/api/clubs", clubId, "events"],
@@ -269,18 +271,41 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      resetForm();
       setShowCreate(false);
-      setTitle("");
-      setDescription("");
-      setStartsAt("");
-      setLocationText("");
-      setMaxCapacity("20");
-      setCreateError("");
     },
     onError: (err: Error) => {
       setCreateError(err.message || "Failed to create event");
     },
   });
+
+  const handleDuplicate = (event: Event & { rsvpCount: number }) => {
+    setTitle(event.title);
+    setDescription(event.description || "");
+    setLocationText(event.locationText);
+    setMaxCapacity(String(event.maxCapacity));
+    setStartsAt("");
+    setCreateError("");
+    setDuplicatingFrom(event.title);
+    setShowCreate(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setStartsAt("");
+    setLocationText("");
+    setMaxCapacity("20");
+    setCreateError("");
+    setDuplicatingFrom(null);
+  };
+
+  const clearDuplicate = () => {
+    resetForm();
+  };
 
   const handleCreate = () => {
     if (!title.trim() || !startsAt || !locationText.trim()) return;
@@ -298,7 +323,15 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
   return (
     <div className="space-y-4" data-testid="section-organizer-events">
       <button
-        onClick={() => setShowCreate(!showCreate)}
+        onClick={() => {
+          if (showCreate) {
+            resetForm();
+            setShowCreate(false);
+          } else {
+            resetForm();
+            setShowCreate(true);
+          }
+        }}
         className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold"
         data-testid="button-create-event"
       >
@@ -306,7 +339,22 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
       </button>
 
       {showCreate && (
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-3" data-testid="form-create-event">
+        <div ref={formRef} className="bg-card border border-border rounded-2xl p-4 space-y-3" data-testid="form-create-event">
+          {duplicatingFrom && (
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20" data-testid="banner-duplicating">
+              <div className="flex items-center gap-2 min-w-0">
+                <Copy className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-xs font-medium text-primary truncate">Duplicating: {duplicatingFrom}</span>
+              </div>
+              <button
+                onClick={clearDuplicate}
+                className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+                data-testid="button-clear-duplicate"
+              >
+                Clear
+              </button>
+            </div>
+          )}
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Event Title</label>
             <input
@@ -383,7 +431,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
       ) : (
         <div className="space-y-2">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} onDuplicate={handleDuplicate} />
           ))}
         </div>
       )}
@@ -393,7 +441,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
 
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 
-function EventCard({ event }: { event: Event & { rsvpCount: number } }) {
+function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number }; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
   const [showQr, setShowQr] = useState(false);
   const [showAttendees, setShowAttendees] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -434,6 +482,14 @@ function EventCard({ event }: { event: Event & { rsvpCount: number } }) {
           <div className="font-semibold text-sm text-foreground">{event.title}</div>
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-muted rounded-full text-muted-foreground">Past</span>}
+            <button
+              onClick={() => onDuplicate(event)}
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary"
+              data-testid={`button-duplicate-${event.id}`}
+            >
+              <Copy className="w-3 h-3" />
+              Duplicate
+            </button>
             <button
               onClick={() => setShowQr(true)}
               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary"

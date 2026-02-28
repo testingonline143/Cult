@@ -118,7 +118,7 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **Explore page** (/explore): Search, category/city/vibe filters, uses shared `ClubCard` component with health status, founding spots, and recent joins; gradient scroll hint on category filter bar
 - **Deactivated club handling**: Club detail page and modal show "inactive" notice for deactivated clubs; explore page filters them out
 - **Authenticated joins**: `POST /api/join` requires authentication; join forms show "Sign In to Join" for unauthenticated users; WhatsApp purpose explained in form
-- **Events system**: Organizers create events with QR codes, users RSVP, homepage shows upcoming events
+- **Events system**: Organizers create events with QR codes, users RSVP, homepage shows upcoming events. **Event duplication**: organizers can one-tap duplicate any event (past or upcoming) — pre-fills title, description, location, and capacity into the create form with a new date picker. "Duplicating from" banner shows source event and can be cleared.
 - **QR check-in** (/checkin/:eventId): Scan QR at event to check in; shows RSVP status, one-tap check-in
 - **WhatsApp sharing**: Share buttons on club cards, detail pages, and modals using Web Share API with WhatsApp fallback
 - **Open Graph meta tags**: Server-side OG tags for club pages (bot detection) for rich previews on WhatsApp/social media
