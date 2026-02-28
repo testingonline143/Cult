@@ -60,6 +60,9 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `GET /api/quiz/matches` — get matched clubs based on quiz answers (requires x-user-id header)
   - `POST /api/events/:id/checkin` — check in a user at an event (requires x-user-id header, validates RSVP exists)
   - `GET /api/events/:id/attendees` — get attendees with check-in status (returns attendees, checkedInCount, totalRsvps)
+  - `GET /api/clubs/:id/activity` — get club activity: recentJoins (7-day count), recentJoinNames (first names), totalEvents, lastEventDate
+  - `GET /api/activity/feed` — get last 10 platform-wide join actions for activity ticker (name, clubName, clubEmoji, createdAt)
+  - `GET /api/clubs-with-activity` — get all clubs with recentJoins count appended (supports same filters as /api/clubs)
 - **OTP**: Mock OTP system (always 123456) stored in memory Map with 5-minute expiry
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
@@ -70,7 +73,7 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **ORM**: Drizzle ORM with `drizzle-orm/node-postgres` driver
 - **Schema Location**: `shared/schema.ts` — shared between client and server
 - **Tables**:
-  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, createdAt
+  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, markedDone, createdAt
   - `club_submissions` — id (UUID), clubName, organizerName, whatsappNumber, category, meetupFrequency, markedDone, createdAt
   - `users` — id (UUID), username, password, phone, name, city, bio, profilePhotoUrl, hasRealProfile, quizCompleted
@@ -111,6 +114,8 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **Profile page** (/profile): Editable name + bio (200 char), Real Profile badge (green check), joined clubs list, RSVP'd events, request history, redo quiz button
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
+- **Social proof / Activity signals**: Live activity ticker on homepage (auto-scrolling marquee of recent joins), "X joined this week" badge on club cards, Recent Activity section on club detail page/modal (recent joins, events hosted, last meetup), Club Highlights editable by organizers
+- **Club highlights**: Organizers can add text highlights (one per line) via dashboard; displayed on club detail page/modal with quote styling
 
 ## External Dependencies
 

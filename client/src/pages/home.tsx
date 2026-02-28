@@ -6,6 +6,7 @@ import { ClubsSection } from "@/components/clubs-section";
 import { ProcessSection } from "@/components/process-section";
 import { OrganizerSection } from "@/components/organizer-section";
 import { Footer } from "@/components/footer";
+import { ActivityTicker } from "@/components/activity-ticker";
 import { ClubDetailModal } from "@/components/club-detail-modal";
 import { UpcomingEvents } from "@/components/upcoming-events";
 import { useAuth } from "@/lib/auth";
@@ -17,8 +18,8 @@ export default function Home() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const { user } = useAuth();
 
-  const { data: clubs = [], isLoading } = useQuery<Club[]>({
-    queryKey: ["/api/clubs"],
+  const { data: clubs = [], isLoading } = useQuery<(Club & { recentJoins?: number })[]>({
+    queryKey: ["/api/clubs-with-activity"],
   });
 
   const handleMatch = (categories: string[], _times: string[]) => {
@@ -33,6 +34,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <HeroSection onMatch={handleMatch} />
+      <ActivityTicker />
 
       {user && !user.quizCompleted && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8">

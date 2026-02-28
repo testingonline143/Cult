@@ -49,6 +49,9 @@ export interface IStorage {
   checkInRsvp(eventId: string, userId: string): Promise<EventRsvp | undefined>;
   getCheckedInCount(eventId: string): Promise<number>;
   getEventAttendees(eventId: string): Promise<(EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null })[]>;
+  getClubActivity(clubId: string): Promise<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: Date | null }>;
+  getRecentActivityFeed(limit?: number): Promise<{ name: string; clubName: string; clubEmoji: string; createdAt: Date | null }[]>;
+  getClubsWithRecentJoins(): Promise<Record<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -390,6 +393,77 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(users, eq(eventRsvps.userId, users.id))
       .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.status, "going")));
     return results;
+  }
+
+  async getClubActivity(clubId: string): Promise<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: Date | null }> {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [joinCountResult] = await db.select({
+      count: sql<number>`count(*)::int`,
+    }).from(joinRequests).where(and(eq(joinRequests.clubId, clubId), gte(joinRequests.createdAt, sevenDaysAgo)));
+
+    const recentNames = await db.select({ name: joinRequests.name })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), gte(joinRequests.createdAt, sevenDaysAgo)))
+      .orderBy(desc(joinRequests.createdAt))
+      .limit(3);
+
+    const [eventCountResult] = await db.select({
+      count: sql<number>`count(*)::int`,
+    }).from(events).where(eq(events.clubId, clubId));
+
+    const [lastEvent] = await db.select({ startsAt: events.startsAt })
+      .from(events)
+      .where(eq(events.clubId, clubId))
+      .orderBy(desc(events.startsAt))
+      .limit(1);
+
+    return {
+      recentJoins: joinCountResult?.count ?? 0,
+      recentJoinNames: recentNames.map(r => r.name.split(" ")[0]),
+      totalEvents: eventCountResult?.count ?? 0,
+      lastEventDate: lastEvent?.startsAt ?? null,
+    };
+  }
+
+  async getRecentActivityFeed(limit = 10): Promise<{ name: string; clubName: string; clubEmoji: string; createdAt: Date | null }[]> {
+    const results = await db.select({
+      name: joinRequests.name,
+      clubName: joinRequests.clubName,
+      clubId: joinRequests.clubId,
+      createdAt: joinRequests.createdAt,
+    })
+      .from(joinRequests)
+      .orderBy(desc(joinRequests.createdAt))
+      .limit(limit);
+
+    const clubIds = Array.from(new Set(results.map(r => r.clubId)));
+    const clubsData = clubIds.length > 0
+      ? await db.select({ id: clubs.id, emoji: clubs.emoji }).from(clubs).where(
+          sql`${clubs.id} IN (${sql.join(clubIds.map(id => sql`${id}`), sql`, `)})`
+        )
+      : [];
+    const emojiMap = Object.fromEntries(clubsData.map(c => [c.id, c.emoji]));
+
+    return results.map(r => ({
+      name: r.name.split(" ")[0],
+      clubName: r.clubName,
+      clubEmoji: emojiMap[r.clubId] || "🎯",
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async getClubsWithRecentJoins(): Promise<Record<string, number>> {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const results = await db.select({
+      clubId: joinRequests.clubId,
+      count: sql<number>`count(*)::int`,
+    })
+      .from(joinRequests)
+      .where(gte(joinRequests.createdAt, sevenDaysAgo))
+      .groupBy(joinRequests.clubId);
+
+    return Object.fromEntries(results.map(r => [r.clubId, r.count]));
   }
 }
 

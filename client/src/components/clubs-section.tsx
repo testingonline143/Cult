@@ -14,8 +14,10 @@ const FILTER_TABS = [
   { id: "Art", emoji: "\u{1F3A8}" },
 ];
 
+type ClubWithActivity = Club & { recentJoins?: number };
+
 interface ClubsSectionProps {
-  clubs: Club[];
+  clubs: ClubWithActivity[];
   isLoading: boolean;
   activeCategory: string;
   onCategoryChange: (category: string) => void;

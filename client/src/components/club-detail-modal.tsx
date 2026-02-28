@@ -46,6 +46,9 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
       setJoinPhone("");
       setJoinError("");
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs-with-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity/feed"] });
+      if (club) queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "activity"] });
     },
     onError: () => {
       setJoinError("Something went wrong. Please try again.");
@@ -75,6 +78,16 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
+
+  const { data: activity } = useQuery<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: string | null }>({
+    queryKey: ["/api/clubs", club?.id, "activity"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club!.id}/activity`);
+      if (!res.ok) return { recentJoins: 0, recentJoinNames: [], totalEvents: 0, lastEventDate: null };
+      return res.json();
+    },
+    enabled: !!club,
+  });
 
   if (!club) return null;
 
@@ -227,7 +240,54 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
               </div>
             </div>
 
+            {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
+              <div className="bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/30 dark:border-orange-800/20 rounded-xl p-4 space-y-2" data-testid="section-recent-activity">
+                <h3 className="font-serif text-base font-bold text-foreground flex items-center gap-2">
+                  🔥 Recent Activity
+                </h3>
+                {activity.recentJoins > 0 && (
+                  <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
+                    <span>🌱</span>
+                    <span className="text-foreground font-medium">
+                      {activity.recentJoins} {activity.recentJoins === 1 ? "person" : "people"} joined this week
+                    </span>
+                  </div>
+                )}
+                {activity.recentJoinNames.length > 0 && (
+                  <div className="text-sm text-muted-foreground pl-6" data-testid="text-recent-names">
+                    {activity.recentJoinNames.join(", ")}
+                    {activity.recentJoins > activity.recentJoinNames.length &&
+                      ` and ${activity.recentJoins - activity.recentJoinNames.length} others`} joined recently
+                  </div>
+                )}
+                {activity.totalEvents > 0 && (
+                  <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
+                    <span>📅</span>
+                    <span className="text-foreground font-medium">{activity.totalEvents} events hosted</span>
+                  </div>
+                )}
+                {activity.lastEventDate && (
+                  <div className="text-sm text-muted-foreground pl-6" data-testid="text-last-event">
+                    Last meetup: {new Date(activity.lastEventDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                  </div>
+                )}
+              </div>
+            )}
+
             <ClubEvents clubId={club.id} userId={user?.id} />
+
+            {club.highlights && club.highlights.length > 0 && (
+              <div className="bg-card border border-border rounded-xl p-5 space-y-3" data-testid="section-highlights">
+                <h3 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+                  <Star className="w-5 h-5 text-primary" /> Club Highlights
+                </h3>
+                {club.highlights.map((highlight, index) => (
+                  <div key={index} className="border-l-2 border-primary/30 pl-3 text-sm text-foreground italic" data-testid="text-highlight">
+                    {highlight}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="bg-[hsl(var(--clay))]/[0.06] border border-[hsl(var(--clay))]/15 rounded-xl p-4" data-testid="card-founding">
               <div className="flex items-center justify-between mb-2">

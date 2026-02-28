@@ -82,6 +82,15 @@ function ClubDetailContent({ club }: { club: Club }) {
   const [joinPhone, setJoinPhone] = useState(user?.phone || "");
   const [joinError, setJoinError] = useState("");
 
+  const { data: activity } = useQuery<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: string | null }>({
+    queryKey: ["/api/clubs", club.id, "activity"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/activity`);
+      if (!res.ok) return { recentJoins: 0, recentJoinNames: [], totalEvents: 0, lastEventDate: null };
+      return res.json();
+    },
+  });
+
   useEffect(() => {
     setJoinName(user?.name || "");
     setJoinPhone(user?.phone || "");
@@ -99,6 +108,9 @@ function ClubDetailContent({ club }: { club: Club }) {
       setJoinPhone("");
       setJoinError("");
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs-with-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "activity"] });
     },
     onError: () => {
       setJoinError("Something went wrong. Please try again.");
@@ -237,6 +249,42 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         </div>
 
+        {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
+          <Card className="p-5 bg-orange-50/50 dark:bg-orange-900/10 border-orange-200/30 dark:border-orange-800/20 space-y-3" data-testid="section-recent-activity">
+            <h3 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+              🔥 Recent Activity
+            </h3>
+            <div className="space-y-2">
+              {activity.recentJoins > 0 && (
+                <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
+                  <span className="text-orange-500">🌱</span>
+                  <span className="text-foreground font-medium">
+                    {activity.recentJoins} {activity.recentJoins === 1 ? "person" : "people"} joined this week
+                  </span>
+                </div>
+              )}
+              {activity.recentJoinNames.length > 0 && (
+                <div className="text-sm text-muted-foreground pl-6" data-testid="text-recent-names">
+                  {activity.recentJoinNames.join(", ")}
+                  {activity.recentJoins > activity.recentJoinNames.length &&
+                    ` and ${activity.recentJoins - activity.recentJoinNames.length} others`} joined recently
+                </div>
+              )}
+              {activity.totalEvents > 0 && (
+                <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
+                  <span className="text-orange-500">📅</span>
+                  <span className="text-foreground font-medium">{activity.totalEvents} events hosted</span>
+                </div>
+              )}
+              {activity.lastEventDate && (
+                <div className="text-sm text-muted-foreground pl-6" data-testid="text-last-event">
+                  Last meetup: {new Date(activity.lastEventDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
         <ClubEvents clubId={club.id} userId={user?.id} />
 
         <Card className="p-4 bg-[hsl(var(--clay))]/[0.06] border-[hsl(var(--clay))]/15" data-testid="card-founding">
@@ -262,6 +310,19 @@ function ClubDetailContent({ club }: { club: Club }) {
               : "Join now to get your Founding Member badge"}
           </p>
         </Card>
+
+        {club.highlights && club.highlights.length > 0 && (
+          <Card className="p-5 space-y-3" data-testid="section-highlights">
+            <h3 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" /> Club Highlights
+            </h3>
+            {club.highlights.map((highlight, index) => (
+              <div key={index} className="border-l-2 border-primary/30 pl-3 text-sm text-foreground italic" data-testid="text-highlight">
+                {highlight}
+              </div>
+            ))}
+          </Card>
+        )}
 
         {joinSuccess ? (
           <Card className="p-6 text-center space-y-3" data-testid="card-join-success">

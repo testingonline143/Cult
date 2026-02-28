@@ -29,6 +29,7 @@ export const clubs = pgTable("clubs", {
   bgColor: text("bg_color"),
   timeOfDay: text("time_of_day").notNull().default("morning"),
   isActive: boolean("is_active").default(true),
+  highlights: text("highlights").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -511,9 +511,10 @@ export async function registerRoutes(
 
   app.patch("/api/organizer/club/:id", async (req, res) => {
     try {
-      const { shortDesc, schedule, location, healthStatus } = req.body;
+      const { shortDesc, schedule, location, healthStatus, highlights } = req.body;
       const updated = await storage.updateClub(req.params.id, {
         shortDesc, schedule, location, healthStatus,
+        ...(highlights !== undefined ? { highlights } : {}),
       });
       if (!updated) return res.status(404).json({ message: "Club not found" });
       res.json(updated);
@@ -621,6 +622,47 @@ export async function registerRoutes(
       res.status(200).set({ "Content-Type": "text/html" }).end(html);
     } catch (err) {
       next();
+    }
+  });
+
+  app.get("/api/clubs/:id/activity", async (req, res) => {
+    try {
+      const activity = await storage.getClubActivity(req.params.id);
+      res.json(activity);
+    } catch (err) {
+      console.error("Error fetching club activity:", err);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.get("/api/activity/feed", async (_req, res) => {
+    try {
+      const feed = await storage.getRecentActivityFeed(10);
+      res.json(feed);
+    } catch (err) {
+      console.error("Error fetching activity feed:", err);
+      res.status(500).json({ message: "Failed to fetch activity feed" });
+    }
+  });
+
+  app.get("/api/clubs-with-activity", async (req, res) => {
+    try {
+      const { category, search, city, vibe } = req.query as Record<string, string | undefined>;
+      let clubsList;
+      if (search || city || vibe || (category && category !== "all")) {
+        clubsList = await storage.searchClubs({ search, category, city, vibe });
+      } else {
+        clubsList = await storage.getClubs();
+      }
+      const recentJoins = await storage.getClubsWithRecentJoins();
+      const clubsWithActivity = clubsList.map(club => ({
+        ...club,
+        recentJoins: recentJoins[club.id] || 0,
+      }));
+      res.json(clubsWithActivity);
+    } catch (err) {
+      console.error("Error fetching clubs with activity:", err);
+      res.status(500).json({ message: "Failed to fetch clubs" });
     }
   });
 

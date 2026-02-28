@@ -581,10 +581,11 @@ function EditClub({ club, onUpdate }: { club: Club; onUpdate: (club: Club) => vo
   const [schedule, setSchedule] = useState(club.schedule);
   const [location, setLocation] = useState(club.location);
   const [healthStatus, setHealthStatus] = useState(club.healthStatus);
+  const [highlightsText, setHighlightsText] = useState((club.highlights || []).join("\n"));
   const [saved, setSaved] = useState(false);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { shortDesc: string; schedule: string; location: string; healthStatus: string }) => {
+    mutationFn: async (data: { shortDesc: string; schedule: string; location: string; healthStatus: string; highlights: string[] }) => {
       const res = await apiRequest("PATCH", `/api/organizer/club/${club.id}`, data);
       return res.json();
     },
@@ -597,7 +598,8 @@ function EditClub({ club, onUpdate }: { club: Club; onUpdate: (club: Club) => vo
   });
 
   const handleSave = () => {
-    updateMutation.mutate({ shortDesc, schedule, location, healthStatus });
+    const highlights = highlightsText.split("\n").map(h => h.trim()).filter(Boolean);
+    updateMutation.mutate({ shortDesc, schedule, location, healthStatus, highlights });
   };
 
   return (
@@ -653,6 +655,18 @@ function EditClub({ club, onUpdate }: { club: Club; onUpdate: (club: Club) => vo
               </button>
             ))}
           </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Club Highlights</label>
+          <textarea
+            value={highlightsText}
+            onChange={(e) => setHighlightsText(e.target.value)}
+            rows={4}
+            placeholder={"One highlight per line, e.g.:\nWe've done 12 treks this year!\nOur community has 50+ active members"}
+            className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+            data-testid="input-edit-highlights"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">One per line. These show on your club page.</p>
         </div>
       </div>
       <button
