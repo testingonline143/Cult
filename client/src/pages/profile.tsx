@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
+import { useAuth, type AuthUser } from "@/lib/auth";
 import { useLocation } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, BadgeCheck } from "lucide-react";
 
 export default function Profile() {
   const { user, login } = useAuth();
@@ -29,6 +29,7 @@ export default function Profile() {
         </a>
 
         <ProfileHeader user={user} onUpdate={login} />
+        <ProfileActions user={user} onUpdate={login} />
         <UserEvents userId={user.id} />
         <JoinedClubs userId={user.id} />
       </div>
@@ -36,28 +37,33 @@ export default function Profile() {
   );
 }
 
-function ProfileHeader({ user, onUpdate }: { user: { id: string; name: string; phone: string }; onUpdate: (u: { id: string; name: string; phone: string }) => void }) {
+function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthUser) => void }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(user.name);
+  const [editBio, setEditBio] = useState(user.bio || "");
   const [error, setError] = useState("");
 
   const updateMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (data: { name: string; bio: string }) => {
       const res = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-user-id": user.id },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to update");
       return res.json();
     },
     onSuccess: (data) => {
-      onUpdate({ id: user.id, name: data.user.name, phone: user.phone });
+      const wasNotVerified = !user.hasRealProfile;
+      onUpdate({ ...user, ...data.user });
       setEditing(false);
       setError("");
+      if (wasNotVerified && data.user.hasRealProfile) {
+        alert("Real Profile badge earned!");
+      }
     },
     onError: () => {
-      setError("Failed to update name");
+      setError("Failed to update profile");
     },
   });
 
@@ -66,44 +72,61 @@ function ProfileHeader({ user, onUpdate }: { user: { id: string; name: string; p
       setError("Name must be at least 2 characters");
       return;
     }
-    updateMutation.mutate(editName);
+    updateMutation.mutate({ name: editName, bio: editBio });
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 mb-6" data-testid="card-profile">
-      <div className="flex items-center gap-4">
+    <div className="bg-card border border-border rounded-2xl p-6 mb-4" data-testid="card-profile">
+      <div className="flex items-start gap-4">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl shrink-0">
           🧑
         </div>
         <div className="flex-1 min-w-0">
           {editing ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   data-testid="input-edit-name"
                   autoFocus
                 />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value.slice(0, 200))}
+                  placeholder="Tell the club about yourself"
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                  data-testid="input-edit-bio"
+                />
+                <p className="text-xs text-muted-foreground text-right mt-0.5">{editBio.length}/200</p>
+              </div>
+              {error && <p className="text-xs text-red-500" data-testid="text-edit-error">{error}</p>}
+              <div className="flex gap-2">
                 <button
                   onClick={handleSave}
                   disabled={updateMutation.isPending}
-                  className="w-8 h-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-all"
-                  data-testid="button-save-name"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                  data-testid="button-save-profile"
                 >
-                  <Check className="w-4 h-4" />
+                  <Check className="w-3.5 h-3.5" />
+                  {updateMutation.isPending ? "Saving..." : "Save"}
                 </button>
                 <button
-                  onClick={() => { setEditing(false); setEditName(user.name); setError(""); }}
-                  className="w-8 h-8 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 flex items-center justify-center transition-all"
+                  onClick={() => { setEditing(false); setEditName(user.name); setEditBio(user.bio || ""); setError(""); }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-semibold"
                   data-testid="button-cancel-edit"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
+                  Cancel
                 </button>
               </div>
-              {error && <p className="text-xs text-red-500" data-testid="text-edit-error">{error}</p>}
             </div>
           ) : (
             <div>
@@ -118,10 +141,42 @@ function ProfileHeader({ user, onUpdate }: { user: { id: string; name: string; p
                 </button>
               </div>
               <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-phone">{user.phone}</p>
+              {user.city && <p className="text-xs text-muted-foreground mt-0.5">📍 {user.city}</p>}
+              {user.bio && <p className="text-sm text-foreground mt-2" data-testid="text-profile-bio">{user.bio}</p>}
+              {user.hasRealProfile && (
+                <div className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold" data-testid="badge-real-profile">
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  Real Profile
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProfileActions({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthUser) => void }) {
+  const [, navigate] = useLocation();
+
+  const handleRedoQuiz = () => {
+    onUpdate({ ...user, quizCompleted: false });
+    navigate("/onboarding");
+  };
+
+  return (
+    <div className="flex gap-2 mb-6">
+      {user.quizCompleted && (
+        <button
+          onClick={handleRedoQuiz}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+          data-testid="button-redo-quiz"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Redo Quiz
+        </button>
+      )}
     </div>
   );
 }

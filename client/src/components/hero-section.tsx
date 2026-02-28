@@ -1,20 +1,20 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 const INTERESTS = [
-  { id: "Trekking", emoji: "\u{1F3D4}\uFE0F" },
-  { id: "Books", emoji: "\u{1F4DA}" },
-  { id: "Cycling", emoji: "\u{1F6B4}" },
-  { id: "Photography", emoji: "\u{1F4F7}" },
-  { id: "Fitness", emoji: "\u{1F4AA}" },
-  { id: "Art", emoji: "\u{1F3A8}" },
+  { id: "Trekking", emoji: "🏔️" },
+  { id: "Books", emoji: "📚" },
+  { id: "Cycling", emoji: "🚴" },
+  { id: "Photography", emoji: "📷" },
+  { id: "Fitness", emoji: "💪" },
+  { id: "Art", emoji: "🎨" },
 ];
 
 const TIMES = [
-  { id: "morning", label: "Early Morning", emoji: "\u{1F305}" },
-  { id: "evening", label: "Evening", emoji: "\u{1F307}" },
-  { id: "weekends", label: "Weekends", emoji: "\u{1F4C5}" },
+  { id: "morning", label: "Early Morning", emoji: "🌅" },
+  { id: "evening", label: "Evening", emoji: "🌇" },
+  { id: "weekends", label: "Weekends", emoji: "📅" },
 ];
 
 interface HeroSectionProps {
@@ -24,6 +24,10 @@ interface HeroSectionProps {
 export function HeroSection({ onMatch }: HeroSectionProps) {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
+
+  const { data: stats } = useQuery<{ totalMembers: number; totalClubs: number; upcomingEvents: number }>({
+    queryKey: ["/api/stats"],
+  });
 
   const toggleInterest = (id: string) => {
     setSelectedInterests((prev) =>
@@ -41,6 +45,12 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
     onMatch(selectedInterests, selectedTimes);
     document.getElementById("clubs")?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const statsDisplay = [
+    { value: stats ? `${stats.totalClubs}` : "–", label: "Active Clubs" },
+    { value: stats ? `${stats.totalMembers}` : "–", label: "Members" },
+    { value: stats ? `${stats.upcomingEvents}` : "–", label: "Upcoming Events" },
+  ];
 
   return (
     <section id="hero" className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-16 px-4 sm:px-6 overflow-hidden">
@@ -146,11 +156,7 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="flex gap-8 flex-wrap justify-center"
         >
-          {[
-            { value: "10+", label: "Active Clubs" },
-            { value: "500+", label: "Members" },
-            { value: "Free", label: "To Join" },
-          ].map((stat, i) => (
+          {statsDisplay.map((stat) => (
             <div
               key={stat.label}
               className="text-center px-4 border-r border-border last:border-r-0"

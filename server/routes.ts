@@ -202,6 +202,9 @@ export async function registerRoutes(
           name: user.name,
           phone: user.phone,
           city: city || user.city,
+          bio: user.bio,
+          profilePhotoUrl: user.profilePhotoUrl,
+          hasRealProfile: user.hasRealProfile,
           quizCompleted: !!quizAnswers || user.quizCompleted,
         },
       });
@@ -240,12 +243,34 @@ export async function registerRoutes(
       if (!existingUser || !existingUser.phone) {
         return res.status(401).json({ success: false, message: "Not authenticated" });
       }
-      const { name } = req.body;
+      const { name, bio } = req.body;
       if (!name || name.length < 2) {
         return res.status(400).json({ success: false, message: "Name is required (minimum 2 characters)" });
       }
-      const user = await storage.createOrUpdateUserByPhone(existingUser.phone, name);
-      res.json({ success: true, user: { id: user.id, name: user.name, phone: user.phone } });
+      const updates: Record<string, any> = { name };
+      if (bio !== undefined) {
+        updates.bio = bio.slice(0, 200);
+      }
+      const hasRealProfile = !!(existingUser.phone && (bio || existingUser.bio) && (bio || existingUser.bio).length > 10);
+      updates.hasRealProfile = hasRealProfile;
+
+      const user = await storage.updateUser(userId, updates);
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          city: user.city,
+          bio: user.bio,
+          profilePhotoUrl: user.profilePhotoUrl,
+          hasRealProfile: user.hasRealProfile,
+          quizCompleted: user.quizCompleted,
+        },
+      });
     } catch (err) {
       console.error("Error updating profile:", err);
       res.status(500).json({ success: false, message: "Failed to update profile" });
@@ -493,6 +518,22 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error updating club:", err);
       res.status(500).json({ message: "Failed to update club" });
+    }
+  });
+
+  let statsCache: { data: any; expiresAt: number } | null = null;
+
+  app.get("/api/stats", async (_req, res) => {
+    try {
+      if (statsCache && Date.now() < statsCache.expiresAt) {
+        return res.json(statsCache.data);
+      }
+      const stats = await storage.getStats();
+      statsCache = { data: stats, expiresAt: Date.now() + 5 * 60 * 1000 };
+      res.json(stats);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
 

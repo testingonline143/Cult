@@ -61,6 +61,8 @@ export const users = pgTable("users", {
   name: text("name"),
   city: text("city"),
   bio: text("bio"),
+  profilePhotoUrl: text("profile_photo_url"),
+  hasRealProfile: boolean("has_real_profile").default(false),
   quizCompleted: boolean("quiz_completed").default(false),
 });
 

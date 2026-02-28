@@ -1,27 +1,33 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { HOBBY_ICONS } from "@shared/schema";
 
-const EXPERIENCE_LEVELS = [
-  { value: "beginner", label: "Beginner", emoji: "🌱", desc: "Just getting started" },
-  { value: "intermediate", label: "Intermediate", emoji: "🌿", desc: "Some experience" },
-  { value: "pro", label: "Pro", emoji: "🌳", desc: "Very experienced" },
+const AVAILABILITY_OPTIONS = [
+  { value: "early_morning", label: "Early Morning", emoji: "🌅" },
+  { value: "evening", label: "Evening", emoji: "🌆" },
+  { value: "weekends", label: "Weekends", emoji: "📅" },
 ];
 
 const VIBE_OPTIONS = [
-  { value: "casual", label: "Casual Hangout", emoji: "☕", desc: "Relaxed, social, fun vibes" },
-  { value: "competitive", label: "Competitive Play", emoji: "🏆", desc: "Serious, goal-oriented" },
+  { value: "casual", label: "Chill", emoji: "😌", desc: "Relaxed pace, just for fun" },
+  { value: "moderate", label: "Moderate", emoji: "⚡", desc: "Regular commitment" },
+  { value: "competitive", label: "Intense", emoji: "🔥", desc: "It's part of my identity" },
 ];
 
-const AVAILABILITY_OPTIONS = [
-  { value: "weekday_morning", label: "Weekday Morning", emoji: "🌅" },
-  { value: "weekday_evening", label: "Weekday Evening", emoji: "🌆" },
-  { value: "weekend_morning", label: "Weekend Morning", emoji: "☀️" },
-  { value: "weekend_evening", label: "Weekend Evening", emoji: "🌙" },
+const EXPERIENCE_LEVELS = [
+  { value: "beginner", label: "Beginner", emoji: "🌱", desc: "Just getting started" },
+  { value: "intermediate", label: "Intermediate", emoji: "🌿", desc: "Some experience" },
+  { value: "passionate", label: "Passionate", emoji: "🌳", desc: "Very experienced" },
+];
+
+const USER_TYPES = [
+  { value: "student", label: "Student", emoji: "🎓", desc: "Currently studying" },
+  { value: "working", label: "Working Professional", emoji: "💼", desc: "In the workforce" },
+  { value: "other", label: "Other", emoji: "🌟", desc: "Freelancer, homemaker, etc." },
 ];
 
 export default function Onboarding() {
@@ -29,10 +35,11 @@ export default function Onboarding() {
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState<string[]>([]);
-  const [experienceLevel, setExperienceLevel] = useState("");
-  const [vibePreference, setVibePreference] = useState("");
   const [availability, setAvailability] = useState<string[]>([]);
-  const [collegeOrWork, setCollegeOrWork] = useState("");
+  const [vibePreference, setVibePreference] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
+  const [userType, setUserType] = useState("");
+  const [showLoading, setShowLoading] = useState(false);
 
   const totalSteps = 5;
 
@@ -49,7 +56,7 @@ export default function Onboarding() {
           experienceLevel,
           vibePreference,
           availability,
-          collegeOrWork: collegeOrWork || null,
+          collegeOrWork: userType || null,
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
@@ -60,6 +67,9 @@ export default function Onboarding() {
         login({ ...user, quizCompleted: true });
       }
       navigate("/matched-clubs");
+    },
+    onError: () => {
+      setShowLoading(false);
     },
   });
 
@@ -80,10 +90,10 @@ export default function Onboarding() {
   const canProceed = () => {
     switch (step) {
       case 1: return interests.length >= 1;
-      case 2: return !!experienceLevel;
+      case 2: return availability.length >= 1;
       case 3: return !!vibePreference;
-      case 4: return availability.length >= 1;
-      case 5: return true;
+      case 4: return !!experienceLevel;
+      case 5: return !!userType;
       default: return false;
     }
   };
@@ -92,7 +102,10 @@ export default function Onboarding() {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      saveMutation.mutate();
+      setShowLoading(true);
+      setTimeout(() => {
+        saveMutation.mutate();
+      }, 1500);
     }
   };
 
@@ -105,21 +118,47 @@ export default function Onboarding() {
     return null;
   }
 
+  if (showLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
+          <h2 className="font-serif text-xl font-bold text-primary" data-testid="text-loading-matches">
+            Finding your tribe{user.city ? ` in ${user.city}` : ""}...
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2">Matching you with the best clubs</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const stepTitles = [
+    "What are you into?",
+    "When are you free?",
+    "Your energy vibe?",
+    "Experience level?",
+    "I am a...",
+  ];
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="w-full max-w-lg mx-auto px-4 py-6 flex-1 flex flex-col">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h1 className="font-serif text-lg font-bold text-primary" data-testid="text-quiz-title">
-              Tell us about yourself
+              {stepTitles[step - 1]}
             </h1>
             <span className="text-xs text-muted-foreground" data-testid="text-quiz-step">
               Step {step} of {totalSteps}
             </span>
           </div>
-          <div className="w-full bg-muted rounded-full h-2" data-testid="progress-bar">
+          <div className="w-full bg-muted rounded-full h-2.5" data-testid="progress-bar">
             <motion.div
-              className="bg-primary h-2 rounded-full"
+              className="bg-primary h-2.5 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${(step / totalSteps) * 100}%` }}
               transition={{ duration: 0.3 }}
@@ -139,9 +178,6 @@ export default function Onboarding() {
             >
               {step === 1 && (
                 <div>
-                  <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-step1-title">
-                    What are your top interests? 🎯
-                  </h2>
                   <p className="text-sm text-muted-foreground mb-4">
                     Pick 1 to 3 hobbies you love
                   </p>
@@ -152,18 +188,15 @@ export default function Onboarding() {
                         <button
                           key={hobby.name}
                           onClick={() => toggleInterest(hobby.name)}
-                          className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                          className={`flex flex-col items-center p-3.5 rounded-xl border-2 transition-all ${
                             selected
-                              ? "border-primary bg-primary/10 shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
+                              ? "border-primary bg-primary text-white shadow-md"
+                              : "border-border bg-card hover:border-primary/30 text-foreground"
                           }`}
                           data-testid={`hobby-${hobby.name.toLowerCase()}`}
                         >
                           <span className="text-2xl mb-1">{hobby.emoji}</span>
-                          <span className="text-xs font-medium text-foreground">{hobby.name}</span>
-                          {selected && (
-                            <Check className="w-3 h-3 text-primary mt-1" />
-                          )}
+                          <span className="text-xs font-medium">{hobby.name}</span>
                         </button>
                       );
                     })}
@@ -176,9 +209,63 @@ export default function Onboarding() {
 
               {step === 2 && (
                 <div>
-                  <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-step2-title">
-                    How experienced are you? 🎓
-                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select all time slots that work for you
+                  </p>
+                  <div className="space-y-3">
+                    {AVAILABILITY_OPTIONS.map((slot) => {
+                      const selected = availability.includes(slot.value);
+                      return (
+                        <button
+                          key={slot.value}
+                          onClick={() => toggleAvailability(slot.value)}
+                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
+                            selected
+                              ? "border-primary bg-primary text-white shadow-md"
+                              : "border-border bg-card hover:border-primary/30"
+                          }`}
+                          data-testid={`availability-${slot.value}`}
+                        >
+                          <span className="text-3xl mr-4">{slot.emoji}</span>
+                          <span className={`font-semibold text-lg ${selected ? "text-white" : "text-foreground"}`}>{slot.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    How do you like your activities?
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {VIBE_OPTIONS.map((vibe) => {
+                      const selected = vibePreference === vibe.value;
+                      return (
+                        <button
+                          key={vibe.value}
+                          onClick={() => setVibePreference(vibe.value)}
+                          className={`flex flex-col items-center p-5 rounded-xl border-2 transition-all text-center ${
+                            selected
+                              ? "border-primary bg-primary text-white shadow-md"
+                              : "border-border bg-card hover:border-primary/30"
+                          }`}
+                          data-testid={`vibe-${vibe.value}`}
+                        >
+                          <span className="text-4xl mb-2">{vibe.emoji}</span>
+                          <span className={`font-semibold text-sm ${selected ? "text-white" : "text-foreground"}`}>{vibe.label}</span>
+                          <p className={`text-xs mt-1 ${selected ? "text-white/80" : "text-muted-foreground"}`}>{vibe.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {step === 4 && (
+                <div>
                   <p className="text-sm text-muted-foreground mb-4">
                     This helps us match you with the right crowd
                   </p>
@@ -189,86 +276,18 @@ export default function Onboarding() {
                         <button
                           key={level.value}
                           onClick={() => setExperienceLevel(level.value)}
-                          className={`w-full flex items-center p-4 rounded-xl border-2 transition-all text-left ${
+                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
                             selected
-                              ? "border-primary bg-primary/10 shadow-md"
+                              ? "border-primary bg-primary text-white shadow-md"
                               : "border-border bg-card hover:border-primary/30"
                           }`}
                           data-testid={`experience-${level.value}`}
                         >
                           <span className="text-3xl mr-4">{level.emoji}</span>
                           <div>
-                            <span className="font-semibold text-foreground">{level.label}</span>
-                            <p className="text-xs text-muted-foreground">{level.desc}</p>
+                            <span className={`font-semibold ${selected ? "text-white" : "text-foreground"}`}>{level.label}</span>
+                            <p className={`text-xs ${selected ? "text-white/80" : "text-muted-foreground"}`}>{level.desc}</p>
                           </div>
-                          {selected && <Check className="w-5 h-5 text-primary ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {step === 3 && (
-                <div>
-                  <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-step3-title">
-                    What vibe do you prefer? ✨
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    How do you like to spend time with your community?
-                  </p>
-                  <div className="space-y-3">
-                    {VIBE_OPTIONS.map((vibe) => {
-                      const selected = vibePreference === vibe.value;
-                      return (
-                        <button
-                          key={vibe.value}
-                          onClick={() => setVibePreference(vibe.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
-                            selected
-                              ? "border-primary bg-primary/10 shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
-                          }`}
-                          data-testid={`vibe-${vibe.value}`}
-                        >
-                          <span className="text-4xl mr-4">{vibe.emoji}</span>
-                          <div>
-                            <span className="font-semibold text-foreground text-lg">{vibe.label}</span>
-                            <p className="text-sm text-muted-foreground">{vibe.desc}</p>
-                          </div>
-                          {selected && <Check className="w-5 h-5 text-primary ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {step === 4 && (
-                <div>
-                  <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-step4-title">
-                    When are you usually free? 📅
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select all time slots that work for you
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {AVAILABILITY_OPTIONS.map((slot) => {
-                      const selected = availability.includes(slot.value);
-                      return (
-                        <button
-                          key={slot.value}
-                          onClick={() => toggleAvailability(slot.value)}
-                          className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
-                            selected
-                              ? "border-primary bg-primary/10 shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
-                          }`}
-                          data-testid={`availability-${slot.value}`}
-                        >
-                          <span className="text-2xl mb-2">{slot.emoji}</span>
-                          <span className="text-sm font-medium text-foreground text-center">{slot.label}</span>
-                          {selected && <Check className="w-4 h-4 text-primary mt-1" />}
                         </button>
                       );
                     })}
@@ -278,23 +297,32 @@ export default function Onboarding() {
 
               {step === 5 && (
                 <div>
-                  <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-step5-title">
-                    Your college or workplace? 🏫
-                  </h2>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Optional — helps us find campus clubs for you
+                    Tell us a bit about yourself
                   </p>
-                  <input
-                    type="text"
-                    value={collegeOrWork}
-                    onChange={(e) => setCollegeOrWork(e.target.value)}
-                    placeholder="e.g., SV University, TCS Tirupati..."
-                    className="w-full px-4 py-4 rounded-xl border-2 border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                    data-testid="input-college"
-                  />
-                  <p className="text-xs text-muted-foreground mt-3 italic">
-                    You can skip this — just hit Finish below
-                  </p>
+                  <div className="space-y-3">
+                    {USER_TYPES.map((type) => {
+                      const selected = userType === type.value;
+                      return (
+                        <button
+                          key={type.value}
+                          onClick={() => setUserType(type.value)}
+                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
+                            selected
+                              ? "border-primary bg-primary text-white shadow-md"
+                              : "border-border bg-card hover:border-primary/30"
+                          }`}
+                          data-testid={`usertype-${type.value}`}
+                        >
+                          <span className="text-3xl mr-4">{type.emoji}</span>
+                          <div>
+                            <span className={`font-semibold ${selected ? "text-white" : "text-foreground"}`}>{type.label}</span>
+                            <p className={`text-xs ${selected ? "text-white/80" : "text-muted-foreground"}`}>{type.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -302,22 +330,25 @@ export default function Onboarding() {
         </div>
 
         <div className="flex items-center justify-between pt-6 border-t border-border mt-6">
-          <button
-            onClick={handleBack}
-            disabled={step === 1}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-            data-testid="button-quiz-back"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
+          {step > 1 ? (
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              data-testid="button-quiz-back"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          ) : (
+            <div />
+          )}
           <button
             onClick={handleNext}
             disabled={!canProceed() || saveMutation.isPending}
             className="flex items-center gap-1 bg-primary text-primary-foreground px-6 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
             data-testid="button-quiz-next"
           >
-            {saveMutation.isPending ? "Saving..." : step === totalSteps ? "Finish" : "Next"}
+            {step === totalSteps ? "Find My Clubs" : "Next"}
             {step < totalSteps && <ArrowRight className="w-4 h-4" />}
           </button>
         </div>

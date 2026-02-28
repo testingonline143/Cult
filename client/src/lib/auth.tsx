@@ -5,6 +5,9 @@ export interface AuthUser {
   name: string;
   phone: string;
   city?: string;
+  bio?: string;
+  profilePhotoUrl?: string;
+  hasRealProfile?: boolean;
   quizCompleted?: boolean;
 }
 

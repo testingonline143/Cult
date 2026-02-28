@@ -45,6 +45,7 @@ export interface IStorage {
   getUserRsvp(eventId: string, userId: string): Promise<EventRsvp | undefined>;
   getRsvpCount(eventId: string): Promise<number>;
   getRsvpsByUser(userId: string): Promise<(EventRsvp & { eventTitle: string; eventStartsAt: Date; eventLocation: string; clubName: string; clubEmoji: string })[]>;
+  getStats(): Promise<{ totalMembers: number; totalClubs: number; upcomingEvents: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -329,6 +330,27 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(eventRsvps.userId, userId), eq(eventRsvps.status, "going")))
       .orderBy(events.startsAt);
     return results;
+  }
+
+  async getStats(): Promise<{ totalMembers: number; totalClubs: number; upcomingEvents: number }> {
+    const [membersResult] = await db.select({
+      count: sql<number>`(SELECT COUNT(DISTINCT phone) FROM join_requests)::int`,
+    }).from(joinRequests);
+
+    const [clubsResult] = await db.select({
+      count: sql<number>`count(*)::int`,
+    }).from(clubs).where(eq(clubs.isActive, true));
+
+    const now = new Date();
+    const [eventsResult] = await db.select({
+      count: sql<number>`count(*)::int`,
+    }).from(events).where(gte(events.startsAt, now));
+
+    return {
+      totalMembers: membersResult?.count ?? 0,
+      totalClubs: clubsResult?.count ?? 0,
+      upcomingEvents: eventsResult?.count ?? 0,
+    };
   }
 }
 

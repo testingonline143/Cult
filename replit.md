@@ -15,7 +15,7 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), 404
+- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Explore (/explore), 404
 - **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
@@ -46,7 +46,8 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `PATCH /api/organizer/club/:id` — update club details (shortDesc, schedule, location, healthStatus)
   - `POST /api/admin/club-submissions/:id/approve` — approve submission and create a live club
   - `GET /api/user/join-requests` — get authenticated user's join requests (requires x-user-id header)
-  - `PATCH /api/user/profile` — update authenticated user's name (requires x-user-id header)
+  - `PATCH /api/user/profile` — update authenticated user's name and bio (requires x-user-id header), computes hasRealProfile badge
+  - `GET /api/stats` — returns live platform stats: totalMembers, totalClubs, upcomingEvents (5-minute cache)
   - `GET /api/events` — list upcoming events (supports ?city=&limit= params)
   - `GET /api/events/:id` — get single event with rsvps and club info
   - `GET /api/clubs/:id/events` — get events for a specific club
@@ -55,8 +56,8 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `DELETE /api/events/:id/rsvp` — cancel RSVP (requires x-user-id header)
   - `GET /api/user/events` — get authenticated user's RSVP'd events (requires x-user-id header)
   - `GET /api/clubs/search` — search clubs with filters (search, category, city, vibe)
-  - `POST /api/quiz/submit` — submit quiz answers and get matched clubs
-  - `GET /api/quiz/results/:userId` — get previously saved quiz results
+  - `POST /api/quiz` — submit quiz answers (requires x-user-id header)
+  - `GET /api/quiz/matches` — get matched clubs based on quiz answers (requires x-user-id header)
 - **OTP**: Mock OTP system (always 123456) stored in memory Map with 5-minute expiry
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
@@ -70,7 +71,10 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, markedDone, createdAt
   - `club_submissions` — id (UUID), clubName, organizerName, whatsappNumber, category, meetupFrequency, markedDone, createdAt
-  - `users` — id (UUID), username, password, phone, name
+  - `users` — id (UUID), username, password, phone, name, city, bio, profilePhotoUrl, hasRealProfile, quizCompleted
+  - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
+  - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, createdAt
+  - `event_rsvps` — id (UUID), eventId, userId, status, createdAt
 - **Migrations**: Drizzle Kit with `drizzle-kit push` command (schema-push approach, no migration files)
 - **Seeding**: `server/seed.ts` contains hardcoded club data for initial population
 
@@ -92,12 +96,14 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 ### Key Features
 - **Member count auto-increment**: Joining a club atomically increments memberCount and foundingTaken (if spots available)
 - **Admin dashboard** (/admin): Password "sangh2026", shows join requests and club submissions with Mark as Done
-- **Phone OTP login**: Mock OTP 123456, localStorage session, pre-fills join forms for logged-in users
+- **Phone OTP login**: Mock OTP 123456, localStorage session, pre-fills join forms for logged-in users; 6 individual OTP digit boxes with masked phone display and 60-second resend timer
 - **Organizer dashboard** (/organizer): WhatsApp + OTP login, club overview, manage join requests, create events, edit club details
-- **Onboarding quiz** (/onboarding): 5-step quiz (interests, experience, vibe, availability, college) → matched clubs page
+- **Onboarding quiz** (/onboarding): 5-step quiz (interests, availability, vibe, experience, user type) with progress bar, slide transitions, loading screen → matched clubs page
+- **Quiz gate**: New users redirected to quiz after first login; returning users skip quiz. "Redo Quiz" option in profile.
 - **Explore page** (/explore): Search, category/city/vibe filters, club cards with join
 - **Events system**: Organizers create events, users RSVP, homepage shows upcoming events
-- **Profile page** (/profile): Editable name, joined clubs list, RSVP'd events, request history
+- **Profile page** (/profile): Editable name + bio (200 char), Real Profile badge (green check), joined clubs list, RSVP'd events, request history, redo quiz button
+- **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
 
 ## External Dependencies

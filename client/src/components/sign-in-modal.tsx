@@ -1,14 +1,23 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth, type AuthUser } from "@/lib/auth";
 import { CITIES } from "@shared/schema";
+import { useLocation } from "wouter";
 
 interface SignInModalProps {
   open: boolean;
   onClose: () => void;
+}
+
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) return phone;
+  const last4 = digits.slice(-4);
+  const first2 = digits.slice(0, 2);
+  return `+91 ${first2}XXX XX${last4}`;
 }
 
 export function SignInModal({ open, onClose }: SignInModalProps) {
@@ -16,9 +25,33 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [city, setCity] = useState("Tirupati");
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
+  const [countdown, setCountdown] = useState(0);
   const { login } = useAuth();
+  const [, navigate] = useLocation();
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = useCallback(() => {
+    setCountdown(60);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const sendOtpMutation = useMutation({
     mutationFn: async (phone: string) => {
@@ -28,6 +61,8 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
     onSuccess: () => {
       setStep("otp");
       setError("");
+      startCountdown();
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
     },
     onError: () => {
       setError("Failed to send OTP. Check your phone number.");
@@ -41,7 +76,11 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
     },
     onSuccess: (data: { success: boolean; user: AuthUser }) => {
       login(data.user);
+      const isNewUser = !data.user.quizCompleted;
       resetAndClose();
+      if (isNewUser) {
+        navigate("/onboarding");
+      }
     },
     onError: () => {
       setError("Invalid OTP. Please try again.");
@@ -53,8 +92,10 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
     setPhone("");
     setName("");
     setCity("Tirupati");
-    setOtp("");
+    setOtpDigits(["", "", "", "", "", ""]);
     setError("");
+    setCountdown(0);
+    if (timerRef.current) clearInterval(timerRef.current);
     onClose();
   };
 
@@ -71,13 +112,48 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
     sendOtpMutation.mutate(phone);
   };
 
-  const handleVerifyOtp = () => {
+  const handleResendOtp = () => {
+    setOtpDigits(["", "", "", "", "", ""]);
     setError("");
-    if (!otp || otp.length !== 6) {
-      setError("Enter the 6-digit OTP");
-      return;
+    sendOtpMutation.mutate(phone);
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newDigits = [...otpDigits];
+    newDigits[index] = value.slice(-1);
+    setOtpDigits(newDigits);
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
     }
-    verifyOtpMutation.mutate({ phone, otp, name, city });
+
+    const fullOtp = newDigits.join("");
+    if (fullOtp.length === 6) {
+      verifyOtpMutation.mutate({ phone, otp: fullOtp, name, city });
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 0) return;
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < pasted.length; i++) {
+      newDigits[i] = pasted[i];
+    }
+    setOtpDigits(newDigits);
+    if (pasted.length === 6) {
+      verifyOtpMutation.mutate({ phone, otp: pasted, name, city });
+    } else {
+      inputRefs.current[pasted.length]?.focus();
+    }
   };
 
   if (!open) return null;
@@ -110,7 +186,9 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
             <div className="text-3xl mb-2">📱</div>
             <h2 className="font-serif text-xl font-bold text-primary">Sign In</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              {step === "phone" ? "Enter your details to get started" : "Enter the 6-digit OTP sent to your phone"}
+              {step === "phone" ? "Enter your details to get started" : (
+                <>Enter the 6-digit OTP sent to<br /><span className="font-mono font-semibold text-foreground">{maskPhone(phone)}</span></>
+              )}
             </p>
           </div>
 
@@ -153,26 +231,49 @@ export function SignInModal({ open, onClose }: SignInModalProps) {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-center tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
-                data-testid="input-otp"
-              />
-              {error && <p className="text-xs text-red-500 font-medium" data-testid="text-otp-error">{error}</p>}
+            <div className="space-y-4">
+              <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                {otpDigits.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={(el) => { inputRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    className="w-11 h-13 text-center text-xl font-mono font-bold rounded-xl border-2 border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    data-testid={`input-otp-${i}`}
+                  />
+                ))}
+              </div>
+
+              <div className="text-center">
+                {countdown > 0 ? (
+                  <p className="text-xs text-muted-foreground" data-testid="text-otp-timer">
+                    Resend OTP in 0:{countdown.toString().padStart(2, "0")}
+                  </p>
+                ) : (
+                  <button
+                    onClick={handleResendOtp}
+                    disabled={sendOtpMutation.isPending}
+                    className="text-xs text-primary font-semibold hover:underline disabled:opacity-50"
+                    data-testid="button-resend-otp"
+                  >
+                    {sendOtpMutation.isPending ? "Sending..." : "Resend OTP"}
+                  </button>
+                )}
+              </div>
+
+              {error && <p className="text-xs text-red-500 font-medium text-center" data-testid="text-otp-error">{error}</p>}
+
+              {verifyOtpMutation.isPending && (
+                <p className="text-xs text-muted-foreground text-center">Verifying...</p>
+              )}
+
               <button
-                onClick={handleVerifyOtp}
-                disabled={verifyOtpMutation.isPending}
-                className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
-                data-testid="button-verify-otp"
-              >
-                {verifyOtpMutation.isPending ? "Verifying..." : "Verify & Sign In"}
-              </button>
-              <button
-                onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
+                onClick={() => { setStep("phone"); setOtpDigits(["", "", "", "", "", ""]); setError(""); setCountdown(0); if (timerRef.current) clearInterval(timerRef.current); }}
                 className="w-full text-xs text-muted-foreground hover:text-foreground"
                 data-testid="button-back-to-phone"
               >
