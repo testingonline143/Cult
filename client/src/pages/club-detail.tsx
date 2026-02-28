@@ -303,7 +303,7 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         )}
 
-        <ClubEvents clubId={club.id} isAuthenticated={isAuthenticated} />
+        <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
 
         <Card className="p-4 bg-[hsl(var(--clay))]/[0.06] border-[hsl(var(--clay))]/15" data-testid="card-founding">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -436,7 +436,10 @@ function ClubDetailContent({ club }: { club: Club }) {
   );
 }
 
-function ClubEvents({ clubId, isAuthenticated }: { clubId: string; isAuthenticated: boolean }) {
+function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clubName: string; isAuthenticated: boolean }) {
+  const [, navigate] = useLocation();
+  const [justRsvpdId, setJustRsvpdId] = useState<string | null>(null);
+
   const { data: events = [] } = useQuery<ClubEvent[]>({
     queryKey: ["/api/clubs", clubId, "events"],
     queryFn: async () => {
@@ -456,10 +459,22 @@ function ClubEvents({ clubId, isAuthenticated }: { clubId: string; isAuthenticat
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, eventId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
+      setJustRsvpdId(eventId);
     },
   });
+
+  const handleShareEvent = (event: ClubEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/event/${event.id}`;
+    const text = `I'm going to ${event.title} with ${clubName}! Join me: ${url}`;
+    if (navigator.share) {
+      navigator.share({ title: event.title, text: `I'm going to ${event.title} with ${clubName}! Join me`, url }).catch(() => {});
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    }
+  };
 
   const upcomingEvents = events.filter((e) => new Date(e.startsAt) > new Date());
   if (upcomingEvents.length === 0) return null;
@@ -474,8 +489,14 @@ function ClubEvents({ clubId, isAuthenticated }: { clubId: string; isAuthenticat
         {upcomingEvents.slice(0, 5).map((event) => {
           const d = new Date(event.startsAt);
           const spotsLeft = event.maxCapacity - event.rsvpCount;
+          const isJustRsvpd = justRsvpdId === event.id;
           return (
-            <Card key={event.id} className="p-4" data-testid={`club-event-${event.id}`}>
+            <Card
+              key={event.id}
+              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate(`/event/${event.id}`)}
+              data-testid={`club-event-${event.id}`}
+            >
               <div className="font-medium text-sm text-foreground mb-1">{event.title}</div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2 flex-wrap">
                 <span className="flex items-center gap-1">
@@ -492,16 +513,27 @@ function ClubEvents({ clubId, isAuthenticated }: { clubId: string; isAuthenticat
                   <Users className="w-3 h-3" />
                   {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
                 </span>
-                {isAuthenticated && spotsLeft > 0 && (
+                {isJustRsvpd ? (
                   <Button
                     size="sm"
-                    onClick={() => rsvpMutation.mutate(event.id)}
+                    variant="outline"
+                    className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20"
+                    onClick={(e) => handleShareEvent(event, e)}
+                    data-testid={`button-share-rsvp-club-${event.id}`}
+                  >
+                    <Share2 className="w-3 h-3 mr-1" />
+                    Share
+                  </Button>
+                ) : isAuthenticated && spotsLeft > 0 ? (
+                  <Button
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); rsvpMutation.mutate(event.id); }}
                     disabled={rsvpMutation.isPending}
                     data-testid={`button-rsvp-club-${event.id}`}
                   >
                     Count Me In
                   </Button>
-                )}
+                ) : null}
               </div>
             </Card>
           );

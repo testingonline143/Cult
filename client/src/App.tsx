@@ -16,8 +16,9 @@ import MatchedClubs from "@/pages/matched-clubs";
 import Explore from "@/pages/explore";
 import Checkin from "@/pages/checkin";
 import ClubDetail from "@/pages/club-detail";
+import EventDetail from "@/pages/event-detail";
 
-const QUIZ_EXEMPT_PATHS = ["/onboarding", "/matched-clubs", "/admin", "/organizer", "/checkin", "/club"];
+const QUIZ_EXEMPT_PATHS = ["/onboarding", "/matched-clubs", "/admin", "/organizer", "/checkin", "/club", "/event"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -44,6 +45,7 @@ function Router() {
         <Route path="/matched-clubs" component={MatchedClubs} />
         <Route path="/explore" component={Explore} />
         <Route path="/checkin/:eventId" component={Checkin} />
+        <Route path="/event/:id" component={EventDetail} />
         <Route path="/club/:id" component={ClubDetail} />
         <Route component={NotFound} />
       </Switch>

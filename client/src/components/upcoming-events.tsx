@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, MapPin, Users, Share2 } from "lucide-react";
 
 interface UpcomingEvent {
   id: string;
@@ -19,6 +21,8 @@ interface UpcomingEvent {
 
 export function UpcomingEvents() {
   const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
+  const [justRsvpdId, setJustRsvpdId] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useQuery<UpcomingEvent[]>({
     queryKey: ["/api/events"],
@@ -39,8 +43,9 @@ export function UpcomingEvents() {
       if (!res.ok) throw new Error("Failed to RSVP");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, eventId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setJustRsvpdId(eventId);
     },
   });
 
@@ -56,6 +61,17 @@ export function UpcomingEvents() {
     return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
   };
 
+  const handleShareEvent = (event: UpcomingEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/event/${event.id}`;
+    const text = `I'm going to ${event.title} with ${event.clubName}! Join me: ${url}`;
+    if (navigator.share) {
+      navigator.share({ title: event.title, text: `I'm going to ${event.title} with ${event.clubName}! Join me`, url }).catch(() => {});
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-10" data-testid="section-upcoming-events">
       <div className="flex items-center justify-between mb-4">
@@ -66,13 +82,15 @@ export function UpcomingEvents() {
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
         {events.map((event, index) => {
           const spotsLeft = event.maxCapacity - event.rsvpCount;
+          const isJustRsvpd = justRsvpdId === event.id;
           return (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="flex-shrink-0 w-72 bg-card border border-border rounded-2xl p-4 hover:shadow-lg transition-all"
+              className="flex-shrink-0 w-72 bg-card border border-border rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => navigate(`/event/${event.id}`)}
               data-testid={`card-event-${event.id}`}
             >
               <div className="flex items-center gap-2 mb-3">
@@ -94,19 +112,27 @@ export function UpcomingEvents() {
                   {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
                 </div>
               </div>
-              {isAuthenticated && spotsLeft > 0 && (
+              {isJustRsvpd ? (
                 <button
-                  onClick={() => rsvpMutation.mutate(event.id)}
+                  onClick={(e) => handleShareEvent(event, e)}
+                  className="w-full bg-[#25D366] text-white rounded-xl py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
+                  data-testid={`button-share-rsvp-${event.id}`}
+                >
+                  <Share2 className="w-3 h-3" />
+                  You're in! Share with friends
+                </button>
+              ) : isAuthenticated && spotsLeft > 0 ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); rsvpMutation.mutate(event.id); }}
                   disabled={rsvpMutation.isPending}
                   className="w-full bg-primary text-primary-foreground rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
                   data-testid={`button-rsvp-${event.id}`}
                 >
                   Count Me In
                 </button>
-              )}
-              {!isAuthenticated && (
+              ) : !isAuthenticated ? (
                 <p className="text-[10px] text-muted-foreground text-center italic">Sign in to RSVP</p>
-              )}
+              ) : null}
             </motion.div>
           );
         })}

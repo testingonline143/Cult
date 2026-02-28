@@ -510,8 +510,9 @@ export async function registerRoutes(
       if (!club) {
         return next();
       }
-      const safeDesc = club.shortDesc.replace(/"/g, "&quot;");
-      const safeName = club.name.replace(/"/g, "&quot;");
+      const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const safeDesc = esc(club.shortDesc);
+      const safeName = esc(club.name);
       const html = `<!DOCTYPE html><html><head>
         <title>${club.emoji} ${safeName} - Sangh</title>
         <meta property="og:title" content="${club.emoji} ${safeName} - Sangh" />
@@ -519,6 +520,41 @@ export async function registerRoutes(
         <meta property="og:type" content="website" />
         <meta name="description" content="${safeDesc}" />
       </head><body><p>${club.emoji} ${safeName} — ${safeDesc}</p></body></html>`;
+      res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    } catch (err) {
+      next();
+    }
+  });
+
+  app.get("/event/:id", async (req, res, next) => {
+    try {
+      const ua = req.headers["user-agent"] || "";
+      const isBot = /bot|crawl|spider|facebook|whatsapp|telegram|twitter|slack|linkedin|discord/i.test(ua);
+      if (!isBot) {
+        return next();
+      }
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return next();
+      }
+      const club = await storage.getClub(event.clubId);
+      const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const safeTitle = esc(event.title);
+      const clubEmoji = club?.emoji || "📅";
+      const clubName = club?.name || "Sangh";
+      const safeClubName = esc(clubName);
+      const d = new Date(event.startsAt);
+      const dateStr = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+      const timeStr = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      const safeLocation = esc(event.locationText);
+      const desc = `${dateStr} · ${timeStr} · ${safeLocation}`;
+      const html = `<!DOCTYPE html><html><head>
+        <title>${clubEmoji} ${safeTitle} — ${safeClubName}</title>
+        <meta property="og:title" content="${clubEmoji} ${safeTitle} — ${safeClubName}" />
+        <meta property="og:description" content="${desc}" />
+        <meta property="og:type" content="website" />
+        <meta name="description" content="${desc}" />
+      </head><body><p>${clubEmoji} ${safeTitle} — ${desc}</p></body></html>`;
       res.status(200).set({ "Content-Type": "text/html" }).end(html);
     } catch (err) {
       next();

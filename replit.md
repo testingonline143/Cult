@@ -15,7 +15,7 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Explore (/explore), Club Detail (/club/:id), Check-in (/checkin/:eventId), 404
+- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Explore (/explore), Club Detail (/club/:id), Event Detail (/event/:id), Check-in (/checkin/:eventId), 404
 - **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
@@ -119,9 +119,10 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 - **Deactivated club handling**: Club detail page and modal show "inactive" notice for deactivated clubs; explore page filters them out
 - **Authenticated joins**: `POST /api/join` requires authentication; join forms show "Sign In to Join" for unauthenticated users; WhatsApp purpose explained in form
 - **Events system**: Organizers create events with QR codes, users RSVP, homepage shows upcoming events. **Event duplication**: organizers can one-tap duplicate any event (past or upcoming) — pre-fills title, description, location, and capacity into the create form with a new date picker. "Duplicating from" banner shows source event and can be cleared.
+- **Public event pages** (/event/:id): Standalone shareable event detail page with full event info, RSVP button, WhatsApp share, link back to parent club. Post-RSVP "You're in!" celebration with WhatsApp share prompt. Event cards on homepage and club detail page are clickable and link to event detail page.
 - **QR check-in** (/checkin/:eventId): Scan QR at event to check in; shows RSVP status, one-tap check-in
-- **WhatsApp sharing**: Share buttons on club cards, detail pages, and modals using Web Share API with WhatsApp fallback
-- **Open Graph meta tags**: Server-side OG tags for club pages (bot detection) for rich previews on WhatsApp/social media
+- **WhatsApp sharing**: Share buttons on club cards, detail pages, event pages, and modals using Web Share API with WhatsApp fallback. Post-RSVP share prompts on event cards and event detail page.
+- **Open Graph meta tags**: Server-side OG tags for club pages and event pages (bot detection) for rich previews on WhatsApp/social media. Event OG tags include date, time, location, and club name.
 - **Profile page** (/profile): Editable name + bio (200 char), joined clubs list, RSVP'd events, request history, redo quiz button
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
