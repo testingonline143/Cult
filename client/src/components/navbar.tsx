@@ -18,7 +18,7 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/88 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
@@ -27,8 +27,8 @@ export function Navbar() {
               className="flex items-center gap-2"
               data-testid="link-home"
             >
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-xl font-serif font-black text-primary tracking-tight">Sangh</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--clay))]" />
+              <span className="text-xl font-sans font-black text-primary tracking-tight">CultFam</span>
             </a>
             <a
               href="/explore"

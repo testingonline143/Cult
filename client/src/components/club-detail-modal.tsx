@@ -145,9 +145,9 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
               <button
                 onClick={() => {
                   const url = `${window.location.origin}/club/${club.id}`;
-                  const text = `Check out ${club.name} on Sangh! ${url}`;
+                  const text = `Check out ${club.name} on CultFam! ${url}`;
                   if (navigator.share) {
-                    navigator.share({ title: club.name, text: `Check out ${club.name} on Sangh!`, url }).catch(() => {});
+                    navigator.share({ title: club.name, text: `Check out ${club.name} on CultFam!`, url }).catch(() => {});
                   } else {
                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
                   }
@@ -328,7 +328,7 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
                 </p>
                 {club.whatsappNumber && (
                   <a
-                    href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just joined ${club.name} on Sangh. Please add me to the group!`)}`}
+                    href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just joined ${club.name} on CultFam. Please add me to the group!`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl px-5 py-3 text-sm font-semibold transition-all"

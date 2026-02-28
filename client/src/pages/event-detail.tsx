@@ -16,10 +16,10 @@ interface EventDetailResponse extends Event {
 
 function handleShareEvent(event: Event, clubName: string) {
   const url = `${window.location.origin}/event/${event.id}`;
-  const text = `Check out ${event.title} by ${clubName} on Sangh! ${url}`;
+  const text = `Check out ${event.title} by ${clubName} on CultFam! ${url}`;
 
   if (navigator.share) {
-    navigator.share({ title: event.title, text: `Check out ${event.title} by ${clubName} on Sangh!`, url }).catch(() => {});
+    navigator.share({ title: event.title, text: `Check out ${event.title} by ${clubName} on CultFam!`, url }).catch(() => {});
   } else {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   }

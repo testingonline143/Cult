@@ -34,31 +34,33 @@ export function ActivityTicker() {
 
   if (isLoading || !data || data.length === 0) return null;
 
-  const items = [...data, ...data];
+  const items = [...data, ...data, ...data];
 
   return (
     <div
       data-testid="section-activity-ticker"
-      className="bg-primary/[0.04] border-y border-primary/10 py-2.5 overflow-hidden"
+      className="bg-primary py-2.5 overflow-hidden"
     >
       <div className="flex animate-marquee whitespace-nowrap">
         {items.map((item, i) => (
           <span
             key={i}
             data-testid="text-activity-item"
-            className="text-sm text-muted-foreground mx-6 inline-flex items-center gap-1 shrink-0"
+            className="text-sm font-medium text-primary-foreground/70 mx-8 inline-flex items-center gap-1.5 shrink-0"
           >
-            {item.clubEmoji} {item.name} joined {item.clubName} · {getRelativeTime(item.createdAt)}
+            <span className="text-base">{item.clubEmoji}</span>
+            <span className="text-primary-foreground font-semibold">{item.name}</span> joined {item.clubName}
+            <span className="text-primary-foreground/40 text-xs">· {getRelativeTime(item.createdAt)}</span>
           </span>
         ))}
       </div>
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(-33.33%); }
         }
         .animate-marquee {
-          animation: marquee 30s linear infinite;
+          animation: marquee 25s linear infinite;
         }
       `}</style>
     </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
-import { HeroSection } from "@/components/hero-section";
+import { HeroSection, MatchSection } from "@/components/hero-section";
 import { ClubsSection } from "@/components/clubs-section";
 import { ProcessSection } from "@/components/process-section";
 import { OrganizerSection } from "@/components/organizer-section";
@@ -46,7 +46,7 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <span className="text-4xl">🎯</span>
               <div className="flex-1">
-                <h3 className="font-serif font-bold text-foreground text-lg">Find your perfect clubs</h3>
+                <h3 className="font-sans font-bold text-foreground text-lg">Find your perfect clubs</h3>
                 <p className="text-sm text-muted-foreground">Take a 2-minute quiz to get matched with clubs based on your interests</p>
               </div>
               <ArrowRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
@@ -55,6 +55,7 @@ export default function Home() {
         </div>
       )}
 
+      <MatchSection onMatch={handleMatch} />
       <UpcomingEvents />
 
       <ClubsSection

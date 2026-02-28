@@ -1,15 +1,15 @@
-# Sangh - Tirupati Club Discovery Platform
+# CultFam - Tirupati Club Discovery Platform
 
 ## Overview
 
-Sangh is a club discovery platform specifically built for Tirupati, India. It helps users find and join local community clubs (trekking, books, cycling, photography, fitness, art, etc.). The app features a single-page landing experience with an integrated matcher widget in the hero, club browsing with emoji-based cards, a process section, and instant club creation for organizers.
+CultFam is a club discovery platform specifically built for Tirupati, India. It helps users find and join local community clubs (trekking, books, cycling, photography, fitness, art, etc.). The app features a single-page landing experience with an integrated matcher widget in the hero, club browsing with emoji-based cards, a process section, and instant club creation for organizers.
 
 The project follows a full-stack TypeScript monorepo pattern with a React frontend, Express backend, and PostgreSQL database.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML reference. Uses Fraunces serif for headings and Instrument Sans for body text. Forest green primary with cream/paper backgrounds and clay accents. Emojis used extensively for category icons, step icons, and decorative elements. No commission/pricing mentions. No comparison table section.
+Design preference: Bold, youthful, high-energy brand. Sans-serif headings (font-sans font-black), Instrument Sans for body text. Vibrant teal-green primary (152 55% 28%) with punchy coral accent (14 90% 58%) and warm cream backgrounds. Dark immersive hero section (Partiful/cult.fit inspired) with massive headline, single CTA, stats row. Activity ticker (AroundU inspired). Matching widget moved below fold. Gen-Z copy style throughout. Emojis used for category icons and step icons.
 
 ## System Architecture
 

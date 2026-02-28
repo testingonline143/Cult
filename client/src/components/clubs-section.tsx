@@ -39,12 +39,12 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
           transition={{ duration: 0.5 }}
           className="mb-10"
         >
-          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase text-primary mb-3">
-            <span className="w-5 h-px bg-primary" />
-            Explore
+          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase text-[hsl(var(--clay))] mb-3">
+            <span className="w-5 h-px bg-[hsl(var(--clay))]" />
+            Live Now
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-primary leading-tight">
-            All Clubs in Tirupati
+          <h2 className="font-sans text-3xl sm:text-4xl font-black tracking-tight text-foreground leading-tight">
+            What's popping in Tirupati
           </h2>
         </motion.div>
 

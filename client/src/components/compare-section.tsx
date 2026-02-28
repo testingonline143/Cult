@@ -2,13 +2,13 @@ import { motion } from "framer-motion";
 import { Check, X, Sparkles } from "lucide-react";
 
 const FEATURES = [
-  { label: "Tirupati / Tier 2 cities", meetup: false, misfits: false, sangh: "Only us" },
-  { label: "Free for organizers", meetup: false, misfits: "Partial", sangh: "Always" },
-  { label: "Club Health Score", meetup: false, misfits: false, sangh: true },
-  { label: "Founding Member badges", meetup: false, misfits: false, sangh: true },
-  { label: "Organizer reputation", meetup: false, misfits: false, sangh: true },
-  { label: "WhatsApp-native join", meetup: false, misfits: false, sangh: true },
-  { label: "Permanent club homes", meetup: "Events only", misfits: "Events only", sangh: "Always live" },
+  { label: "Tirupati / Tier 2 cities", meetup: false, misfits: false, cultfam: "Only us" },
+  { label: "Free for organizers", meetup: false, misfits: "Partial", cultfam: "Always" },
+  { label: "Club Health Score", meetup: false, misfits: false, cultfam: true },
+  { label: "Founding Member badges", meetup: false, misfits: false, cultfam: true },
+  { label: "Organizer reputation", meetup: false, misfits: false, cultfam: true },
+  { label: "WhatsApp-native join", meetup: false, misfits: false, cultfam: true },
+  { label: "Permanent club homes", meetup: "Events only", misfits: "Events only", cultfam: "Always live" },
 ];
 
 function CellValue({ value }: { value: boolean | string }) {
@@ -28,7 +28,7 @@ export function CompareSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-sm font-medium text-primary mb-3">Why Sangh</p>
+          <p className="text-sm font-medium text-primary mb-3">Why CultFam</p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
             Built for <span className="italic font-serif">Tirupati</span>.{" "}
             <br className="hidden sm:block" />
@@ -53,7 +53,7 @@ export function CompareSection() {
                 <th className="text-center p-3 sm:p-4 font-semibold text-primary">
                   <span className="inline-flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    Sangh
+                    CultFam
                   </span>
                 </th>
               </tr>
@@ -72,7 +72,7 @@ export function CompareSection() {
                     <CellValue value={row.misfits} />
                   </td>
                   <td className="p-3 sm:p-4 text-center font-medium text-primary">
-                    <CellValue value={row.sangh} />
+                    <CellValue value={row.cultfam} />
                   </td>
                 </tr>
               ))}

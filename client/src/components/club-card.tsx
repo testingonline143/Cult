@@ -20,10 +20,10 @@ interface ClubCardProps {
 function shareClub(club: Club, e: React.MouseEvent) {
   e.stopPropagation();
   const url = `${window.location.origin}/club/${club.id}`;
-  const text = `Check out ${club.name} on Sangh! ${url}`;
+  const text = `Check out ${club.name} on CultFam! ${url}`;
 
   if (navigator.share) {
-    navigator.share({ title: club.name, text: `Check out ${club.name} on Sangh!`, url }).catch(() => {});
+    navigator.share({ title: club.name, text: `Check out ${club.name} on CultFam!`, url }).catch(() => {});
   } else {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   }

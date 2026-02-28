@@ -514,8 +514,8 @@ export async function registerRoutes(
       const safeDesc = esc(club.shortDesc);
       const safeName = esc(club.name);
       const html = `<!DOCTYPE html><html><head>
-        <title>${club.emoji} ${safeName} - Sangh</title>
-        <meta property="og:title" content="${club.emoji} ${safeName} - Sangh" />
+        <title>${club.emoji} ${safeName} - CultFam</title>
+        <meta property="og:title" content="${club.emoji} ${safeName} - CultFam" />
         <meta property="og:description" content="${safeDesc}" />
         <meta property="og:type" content="website" />
         <meta name="description" content="${safeDesc}" />
@@ -541,7 +541,7 @@ export async function registerRoutes(
       const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const safeTitle = esc(event.title);
       const clubEmoji = club?.emoji || "📅";
-      const clubName = club?.name || "Sangh";
+      const clubName = club?.name || "CultFam";
       const safeClubName = esc(clubName);
       const d = new Date(event.startsAt);
       const dateStr = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
