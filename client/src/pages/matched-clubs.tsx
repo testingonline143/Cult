@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Users } from "lucide-react";
@@ -13,7 +13,7 @@ interface MatchedClub extends Club {
 }
 
 export default function MatchedClubs() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
 
@@ -21,15 +21,15 @@ export default function MatchedClubs() {
     queryKey: ["/api/quiz/matches"],
     queryFn: async () => {
       const res = await fetch("/api/quiz/matches", {
-        headers: { "x-user-id": user?.id || "" },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch matches");
       return res.json();
     },
-    enabled: !!user,
+    enabled: isAuthenticated,
   });
 
-  if (!user) {
+  if (!isAuthenticated) {
     navigate("/");
     return null;
   }
@@ -50,7 +50,7 @@ export default function MatchedClubs() {
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">🎯</div>
           <h1 className="font-serif text-2xl font-bold text-foreground" data-testid="text-matches-title">
-            Your Top Matches{user.city ? ` in ${user.city}` : ""}
+            Your Top Matches{user?.city ? ` in ${user.city}` : ""}
           </h1>
           <p className="text-sm text-muted-foreground mt-2">
             Based on your interests and preferences

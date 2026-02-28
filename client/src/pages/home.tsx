@@ -9,7 +9,7 @@ import { Footer } from "@/components/footer";
 import { ActivityTicker } from "@/components/activity-ticker";
 import { ClubDetailModal } from "@/components/club-detail-modal";
 import { UpcomingEvents } from "@/components/upcoming-events";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { ArrowRight } from "lucide-react";
 import type { Club } from "@shared/schema";
 

@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, Users } from "lucide-react";
 
@@ -18,7 +18,7 @@ interface UpcomingEvent {
 }
 
 export function UpcomingEvents() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const { data: events = [], isLoading } = useQuery<UpcomingEvent[]>({
     queryKey: ["/api/events"],
@@ -33,10 +33,8 @@ export function UpcomingEvents() {
     mutationFn: async (eventId: string) => {
       const res = await fetch(`/api/events/${eventId}/rsvp`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || "",
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to RSVP");
       return res.json();
@@ -96,7 +94,7 @@ export function UpcomingEvents() {
                   {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
                 </div>
               </div>
-              {user && spotsLeft > 0 && (
+              {isAuthenticated && spotsLeft > 0 && (
                 <button
                   onClick={() => rsvpMutation.mutate(event.id)}
                   disabled={rsvpMutation.isPending}
@@ -106,7 +104,7 @@ export function UpcomingEvents() {
                   Count Me In
                 </button>
               )}
-              {!user && (
+              {!isAuthenticated && (
                 <p className="text-[10px] text-muted-foreground text-center italic">Sign in to RSVP</p>
               )}
             </motion.div>

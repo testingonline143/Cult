@@ -1,15 +1,13 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { CalendarDays, MapPin, Clock, CheckCircle2, XCircle, LogIn, UserPlus } from "lucide-react";
-import { SignInModal } from "@/components/sign-in-modal";
 import type { Event, Club, EventRsvp } from "@shared/schema";
 
 interface EventDetailResponse extends Event {
@@ -19,9 +17,8 @@ interface EventDetailResponse extends Event {
 
 export default function CheckinPage() {
   const { eventId } = useParams<{ eventId: string }>();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [showSignIn, setShowSignIn] = useState(false);
 
   const { data: eventData, isLoading: eventLoading, error: eventError } = useQuery<EventDetailResponse>({
     queryKey: ["/api/events", eventId],
@@ -33,7 +30,7 @@ export default function CheckinPage() {
     mutationFn: async () => {
       const res = await fetch(`/api/events/${eventId}/checkin`, {
         method: "POST",
-        headers: { "x-user-id": user?.id || "" },
+        credentials: "include",
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ message: res.statusText }));
@@ -58,7 +55,7 @@ export default function CheckinPage() {
     mutationFn: async () => {
       const res = await fetch(`/api/events/${eventId}/rsvp`, {
         method: "POST",
-        headers: { "x-user-id": user?.id || "" },
+        credentials: "include",
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ message: res.statusText }));
@@ -74,14 +71,6 @@ export default function CheckinPage() {
       toast({ title: "RSVP failed", description: err.message, variant: "destructive" });
     },
   });
-
-  const handleCheckin = () => {
-    checkinMutation.mutate();
-  };
-
-  const handleRsvp = () => {
-    rsvpMutation.mutate();
-  };
 
   const formatDate = (date: string | Date | null) => {
     if (!date) return "";
@@ -172,13 +161,13 @@ export default function CheckinPage() {
         </div>
 
         <div className="border-t pt-4">
-          {!user ? (
+          {!isAuthenticated ? (
             <div className="text-center space-y-4">
               <LogIn className="mx-auto h-10 w-10 text-muted-foreground" />
               <p className="text-muted-foreground" data-testid="text-sign-in-prompt">
                 Sign in to check in to this event
               </p>
-              <Button onClick={() => setShowSignIn(true)} data-testid="button-sign-in">
+              <Button onClick={() => { window.location.href = "/api/login"; }} data-testid="button-sign-in">
                 Sign In
               </Button>
             </div>
@@ -201,7 +190,7 @@ export default function CheckinPage() {
               <Button
                 size="lg"
                 className="w-full"
-                onClick={handleCheckin}
+                onClick={() => checkinMutation.mutate()}
                 disabled={checkinMutation.isPending}
                 data-testid="button-checkin"
               >
@@ -217,7 +206,7 @@ export default function CheckinPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={handleRsvp}
+                onClick={() => rsvpMutation.mutate()}
                 disabled={rsvpMutation.isPending}
                 data-testid="button-rsvp"
               >
@@ -227,8 +216,6 @@ export default function CheckinPage() {
           )}
         </div>
       </Card>
-
-      <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
     </div>
   );
 }

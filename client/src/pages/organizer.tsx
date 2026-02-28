@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { Calendar, MapPin, Users, QrCode, Check } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp } from "@shared/schema";
 import {
@@ -13,116 +15,70 @@ import {
 import QRCodeLib from "qrcode";
 
 export default function Organizer() {
-  const [whatsapp, setWhatsapp] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<"phone" | "otp" | "dashboard">("phone");
-  const [error, setError] = useState("");
-  const [club, setClub] = useState<Club | null>(null);
+  const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "requests" | "events" | "edit">("overview");
 
-  const sendOtpMutation = useMutation({
-    mutationFn: async (phone: string) => {
-      const res = await apiRequest("POST", "/api/auth/send-otp", { phone });
+  const { data: club, isLoading, error } = useQuery<Club>({
+    queryKey: ["/api/organizer/my-club"],
+    queryFn: async () => {
+      const res = await fetch("/api/organizer/my-club", { credentials: "include" });
+      if (!res.ok) throw new Error("No club found");
       return res.json();
     },
-    onSuccess: () => {
-      setStep("otp");
-      setError("");
-    },
-    onError: () => setError("Failed to send OTP. Check your number."),
+    enabled: isAuthenticated,
+    retry: false,
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: { whatsappNumber: string; otp: string }) => {
-      const res = await apiRequest("POST", "/api/organizer/login", data);
-      return res.json();
-    },
-    onSuccess: (data: { success: boolean; club: Club }) => {
-      setClub(data.club);
-      setStep("dashboard");
-      setError("");
-    },
-    onError: () => setError("Invalid OTP or no club found for this number."),
-  });
-
-  const handleSendOtp = () => {
-    setError("");
-    if (!whatsapp || whatsapp.replace(/\D/g, "").length < 10) {
-      setError("Enter a valid WhatsApp number");
-      return;
-    }
-    sendOtpMutation.mutate(whatsapp);
-  };
-
-  const handleLogin = () => {
-    setError("");
-    if (!otp || otp.length !== 6) {
-      setError("Enter the 6-digit OTP");
-      return;
-    }
-    loginMutation.mutate({ whatsappNumber: whatsapp, otp });
-  };
-
-  if (step !== "dashboard") {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-sm space-y-4">
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <div className="text-4xl mb-3">📋</div>
+          <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-organizer-title">Organizer Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to access your club dashboard</p>
+          <button
+            onClick={() => { window.location.href = "/api/login"; }}
+            className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold"
+            data-testid="button-organizer-sign-in"
+          >
+            Sign In
+          </button>
           <div className="text-center">
-            <div className="text-4xl mb-3">📋</div>
-            <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-organizer-title">Organizer Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {step === "phone" ? "Login with your WhatsApp number" : "Enter the OTP sent to your phone"}
-            </p>
+            <a href="/" className="text-xs text-primary hover:underline" data-testid="link-organizer-home">← Back to Home</a>
           </div>
-          {step === "phone" ? (
-            <>
-              <input
-                type="tel"
-                placeholder="WhatsApp Number"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                data-testid="input-organizer-whatsapp"
-              />
-              {error && <p className="text-xs text-red-500 font-medium text-center" data-testid="text-organizer-error">{error}</p>}
-              <button
-                onClick={handleSendOtp}
-                disabled={sendOtpMutation.isPending}
-                className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
-                data-testid="button-organizer-send-otp"
-              >
-                {sendOtpMutation.isPending ? "Sending..." : "Send OTP"}
-              </button>
-            </>
-          ) : (
-            <>
-              <input
-                type="text"
-                placeholder="6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-center tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
-                data-testid="input-organizer-otp"
-              />
-              {error && <p className="text-xs text-red-500 font-medium text-center" data-testid="text-organizer-error">{error}</p>}
-              <button
-                onClick={handleLogin}
-                disabled={loginMutation.isPending}
-                className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold disabled:opacity-50"
-                data-testid="button-organizer-verify"
-              >
-                {loginMutation.isPending ? "Verifying..." : "Verify & Login"}
-              </button>
-              <button
-                onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
-                className="w-full text-xs text-muted-foreground hover:text-foreground"
-              >
-                Change number
-              </button>
-            </>
-          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="text-4xl mb-3">📋</div>
+          <p className="text-sm text-muted-foreground">Loading your club...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !club) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <div className="text-4xl mb-3">🏕️</div>
+          <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-no-club-title">No Club Yet</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            You haven't created a club yet. Head to the homepage and create one!
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold"
+            data-testid="button-go-create-club"
+          >
+            Create a Club
+          </button>
           <div className="text-center">
             <a href="/" className="text-xs text-primary hover:underline" data-testid="link-organizer-home">← Back to Home</a>
           </div>
@@ -137,19 +93,12 @@ export default function Organizer() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-serif text-xl font-bold text-primary" data-testid="text-organizer-dashboard">
-              {club?.emoji} {club?.name}
+              {club.emoji} {club.name}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">Organizer Dashboard</p>
           </div>
           <div className="flex items-center gap-2">
             <a href="/" className="text-xs text-primary hover:underline" data-testid="link-dashboard-home">Home</a>
-            <button
-              onClick={() => { setStep("phone"); setClub(null); setWhatsapp(""); setOtp(""); }}
-              className="text-xs text-muted-foreground hover:text-foreground"
-              data-testid="button-organizer-logout"
-            >
-              Logout
-            </button>
           </div>
         </div>
 
@@ -166,10 +115,10 @@ export default function Organizer() {
           ))}
         </div>
 
-        {activeTab === "overview" && club && <ClubOverview club={club} />}
-        {activeTab === "requests" && club && <OrganizerRequests clubId={club.id} />}
-        {activeTab === "events" && club && <OrganizerEvents clubId={club.id} whatsapp={whatsapp} />}
-        {activeTab === "edit" && club && <EditClub club={club} onUpdate={setClub} />}
+        {activeTab === "overview" && <ClubOverview club={club} />}
+        {activeTab === "requests" && <OrganizerRequests clubId={club.id} />}
+        {activeTab === "events" && <OrganizerEvents clubId={club.id} />}
+        {activeTab === "edit" && <EditClub club={club} />}
       </div>
     </div>
   );
@@ -228,6 +177,11 @@ function ClubOverview({ club }: { club: Club }) {
 function OrganizerRequests({ clubId }: { clubId: string }) {
   const { data: requests = [], isLoading } = useQuery<JoinRequest[]>({
     queryKey: ["/api/organizer/join-requests", clubId],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/join-requests/${clubId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   const contactMutation = useMutation({
@@ -280,7 +234,7 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
   );
 }
 
-function OrganizerEvents({ clubId, whatsapp }: { clubId: string; whatsapp: string }) {
+function OrganizerEvents({ clubId }: { clubId: string }) {
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -302,7 +256,8 @@ function OrganizerEvents({ clubId, whatsapp }: { clubId: string; whatsapp: strin
     mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number }) => {
       const res = await fetch(`/api/clubs/${clubId}/events`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-organizer-whatsapp": whatsapp },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -428,7 +383,7 @@ function OrganizerEvents({ clubId, whatsapp }: { clubId: string; whatsapp: strin
       ) : (
         <div className="space-y-2">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} whatsapp={whatsapp} />
+            <EventCard key={event.id} event={event} />
           ))}
         </div>
       )}
@@ -438,7 +393,7 @@ function OrganizerEvents({ clubId, whatsapp }: { clubId: string; whatsapp: strin
 
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 
-function EventCard({ event, whatsapp }: { event: Event & { rsvpCount: number }; whatsapp: string }) {
+function EventCard({ event }: { event: Event & { rsvpCount: number } }) {
   const [showQr, setShowQr] = useState(false);
   const [showAttendees, setShowAttendees] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -449,7 +404,7 @@ function EventCard({ event, whatsapp }: { event: Event & { rsvpCount: number }; 
     queryKey: ["/api/events", event.id, "attendees"],
     queryFn: async () => {
       const res = await fetch(`/api/events/${event.id}/attendees`, {
-        headers: { "x-organizer-whatsapp": whatsapp },
+        credentials: "include",
       });
       if (!res.ok) return { attendees: [], checkedInCount: 0, totalRsvps: 0 };
       return res.json();
@@ -576,7 +531,7 @@ function EventCard({ event, whatsapp }: { event: Event & { rsvpCount: number }; 
   );
 }
 
-function EditClub({ club, onUpdate }: { club: Club; onUpdate: (club: Club) => void }) {
+function EditClub({ club }: { club: Club }) {
   const [shortDesc, setShortDesc] = useState(club.shortDesc);
   const [schedule, setSchedule] = useState(club.schedule);
   const [location, setLocation] = useState(club.location);
@@ -586,14 +541,20 @@ function EditClub({ club, onUpdate }: { club: Club; onUpdate: (club: Club) => vo
 
   const updateMutation = useMutation({
     mutationFn: async (data: { shortDesc: string; schedule: string; location: string; healthStatus: string; highlights: string[] }) => {
-      const res = await apiRequest("PATCH", `/api/organizer/club/${club.id}`, data);
+      const res = await fetch(`/api/organizer/club/${club.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update");
       return res.json();
     },
-    onSuccess: (data: Club) => {
-      onUpdate(data);
+    onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-club"] });
     },
   });
 

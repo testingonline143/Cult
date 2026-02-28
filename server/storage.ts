@@ -1,6 +1,6 @@
 import {
   type Club, type InsertClub, type ClubSubmission, type InsertClubSubmission,
-  type JoinRequest, type InsertJoinRequest, type User, type InsertUser,
+  type JoinRequest, type InsertJoinRequest, type User,
   type QuizAnswers, type InsertQuizAnswers, type Event, type InsertEvent,
   type EventRsvp, type InsertEventRsvp,
   clubs, clubSubmissions, joinRequests, users, userQuizAnswers, events, eventRsvps
@@ -26,11 +26,8 @@ export interface IStorage {
   markClubSubmissionDone(id: string): Promise<ClubSubmission | undefined>;
   getClubByWhatsapp(whatsappNumber: string): Promise<Club | undefined>;
   getClubsByOrganizer(whatsappNumber: string): Promise<Club[]>;
+  getClubsByCreator(creatorUserId: string): Promise<Club[]>;
   getUser(id: string): Promise<User | undefined>;
-  getUserByPhone(phone: string): Promise<User | undefined>;
-  createOrUpdateUserByPhone(phone: string, name: string): Promise<User>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
   saveQuizAnswers(answers: InsertQuizAnswers): Promise<QuizAnswers>;
   getQuizAnswers(userId: string): Promise<QuizAnswers | undefined>;
@@ -136,38 +133,12 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(clubs).where(eq(clubs.whatsappNumber, whatsappNumber));
   }
 
+  async getClubsByCreator(creatorUserId: string): Promise<Club[]> {
+    return db.select().from(clubs).where(eq(clubs.creatorUserId, creatorUserId));
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByPhone(phone: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.phone, phone));
-    return user;
-  }
-
-  async createOrUpdateUserByPhone(phone: string, name: string): Promise<User> {
-    const existing = await this.getUserByPhone(phone);
-    if (existing) {
-      const [updated] = await db.update(users).set({ name }).where(eq(users.id, existing.id)).returning();
-      return updated;
-    }
-    const [created] = await db.insert(users).values({
-      username: `user_${phone}`,
-      password: "otp_auth",
-      phone,
-      name,
-    }).returning();
-    return created;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
@@ -297,7 +268,7 @@ export class DatabaseStorage implements IStorage {
       checkedIn: eventRsvps.checkedIn,
       checkedInAt: eventRsvps.checkedInAt,
       createdAt: eventRsvps.createdAt,
-      userName: users.name,
+      userName: users.firstName,
     })
       .from(eventRsvps)
       .leftJoin(users, eq(eventRsvps.userId, users.id))
@@ -387,7 +358,7 @@ export class DatabaseStorage implements IStorage {
       checkedIn: eventRsvps.checkedIn,
       checkedInAt: eventRsvps.checkedInAt,
       createdAt: eventRsvps.createdAt,
-      userName: users.name,
+      userName: users.firstName,
     })
       .from(eventRsvps)
       .leftJoin(users, eq(eventRsvps.userId, users.id))

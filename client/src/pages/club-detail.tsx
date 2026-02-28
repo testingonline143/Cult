@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft, Star, Calendar, MapPin, Users, MessageCircle, Clock, User, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -74,12 +74,12 @@ function handleShareClub(club: Club) {
 }
 
 function ClubDetailContent({ club }: { club: Club }) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState(false);
-  const [joinName, setJoinName] = useState(user?.name || "");
-  const [joinPhone, setJoinPhone] = useState(user?.phone || "");
+  const [joinName, setJoinName] = useState(user?.firstName || "");
+  const [joinPhone, setJoinPhone] = useState("");
   const [joinError, setJoinError] = useState("");
 
   const { data: activity } = useQuery<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: string | null }>({
@@ -92,8 +92,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   });
 
   useEffect(() => {
-    setJoinName(user?.name || "");
-    setJoinPhone(user?.phone || "");
+    setJoinName(user?.firstName || "");
   }, [user]);
 
   const joinMutation = useMutation({
@@ -285,7 +284,7 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         )}
 
-        <ClubEvents clubId={club.id} userId={user?.id} />
+        <ClubEvents clubId={club.id} isAuthenticated={isAuthenticated} />
 
         <Card className="p-4 bg-[hsl(var(--clay))]/[0.06] border-[hsl(var(--clay))]/15" data-testid="card-founding">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -405,7 +404,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   );
 }
 
-function ClubEvents({ clubId, userId }: { clubId: string; userId?: string }) {
+function ClubEvents({ clubId, isAuthenticated }: { clubId: string; isAuthenticated: boolean }) {
   const { data: events = [] } = useQuery<ClubEvent[]>({
     queryKey: ["/api/clubs", clubId, "events"],
     queryFn: async () => {
@@ -419,7 +418,8 @@ function ClubEvents({ clubId, userId }: { clubId: string; userId?: string }) {
     mutationFn: async (eventId: string) => {
       const res = await fetch(`/api/events/${eventId}/rsvp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": userId || "" },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed");
       return res.json();
@@ -460,7 +460,7 @@ function ClubEvents({ clubId, userId }: { clubId: string; userId?: string }) {
                   <Users className="w-3 h-3" />
                   {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
                 </span>
-                {userId && spotsLeft > 0 && (
+                {isAuthenticated && spotsLeft > 0 && (
                   <Button
                     size="sm"
                     onClick={() => rsvpMutation.mutate(event.id)}

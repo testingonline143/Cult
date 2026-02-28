@@ -2,9 +2,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { HOBBY_ICONS } from "@shared/schema";
+import { queryClient } from "@/lib/queryClient";
 
 const AVAILABILITY_OPTIONS = [
   { value: "early_morning", label: "Early Morning", emoji: "🌅" },
@@ -31,7 +32,7 @@ const USER_TYPES = [
 ];
 
 export default function Onboarding() {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState<string[]>([]);
@@ -47,10 +48,8 @@ export default function Onboarding() {
     mutationFn: async () => {
       const res = await fetch("/api/quiz", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || "",
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           interests,
           experienceLevel,
@@ -63,9 +62,7 @@ export default function Onboarding() {
       return res.json();
     },
     onSuccess: () => {
-      if (user) {
-        login({ ...user, quizCompleted: true });
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       navigate("/matched-clubs");
     },
     onError: () => {
@@ -178,9 +175,7 @@ export default function Onboarding() {
             >
               {step === 1 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Pick 1 to 3 hobbies you love
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">Pick 1 to 3 hobbies you love</p>
                   <div className="grid grid-cols-3 gap-3">
                     {HOBBY_ICONS.map((hobby) => {
                       const selected = interests.includes(hobby.name);
@@ -188,11 +183,7 @@ export default function Onboarding() {
                         <button
                           key={hobby.name}
                           onClick={() => toggleInterest(hobby.name)}
-                          className={`flex flex-col items-center p-3.5 rounded-xl border-2 transition-all ${
-                            selected
-                              ? "border-primary bg-primary text-white shadow-md"
-                              : "border-border bg-card hover:border-primary/30 text-foreground"
-                          }`}
+                          className={`flex flex-col items-center p-3.5 rounded-xl border-2 transition-all ${selected ? "border-primary bg-primary text-white shadow-md" : "border-border bg-card hover:border-primary/30 text-foreground"}`}
                           data-testid={`hobby-${hobby.name.toLowerCase()}`}
                         >
                           <span className="text-2xl mb-1">{hobby.emoji}</span>
@@ -201,17 +192,13 @@ export default function Onboarding() {
                       );
                     })}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3 text-center">
-                    {interests.length}/3 selected
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-3 text-center">{interests.length}/3 selected</p>
                 </div>
               )}
 
               {step === 2 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select all time slots that work for you
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">Select all time slots that work for you</p>
                   <div className="space-y-3">
                     {AVAILABILITY_OPTIONS.map((slot) => {
                       const selected = availability.includes(slot.value);
@@ -219,11 +206,7 @@ export default function Onboarding() {
                         <button
                           key={slot.value}
                           onClick={() => toggleAvailability(slot.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
-                            selected
-                              ? "border-primary bg-primary text-white shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
-                          }`}
+                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${selected ? "border-primary bg-primary text-white shadow-md" : "border-border bg-card hover:border-primary/30"}`}
                           data-testid={`availability-${slot.value}`}
                         >
                           <span className="text-3xl mr-4">{slot.emoji}</span>
@@ -237,9 +220,7 @@ export default function Onboarding() {
 
               {step === 3 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    How do you like your activities?
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">How do you like your activities?</p>
                   <div className="grid grid-cols-3 gap-3">
                     {VIBE_OPTIONS.map((vibe) => {
                       const selected = vibePreference === vibe.value;
@@ -247,11 +228,7 @@ export default function Onboarding() {
                         <button
                           key={vibe.value}
                           onClick={() => setVibePreference(vibe.value)}
-                          className={`flex flex-col items-center p-5 rounded-xl border-2 transition-all text-center ${
-                            selected
-                              ? "border-primary bg-primary text-white shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
-                          }`}
+                          className={`flex flex-col items-center p-5 rounded-xl border-2 transition-all text-center ${selected ? "border-primary bg-primary text-white shadow-md" : "border-border bg-card hover:border-primary/30"}`}
                           data-testid={`vibe-${vibe.value}`}
                         >
                           <span className="text-4xl mb-2">{vibe.emoji}</span>
@@ -266,9 +243,7 @@ export default function Onboarding() {
 
               {step === 4 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    This helps us match you with the right crowd
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">This helps us match you with the right crowd</p>
                   <div className="space-y-3">
                     {EXPERIENCE_LEVELS.map((level) => {
                       const selected = experienceLevel === level.value;
@@ -276,11 +251,7 @@ export default function Onboarding() {
                         <button
                           key={level.value}
                           onClick={() => setExperienceLevel(level.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
-                            selected
-                              ? "border-primary bg-primary text-white shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
-                          }`}
+                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${selected ? "border-primary bg-primary text-white shadow-md" : "border-border bg-card hover:border-primary/30"}`}
                           data-testid={`experience-${level.value}`}
                         >
                           <span className="text-3xl mr-4">{level.emoji}</span>
@@ -297,9 +268,7 @@ export default function Onboarding() {
 
               {step === 5 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Tell us a bit about yourself
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">Tell us a bit about yourself</p>
                   <div className="space-y-3">
                     {USER_TYPES.map((type) => {
                       const selected = userType === type.value;
@@ -307,11 +276,7 @@ export default function Onboarding() {
                         <button
                           key={type.value}
                           onClick={() => setUserType(type.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${
-                            selected
-                              ? "border-primary bg-primary text-white shadow-md"
-                              : "border-border bg-card hover:border-primary/30"
-                          }`}
+                          className={`w-full flex items-center p-5 rounded-xl border-2 transition-all text-left ${selected ? "border-primary bg-primary text-white shadow-md" : "border-border bg-card hover:border-primary/30"}`}
                           data-testid={`usertype-${type.value}`}
                         >
                           <span className="text-3xl mr-4">{type.emoji}</span>

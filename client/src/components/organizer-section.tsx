@@ -1,68 +1,81 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, LogIn } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertClubSubmissionSchema, CATEGORIES } from "@shared/schema";
-import { z } from "zod";
-
-const formSchema = insertClubSubmissionSchema.extend({
-  clubName: z.string().min(3, "Club name must be at least 3 characters"),
-  organizerName: z.string().min(2, "Name must be at least 2 characters"),
-  whatsappNumber: z.string().min(10, "Please enter a valid WhatsApp number"),
-  category: z.string().min(1, "Please select a category"),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { CATEGORIES, CITIES } from "@shared/schema";
 
 export function OrganizerSection() {
   const [showForm, setShowForm] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [created, setCreated] = useState(false);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      clubName: "",
-      organizerName: "",
-      whatsappNumber: "",
-      category: "",
-      meetupFrequency: "",
-    },
-  });
+  const [clubName, setClubName] = useState("");
+  const [category, setCategory] = useState("");
+  const [shortDesc, setShortDesc] = useState("");
+  const [fullDesc, setFullDesc] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [location, setLocation] = useState("");
+  const [organizerName, setOrganizerName] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [city, setCity] = useState("Tirupati");
 
-  const submitMutation = useMutation({
-    mutationFn: async (data: FormValues) => {
-      const res = await apiRequest("POST", "/api/club-submissions", data);
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/clubs/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: clubName,
+          category,
+          shortDesc,
+          fullDesc,
+          schedule,
+          location,
+          organizerName,
+          whatsappNumber,
+          city,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ message: "Failed to create club" }));
+        throw new Error(data.message || "Failed to create club");
+      }
       return res.json();
     },
     onSuccess: () => {
-      setSubmitted(true);
-      form.reset();
+      setCreated(true);
+      setTimeout(() => {
+        navigate("/organizer");
+      }, 2000);
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
-  useEffect(() => {
-    if (submitted) {
-      const timer = setTimeout(() => {
-        setSubmitted(false);
-        setShowForm(false);
-      }, 4000);
-      return () => clearTimeout(timer);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clubName || clubName.length < 3) {
+      toast({ title: "Club name must be at least 3 characters", variant: "destructive" });
+      return;
     }
-  }, [submitted]);
-
-  const onSubmit = (data: FormValues) => {
-    submitMutation.mutate(data);
+    if (!category) {
+      toast({ title: "Please select a category", variant: "destructive" });
+      return;
+    }
+    if (!organizerName || organizerName.length < 2) {
+      toast({ title: "Organizer name must be at least 2 characters", variant: "destructive" });
+      return;
+    }
+    createMutation.mutate();
   };
 
   return (
@@ -82,11 +95,11 @@ export function OrganizerSection() {
               Running a club in Tirupati?
             </h2>
             <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[500px] mx-auto mb-8">
-              List your club free. Get discovered by hundreds of people actively looking for exactly what you're building. No fees, no complexity.
+              List your club free. Get discovered by hundreds of people actively looking for exactly what you're building. No fees, no complexity. Your club goes live instantly!
             </p>
 
             <div className="flex gap-3 justify-center flex-wrap mb-8">
-              {["Free forever", "5 minute setup", "More members", "Get discovered"].map((perk) => (
+              {["Free forever", "Goes live instantly", "More members", "Get discovered"].map((perk) => (
                 <span key={perk} className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground px-3.5 py-1.5 rounded-full bg-background border border-border">
                   <Check className="w-3.5 h-3.5 text-primary" />
                   {perk}
@@ -95,153 +108,176 @@ export function OrganizerSection() {
             </div>
 
             <AnimatePresence mode="wait">
-              {!showForm && !submitted && (
+              {!showForm && !created && (
                 <motion.div key="cta" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                   <button
                     onClick={() => setShowForm(true)}
                     className="bg-primary text-primary-foreground rounded-full px-9 py-4 text-[15px] font-semibold transition-all"
                     data-testid="button-list-club-cta"
                   >
-                    List My Club for Free →
+                    Create My Club for Free →
                   </button>
                 </motion.div>
               )}
 
-              {showForm && !submitted && (
+              {showForm && !created && (
                 <motion.div
                   key="form"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="max-w-[400px] mx-auto text-left"
+                  className="max-w-[450px] mx-auto text-left"
                 >
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="clubName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                placeholder="Club Name"
-                                className="rounded-xl"
-                                data-testid="input-club-name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="organizerName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                placeholder="Your Name"
-                                className="rounded-xl"
-                                data-testid="input-organizer-name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="whatsappNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                placeholder="WhatsApp Number"
-                                type="tel"
-                                className="rounded-xl"
-                                data-testid="input-whatsapp"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="rounded-xl" data-testid="select-category">
-                                  <SelectValue placeholder="Select Category" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {CATEGORIES.map((cat) => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                                <SelectItem value="Other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="meetupFrequency"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                placeholder="Meetup Frequency (e.g. Every Sunday)"
-                                className="rounded-xl"
-                                data-testid="input-meetup-frequency"
-                                {...field}
-                                value={field.value ?? ""}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  {!isAuthenticated ? (
+                    <div className="text-center space-y-4 py-6">
+                      <LogIn className="w-10 h-10 text-primary mx-auto" />
+                      <p className="text-sm text-muted-foreground">Sign in first to create your club</p>
+                      <button
+                        onClick={() => { window.location.href = "/api/login"; }}
+                        className="bg-primary text-primary-foreground rounded-xl px-8 py-3 text-sm font-semibold"
+                        data-testid="button-sign-in-to-create"
+                      >
+                        Sign In
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Club Name *</label>
+                        <Input
+                          placeholder="e.g. Tirupati Trekkers"
+                          className="rounded-xl"
+                          data-testid="input-club-name"
+                          value={clubName}
+                          onChange={(e) => setClubName(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Category *</label>
+                        <Select onValueChange={setCategory} value={category}>
+                          <SelectTrigger className="rounded-xl" data-testid="select-category">
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Your Name *</label>
+                        <Input
+                          placeholder="Your full name"
+                          className="rounded-xl"
+                          data-testid="input-organizer-name"
+                          value={organizerName}
+                          onChange={(e) => setOrganizerName(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Short Description</label>
+                        <Input
+                          placeholder="One-liner about your club"
+                          className="rounded-xl"
+                          data-testid="input-short-desc"
+                          value={shortDesc}
+                          onChange={(e) => setShortDesc(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Full Description</label>
+                        <textarea
+                          placeholder="Tell people what your club is about, what you do, who should join..."
+                          rows={3}
+                          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                          data-testid="input-full-desc"
+                          value={fullDesc}
+                          onChange={(e) => setFullDesc(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Schedule</label>
+                          <Input
+                            placeholder="e.g. Every Sunday 6 AM"
+                            className="rounded-xl"
+                            data-testid="input-schedule"
+                            value={schedule}
+                            onChange={(e) => setSchedule(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Location</label>
+                          <Input
+                            placeholder="e.g. SV University"
+                            className="rounded-xl"
+                            data-testid="input-location"
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">City</label>
+                          <Select onValueChange={setCity} value={city}>
+                            <SelectTrigger className="rounded-xl" data-testid="select-city">
+                              <SelectValue placeholder="Select City" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CITIES.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">WhatsApp</label>
+                          <Input
+                            placeholder="For member coordination"
+                            type="tel"
+                            className="rounded-xl"
+                            data-testid="input-whatsapp"
+                            value={whatsappNumber}
+                            onChange={(e) => setWhatsappNumber(e.target.value)}
+                          />
+                        </div>
+                      </div>
                       <button
                         type="submit"
-                        disabled={submitMutation.isPending}
+                        disabled={createMutation.isPending}
                         className="w-full bg-primary text-primary-foreground rounded-xl py-3.5 text-[15px] font-semibold transition-all disabled:opacity-60"
                         data-testid="button-submit-club"
                       >
-                        {submitMutation.isPending ? (
+                        {createMutation.isPending ? (
                           <span className="flex items-center justify-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Submitting...
+                            Creating...
                           </span>
                         ) : (
-                          "Submit Club →"
+                          "Create Club & Go Live →"
                         )}
                       </button>
                     </form>
-                  </Form>
+                  )}
                 </motion.div>
               )}
 
-              {submitted && (
+              {created && (
                 <motion.div
                   key="success"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="py-6"
-                  data-testid="text-submission-success"
+                  data-testid="text-creation-success"
                 >
                   <div className="text-5xl mb-3">{"\u{1F331}"}</div>
-                  <h3 className="font-serif text-xl font-bold text-primary mb-2">Received!</h3>
+                  <h3 className="font-serif text-xl font-bold text-primary mb-2">Your Club is Live!</h3>
                   <p className="text-sm text-muted-foreground">
-                    We'll contact you within 24 hours to get your club set up.
+                    Redirecting you to your organizer dashboard...
                   </p>
                 </motion.div>
               )}

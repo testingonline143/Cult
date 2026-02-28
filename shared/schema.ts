@@ -3,6 +3,9 @@ import { pgTable, text, varchar, integer, boolean, timestamp, uniqueIndex } from
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export { users, sessions } from "./models/auth";
+export type { User, UpsertUser } from "./models/auth";
+
 export const clubs = pgTable("clubs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -30,6 +33,7 @@ export const clubs = pgTable("clubs", {
   timeOfDay: text("time_of_day").notNull().default("morning"),
   isActive: boolean("is_active").default(true),
   highlights: text("highlights").array(),
+  creatorUserId: varchar("creator_user_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -52,19 +56,6 @@ export const clubSubmissions = pgTable("club_submissions", {
   meetupFrequency: text("meetup_frequency"),
   markedDone: boolean("marked_done").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  phone: text("phone"),
-  name: text("name"),
-  city: text("city"),
-  bio: text("bio"),
-  profilePhotoUrl: text("profile_photo_url"),
-  hasRealProfile: boolean("has_real_profile").default(false),
-  quizCompleted: boolean("quiz_completed").default(false),
 });
 
 export const userQuizAnswers = pgTable("user_quiz_answers", {
@@ -106,7 +97,6 @@ export const eventRsvps = pgTable("event_rsvps", {
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertClubSubmissionSchema = createInsertSchema(clubSubmissions).omit({ id: true, createdAt: true });
-export const insertUserSchema = createInsertSchema(users).pick({ username: true, password: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
 export const insertEventRsvpSchema = createInsertSchema(eventRsvps).omit({ id: true, createdAt: true });
@@ -117,8 +107,6 @@ export type JoinRequest = typeof joinRequests.$inferSelect;
 export type InsertJoinRequest = z.infer<typeof insertJoinRequestSchema>;
 export type ClubSubmission = typeof clubSubmissions.$inferSelect;
 export type InsertClubSubmission = z.infer<typeof insertClubSubmissionSchema>;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type QuizAnswers = typeof userQuizAnswers.$inferSelect;
 export type InsertQuizAnswers = z.infer<typeof insertQuizAnswersSchema>;
 export type Event = typeof events.$inferSelect;

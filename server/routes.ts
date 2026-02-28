@@ -4,16 +4,14 @@ import { storage } from "./storage";
 import { insertClubSubmissionSchema, insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import fs from "fs";
-import path from "path";
-
-const otpStore = new Map<string, { otp: string; expiresAt: number }>();
-const MOCK_OTP = "123456";
+import { isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  registerAuthRoutes(app);
+
   app.get("/api/clubs", async (req, res) => {
     try {
       const { category, search, city, vibe } = req.query as Record<string, string | undefined>;
@@ -106,47 +104,35 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/club-submissions/:id/approve", async (req, res) => {
+  app.get("/api/admin/clubs", async (_req, res) => {
     try {
-      const submission = await storage.getClubSubmission(req.params.id);
-      if (!submission) {
-        return res.status(404).json({ success: false, message: "Submission not found" });
-      }
-      if (submission.markedDone) {
-        return res.status(400).json({ success: false, message: "Submission already processed" });
-      }
-      const emoji = CATEGORY_EMOJI[submission.category] || "🎯";
-      const club = await storage.createClub({
-        name: submission.clubName,
-        category: submission.category,
-        emoji,
-        shortDesc: `New ${submission.category.toLowerCase()} club in Tirupati. ${submission.meetupFrequency ? `Meets ${submission.meetupFrequency}.` : ""}`.trim(),
-        fullDesc: `${submission.clubName} is a newly formed ${submission.category.toLowerCase()} community in Tirupati, organized by ${submission.organizerName}. Join us and be a founding member!`,
-        organizerName: submission.organizerName,
-        organizerYears: "New organizer",
-        organizerAvatar: "🧑",
-        organizerResponse: "Responds within 24 hrs",
-        memberCount: 1,
-        schedule: submission.meetupFrequency || "To be announced",
-        location: "Tirupati",
-        city: "Tirupati",
-        vibe: "casual",
-        activeSince: new Date().getFullYear().toString(),
-        whatsappNumber: submission.whatsappNumber,
-        healthStatus: "green",
-        healthLabel: "Very Active",
-        lastActive: "Just started",
-        foundingTaken: 1,
-        foundingTotal: 20,
-        bgColor: "#f0f9f0",
-        timeOfDay: "morning",
-        isActive: true,
-      });
-      await storage.markClubSubmissionDone(submission.id);
-      res.json({ success: true, message: "Club created and live!", club });
+      const clubs = await storage.getClubs();
+      res.json(clubs);
     } catch (err) {
-      console.error("Error approving submission:", err);
-      res.status(500).json({ success: false, message: "Failed to approve submission" });
+      console.error("Error fetching admin clubs:", err);
+      res.status(500).json({ message: "Failed to fetch clubs" });
+    }
+  });
+
+  app.patch("/api/admin/clubs/:id/deactivate", async (req, res) => {
+    try {
+      const updated = await storage.updateClub(req.params.id, { isActive: false });
+      if (!updated) return res.status(404).json({ message: "Club not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error deactivating club:", err);
+      res.status(500).json({ message: "Failed to deactivate club" });
+    }
+  });
+
+  app.patch("/api/admin/clubs/:id/activate", async (req, res) => {
+    try {
+      const updated = await storage.updateClub(req.params.id, { isActive: true });
+      if (!updated) return res.status(404).json({ message: "Club not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error activating club:", err);
+      res.status(500).json({ message: "Failed to activate club" });
     }
   });
 
@@ -165,69 +151,79 @@ export async function registerRoutes(
     }
   });
 
-  // OTP Auth
-  app.post("/api/auth/send-otp", async (req, res) => {
+  app.post("/api/clubs/create", isAuthenticated, async (req: any, res) => {
     try {
-      const { phone } = req.body;
-      if (!phone || phone.replace(/\D/g, "").length < 10) {
-        return res.status(400).json({ success: false, message: "Valid phone number required" });
-      }
-      otpStore.set(phone, { otp: MOCK_OTP, expiresAt: Date.now() + 5 * 60 * 1000 });
-      console.log(`OTP for ${phone}: ${MOCK_OTP}`);
-      res.json({ success: true, message: "OTP sent" });
-    } catch (err) {
-      console.error("Error sending OTP:", err);
-      res.status(500).json({ success: false, message: "Failed to send OTP" });
-    }
-  });
+      const userId = req.user.claims.sub;
+      const { name, category, shortDesc, fullDesc, schedule, location, organizerName, whatsappNumber, city } = req.body;
 
-  app.post("/api/auth/verify-otp", async (req, res) => {
-    try {
-      const { phone, otp, name, city } = req.body;
-      if (!phone || !otp) {
-        return res.status(400).json({ success: false, message: "Phone and OTP required" });
+      if (!name || name.length < 3) {
+        return res.status(400).json({ success: false, message: "Club name must be at least 3 characters" });
       }
-      const stored = otpStore.get(phone);
-      if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
-        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+      if (!category) {
+        return res.status(400).json({ success: false, message: "Category is required" });
       }
-      otpStore.delete(phone);
-      const user = await storage.createOrUpdateUserByPhone(phone, name || "User");
-      if (city) {
-        await storage.updateUser(user.id, { city });
+      if (!organizerName || organizerName.length < 2) {
+        return res.status(400).json({ success: false, message: "Organizer name must be at least 2 characters" });
       }
-      const quizAnswers = await storage.getQuizAnswers(user.id);
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          phone: user.phone,
-          city: city || user.city,
-          bio: user.bio,
-          profilePhotoUrl: user.profilePhotoUrl,
-          hasRealProfile: user.hasRealProfile,
-          quizCompleted: !!quizAnswers || user.quizCompleted,
-        },
+
+      const emoji = CATEGORY_EMOJI[category] || "🎯";
+      const club = await storage.createClub({
+        name,
+        category,
+        emoji,
+        shortDesc: shortDesc || `New ${category.toLowerCase()} club in ${city || "Tirupati"}.`,
+        fullDesc: fullDesc || `${name} is a newly formed ${category.toLowerCase()} community in ${city || "Tirupati"}, organized by ${organizerName}. Join us and be a founding member!`,
+        organizerName,
+        organizerYears: "New organizer",
+        organizerAvatar: "🧑",
+        organizerResponse: "Responds within 24 hrs",
+        memberCount: 1,
+        schedule: schedule || "To be announced",
+        location: location || city || "Tirupati",
+        city: city || "Tirupati",
+        vibe: "casual",
+        activeSince: new Date().getFullYear().toString(),
+        whatsappNumber: whatsappNumber || null,
+        healthStatus: "green",
+        healthLabel: "Very Active",
+        lastActive: "Just started",
+        foundingTaken: 1,
+        foundingTotal: 20,
+        bgColor: "#f0f9f0",
+        timeOfDay: "morning",
+        isActive: true,
+        creatorUserId: userId,
       });
+
+      res.status(201).json({ success: true, message: "Club created and live!", club });
     } catch (err) {
-      console.error("Error verifying OTP:", err);
-      res.status(500).json({ success: false, message: "Failed to verify OTP" });
+      console.error("Error creating club:", err);
+      res.status(500).json({ success: false, message: "Failed to create club" });
     }
   });
 
-  // User profile routes (require x-user-id header matching a real user)
-  app.get("/api/user/join-requests", async (req, res) => {
+  app.get("/api/organizer/my-club", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      if (clubs.length === 0) {
+        return res.status(404).json({ message: "No club found" });
       }
+      res.json(clubs[0]);
+    } catch (err) {
+      console.error("Error fetching organizer club:", err);
+      res.status(500).json({ message: "Failed to fetch club" });
+    }
+  });
+
+  app.get("/api/user/join-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      if (!user || !user.phone) {
+      if (!user || !user.email) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const requests = await storage.getJoinRequestsByPhone(user.phone);
+      const requests = await storage.getJoinRequestsByPhone(user.email);
       res.json(requests);
     } catch (err) {
       console.error("Error fetching user join requests:", err);
@@ -235,61 +231,32 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/user/profile", async (req, res) => {
+  app.patch("/api/user/profile", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
-      const existingUser = await storage.getUser(userId);
-      if (!existingUser || !existingUser.phone) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const { name, bio } = req.body;
       if (!name || name.length < 2) {
         return res.status(400).json({ success: false, message: "Name is required (minimum 2 characters)" });
       }
-      const updates: Record<string, any> = { name };
+      const updates: Record<string, any> = { firstName: name };
       if (bio !== undefined) {
         updates.bio = bio.slice(0, 200);
       }
-      const hasRealProfile = !!(existingUser.phone && (bio || existingUser.bio) && (bio || existingUser.bio).length > 10);
-      updates.hasRealProfile = hasRealProfile;
 
       const user = await storage.updateUser(userId, updates);
       if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
       }
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          phone: user.phone,
-          city: user.city,
-          bio: user.bio,
-          profilePhotoUrl: user.profilePhotoUrl,
-          hasRealProfile: user.hasRealProfile,
-          quizCompleted: user.quizCompleted,
-        },
-      });
+      res.json({ success: true, user });
     } catch (err) {
       console.error("Error updating profile:", err);
       res.status(500).json({ success: false, message: "Failed to update profile" });
     }
   });
 
-  // Quiz routes
-  app.post("/api/quiz", async (req, res) => {
+  app.post("/api/quiz", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const validated = insertQuizAnswersSchema.parse({ ...req.body, userId });
       const answers = await storage.saveQuizAnswers(validated);
       await storage.updateUser(userId, { quizCompleted: true });
@@ -307,12 +274,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/quiz/matches", async (req, res) => {
+  app.get("/api/quiz/matches", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const quizAnswers = await storage.getQuizAnswers(userId);
       if (!quizAnswers) {
         return res.status(404).json({ message: "No quiz answers found" });
@@ -338,7 +302,6 @@ export async function registerRoutes(
     }
   });
 
-  // Event routes
   app.get("/api/events", async (req, res) => {
     try {
       const city = req.query.city as string | undefined;
@@ -382,17 +345,14 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clubs/:id/events", async (req, res) => {
+  app.post("/api/clubs/:id/events", isAuthenticated, async (req: any, res) => {
     try {
-      const whatsappNumber = req.headers["x-organizer-whatsapp"] as string;
-      if (!whatsappNumber) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
       if (!club) {
         return res.status(404).json({ success: false, message: "Club not found" });
       }
-      if (club.whatsappNumber !== whatsappNumber) {
+      if (club.creatorUserId !== userId) {
         return res.status(403).json({ success: false, message: "Not authorized for this club" });
       }
       const eventData = {
@@ -412,12 +372,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/events/:id/rsvp", async (req, res) => {
+  app.post("/api/events/:id/rsvp", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const event = await storage.getEvent(req.params.id);
       if (!event) {
         return res.status(404).json({ success: false, message: "Event not found" });
@@ -438,12 +395,9 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/events/:id/rsvp", async (req, res) => {
+  app.delete("/api/events/:id/rsvp", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       await storage.cancelRsvp(req.params.id, userId);
       res.json({ success: true });
     } catch (err) {
@@ -452,44 +406,14 @@ export async function registerRoutes(
     }
   });
 
-  // Organizer routes
-  app.post("/api/organizer/login", async (req, res) => {
+  app.get("/api/organizer/join-requests/:clubId", isAuthenticated, async (req: any, res) => {
     try {
-      const { whatsappNumber, otp } = req.body;
-      if (!whatsappNumber || !otp) {
-        return res.status(400).json({ success: false, message: "WhatsApp number and OTP required" });
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      const club = clubs.find(c => c.id === req.params.clubId);
+      if (!club) {
+        return res.status(403).json({ message: "Not authorized" });
       }
-      const stored = otpStore.get(whatsappNumber);
-      if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
-        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-      }
-      otpStore.delete(whatsappNumber);
-      const clubs = await storage.getClubsByOrganizer(whatsappNumber);
-      if (clubs.length === 0) {
-        return res.status(404).json({ success: false, message: "No club found for this WhatsApp number" });
-      }
-      res.json({ success: true, club: clubs[0] });
-    } catch (err) {
-      console.error("Error organizer login:", err);
-      res.status(500).json({ success: false, message: "Failed to login" });
-    }
-  });
-
-  app.get("/api/organizer/club/:whatsappNumber", async (req, res) => {
-    try {
-      const clubs = await storage.getClubsByOrganizer(req.params.whatsappNumber);
-      if (clubs.length === 0) {
-        return res.status(404).json({ message: "No club found" });
-      }
-      res.json(clubs[0]);
-    } catch (err) {
-      console.error("Error fetching organizer club:", err);
-      res.status(500).json({ message: "Failed to fetch club" });
-    }
-  });
-
-  app.get("/api/organizer/join-requests/:clubId", async (req, res) => {
-    try {
       const requests = await storage.getJoinRequestsByClub(req.params.clubId);
       res.json(requests);
     } catch (err) {
@@ -509,8 +433,13 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/organizer/club/:id", async (req, res) => {
+  app.patch("/api/organizer/club/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
       const { shortDesc, schedule, location, healthStatus, highlights } = req.body;
       const updated = await storage.updateClub(req.params.id, {
         shortDesc, schedule, location, healthStatus,
@@ -540,12 +469,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/events/:id/checkin", async (req, res) => {
+  app.post("/api/events/:id/checkin", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ success: false, message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const event = await storage.getEvent(req.params.id);
       if (!event) {
         return res.status(404).json({ success: false, message: "Event not found" });
@@ -565,15 +491,15 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/events/:id/attendees", async (req, res) => {
+  app.get("/api/events/:id/attendees", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const event = await storage.getEvent(req.params.id);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
       const club = await storage.getClub(event.clubId);
-      const whatsapp = req.headers["x-organizer-whatsapp"] as string;
-      if (!whatsapp || !club || club.whatsappNumber !== whatsapp) {
+      if (!club || club.creatorUserId !== userId) {
         return res.status(403).json({ message: "Only the club organizer can view attendees" });
       }
       const attendees = await storage.getEventAttendees(req.params.id);
@@ -585,12 +511,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/user/events", async (req, res) => {
+  app.get("/api/user/events", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.headers["x-user-id"] as string;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = req.user.claims.sub;
       const rsvps = await storage.getRsvpsByUser(userId);
       res.json(rsvps);
     } catch (err) {

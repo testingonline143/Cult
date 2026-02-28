@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth, type AuthUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, BadgeCheck } from "lucide-react";
+import type { User } from "@shared/models/auth";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw } from "lucide-react";
 
 export default function Profile() {
-  const { user, login } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (!user) navigate("/");
-  }, [user, navigate]);
+    if (!isAuthenticated) navigate("/");
+  }, [isAuthenticated, navigate]);
 
   if (!user) return null;
 
@@ -28,8 +29,8 @@ export default function Profile() {
           Back to Home
         </a>
 
-        <ProfileHeader user={user} onUpdate={login} />
-        <ProfileActions user={user} onUpdate={login} />
+        <ProfileHeader user={user} />
+        <ProfileActions user={user} />
         <UserEvents userId={user.id} />
         <JoinedClubs userId={user.id} />
       </div>
@@ -37,9 +38,9 @@ export default function Profile() {
   );
 }
 
-function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthUser) => void }) {
+function ProfileHeader({ user }: { user: User }) {
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(user.name);
+  const [editName, setEditName] = useState(user.firstName || "");
   const [editBio, setEditBio] = useState(user.bio || "");
   const [error, setError] = useState("");
 
@@ -47,20 +48,17 @@ function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthU
     mutationFn: async (data: { name: string; bio: string }) => {
       const res = await fetch("/api/user/profile", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-user-id": user.id },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to update");
       return res.json();
     },
-    onSuccess: (data) => {
-      const wasNotVerified = !user.hasRealProfile;
-      onUpdate({ ...user, ...data.user });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setEditing(false);
       setError("");
-      if (wasNotVerified && data.user.hasRealProfile) {
-        alert("Real Profile badge earned!");
-      }
     },
     onError: () => {
       setError("Failed to update profile");
@@ -75,11 +73,17 @@ function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthU
     updateMutation.mutate({ name: editName, bio: editBio });
   };
 
+  const displayName = user.firstName || user.email || "User";
+
   return (
     <div className="bg-card border border-border rounded-2xl p-6 mb-4" data-testid="card-profile">
       <div className="flex items-start gap-4">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl shrink-0">
-          🧑
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+          {user.profileImageUrl ? (
+            <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover rounded-full" />
+          ) : (
+            "🧑"
+          )}
         </div>
         <div className="flex-1 min-w-0">
           {editing ? (
@@ -119,7 +123,7 @@ function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthU
                   {updateMutation.isPending ? "Saving..." : "Save"}
                 </button>
                 <button
-                  onClick={() => { setEditing(false); setEditName(user.name); setEditBio(user.bio || ""); setError(""); }}
+                  onClick={() => { setEditing(false); setEditName(user.firstName || ""); setEditBio(user.bio || ""); setError(""); }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-semibold"
                   data-testid="button-cancel-edit"
                 >
@@ -131,7 +135,7 @@ function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthU
           ) : (
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-profile-name">{user.name}</h1>
+                <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-profile-name">{displayName}</h1>
                 <button
                   onClick={() => setEditing(true)}
                   className="w-7 h-7 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 flex items-center justify-center transition-all"
@@ -140,15 +144,9 @@ function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthU
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-phone">{user.phone}</p>
+              {user.email && <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-email">{user.email}</p>}
               {user.city && <p className="text-xs text-muted-foreground mt-0.5">📍 {user.city}</p>}
               {user.bio && <p className="text-sm text-foreground mt-2" data-testid="text-profile-bio">{user.bio}</p>}
-              {user.hasRealProfile && (
-                <div className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold" data-testid="badge-real-profile">
-                  <BadgeCheck className="w-3.5 h-3.5" />
-                  Real Profile
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -157,11 +155,10 @@ function ProfileHeader({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthU
   );
 }
 
-function ProfileActions({ user, onUpdate }: { user: AuthUser; onUpdate: (u: AuthUser) => void }) {
+function ProfileActions({ user }: { user: User }) {
   const [, navigate] = useLocation();
 
   const handleRedoQuiz = () => {
-    onUpdate({ ...user, quizCompleted: false });
     navigate("/onboarding");
   };
 
@@ -197,7 +194,7 @@ function UserEvents({ userId }: { userId: string }) {
     queryKey: ["/api/user/events", userId],
     queryFn: async () => {
       const res = await fetch("/api/user/events", {
-        headers: { "x-user-id": userId },
+        credentials: "include",
       });
       if (!res.ok) return [];
       return res.json();
@@ -251,7 +248,7 @@ function JoinedClubs({ userId }: { userId: string }) {
     queryKey: ["/api/user/join-requests", userId],
     queryFn: async () => {
       const res = await fetch("/api/user/join-requests", {
-        headers: { "x-user-id": userId },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
