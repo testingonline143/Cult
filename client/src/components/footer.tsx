@@ -7,7 +7,7 @@ export function Footer() {
           CultFam
         </div>
         <div className="text-sm text-white/40 mb-4">
-          Your crew is waiting. Tirupati, Andhra Pradesh.
+          Your cult is waiting. Tirupati, Andhra Pradesh.
         </div>
         <div className="flex items-center justify-center gap-6 text-xs text-white/25">
           <a href="/explore" className="hover:text-white/50 transition-colors" data-testid="link-footer-explore">Explore</a>

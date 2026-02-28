@@ -92,7 +92,7 @@ export function OrganizerSection() {
 
             <div className="text-[52px] mb-5">{"\u{1F3D5}\uFE0F"}</div>
             <h2 className="font-sans text-2xl sm:text-3xl md:text-4xl font-black text-foreground tracking-tight leading-[1.1] mb-3.5">
-              Got a crew? <span className="text-[hsl(var(--clay))]">Put it on the map.</span>
+              Got a cult? <span className="text-[hsl(var(--clay))]">Put it on the map.</span>
             </h2>
             <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[500px] mx-auto mb-8">
               List your club for free. Get discovered by hundreds of people looking for exactly what you're building. Goes live instantly.

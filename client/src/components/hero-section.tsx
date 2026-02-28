@@ -55,9 +55,7 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
           style={{ fontSize: "clamp(48px, 10vw, 96px)", letterSpacing: "-3px" }}
           data-testid="text-hero-headline"
         >
-          Stop scrolling.
-          <br />
-          <span className="text-[hsl(var(--clay))]">Start showing up.</span>
+          Find your <span className="text-[hsl(var(--clay))]">cult.</span>
         </motion.h1>
 
         <motion.p
@@ -68,9 +66,7 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
           style={{ fontSize: "clamp(16px, 2.2vw, 20px)" }}
           data-testid="text-hero-subheadline"
         >
-          Real clubs, real events, real people in Tirupati.
-          <br className="hidden sm:block" />
-          Your crew is one tap away.
+          Your city has more going on than you think.
         </motion.p>
 
         <motion.div
@@ -172,7 +168,7 @@ export function MatchSection({ onMatch }: HeroSectionProps) {
             What are you into?
           </h2>
           <p className="text-sm text-muted-foreground">
-            Pick your interests and we'll match you with the right crew
+            Pick your interests and we'll match you with the right cult
           </p>
         </motion.div>
 

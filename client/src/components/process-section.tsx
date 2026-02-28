@@ -4,7 +4,7 @@ const STEPS = [
   { num: "01", icon: "\u{1F50D}", title: "Discover", description: "Browse clubs or use our matcher. Find what fits your vibe and schedule." },
   { num: "02", icon: "\u{2705}", title: "Vibe Check", description: "See the Club Health Score — know if they're actually meeting before you commit." },
   { num: "03", icon: "\u{1F91D}", title: "Join", description: "20 seconds. That's it. Grab a Founding Member spot if you're early." },
-  { num: "04", icon: "\u{26A1}", title: "Show Up", description: "Meet your people. Build something real. Your crew is waiting." },
+  { num: "04", icon: "\u{26A1}", title: "Show Up", description: "Meet your people. Build something real. Your cult is waiting." },
 ];
 
 export function ProcessSection() {
@@ -23,7 +23,7 @@ export function ProcessSection() {
             How It Works
           </div>
           <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-black text-primary-foreground tracking-tight leading-[1.1] max-w-[500px]">
-            Stranger to <span className="text-[hsl(var(--clay))]">crew member</span> in minutes
+            Stranger to <span className="text-[hsl(var(--clay))]">cult member</span> in minutes
           </h2>
         </motion.div>
 
