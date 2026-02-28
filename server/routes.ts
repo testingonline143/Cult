@@ -1,10 +1,23 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertClubSubmissionSchema, insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
+import { insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
+import type { RequestHandler } from "express";
+
+const isAdmin: RequestHandler = (req: any, res, next) => {
+  const adminId = process.env.ADMIN_USER_ID;
+  if (!adminId) {
+    return res.status(403).json({ message: "Admin not configured" });
+  }
+  const userId = req.user?.claims?.sub;
+  if (userId !== adminId) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  next();
+};
 
 export async function registerRoutes(
   httpServer: Server,
@@ -40,7 +53,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/join", async (req, res) => {
+  app.post("/api/join", isAuthenticated, async (req: any, res) => {
     try {
       const validated = insertJoinRequestSchema.parse(req.body);
       if (!validated.name || validated.name.length < 2) {
@@ -62,7 +75,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/join-requests", async (_req, res) => {
+  app.get("/api/admin/join-requests", isAuthenticated, isAdmin, async (_req, res) => {
     try {
       const requests = await storage.getJoinRequests();
       res.json(requests);
@@ -72,17 +85,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/club-submissions", async (_req, res) => {
-    try {
-      const submissions = await storage.getClubSubmissions();
-      res.json(submissions);
-    } catch (err) {
-      console.error("Error fetching club submissions:", err);
-      res.status(500).json({ message: "Failed to fetch club submissions" });
-    }
-  });
-
-  app.patch("/api/admin/join-requests/:id/done", async (req, res) => {
+  app.patch("/api/admin/join-requests/:id/done", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const updated = await storage.markJoinRequestDone(req.params.id);
       if (!updated) return res.status(404).json({ message: "Not found" });
@@ -93,18 +96,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/club-submissions/:id/done", async (req, res) => {
-    try {
-      const updated = await storage.markClubSubmissionDone(req.params.id);
-      if (!updated) return res.status(404).json({ message: "Not found" });
-      res.json(updated);
-    } catch (err) {
-      console.error("Error marking submission done:", err);
-      res.status(500).json({ message: "Failed to update" });
-    }
-  });
-
-  app.get("/api/admin/clubs", async (_req, res) => {
+  app.get("/api/admin/clubs", isAuthenticated, isAdmin, async (_req, res) => {
     try {
       const clubs = await storage.getClubs();
       res.json(clubs);
@@ -114,7 +106,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/clubs/:id/deactivate", async (req, res) => {
+  app.patch("/api/admin/clubs/:id/deactivate", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const updated = await storage.updateClub(req.params.id, { isActive: false });
       if (!updated) return res.status(404).json({ message: "Club not found" });
@@ -125,7 +117,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/clubs/:id/activate", async (req, res) => {
+  app.patch("/api/admin/clubs/:id/activate", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const updated = await storage.updateClub(req.params.id, { isActive: true });
       if (!updated) return res.status(404).json({ message: "Club not found" });
@@ -133,21 +125,6 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error activating club:", err);
       res.status(500).json({ message: "Failed to activate club" });
-    }
-  });
-
-  app.post("/api/club-submissions", async (req, res) => {
-    try {
-      const validated = insertClubSubmissionSchema.parse(req.body);
-      const submission = await storage.createClubSubmission(validated);
-      res.status(201).json({ success: true, message: "Submission received", data: submission });
-    } catch (err) {
-      if (err instanceof ZodError) {
-        const validationError = fromZodError(err);
-        return res.status(400).json({ success: false, message: validationError.message });
-      }
-      console.error("Error creating club submission:", err);
-      res.status(500).json({ success: false, message: "Failed to submit club" });
     }
   });
 

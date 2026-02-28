@@ -59,6 +59,25 @@ export default function ClubDetail() {
     );
   }
 
+  if (club.isActive === false) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="p-8 text-center max-w-md w-full">
+          <div className="text-4xl mb-4">🚫</div>
+          <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-club-inactive">
+            This club is currently inactive
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {club.name} has been temporarily deactivated. Check back later or explore other clubs.
+          </p>
+          <Button onClick={() => navigate("/explore")} data-testid="button-explore-clubs">
+            Explore Other Clubs
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return <ClubDetailContent club={club} />;
 }
 
@@ -345,9 +364,22 @@ function ClubDetailContent({ club }: { club: Club }) {
               </a>
             )}
           </Card>
+        ) : !isAuthenticated ? (
+          <Card className="p-6 text-center space-y-3" data-testid="card-join-signin">
+            <h3 className="font-serif text-lg font-bold text-foreground mb-1">Want to join {club.name}?</h3>
+            <p className="text-sm text-muted-foreground">Sign in first so the organizer can reach you</p>
+            <a
+              href="/api/login"
+              className="inline-block bg-primary text-primary-foreground rounded-md px-6 py-3 text-sm font-semibold"
+              data-testid="button-signin-to-join"
+            >
+              Sign In to Join
+            </a>
+          </Card>
         ) : showJoinForm ? (
           <Card className="p-6 space-y-3" data-testid="form-join">
             <h3 className="font-serif text-lg font-bold text-foreground mb-1">Join {club.name}</h3>
+            <p className="text-xs text-muted-foreground mb-1">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
             <input
               type="text"
               placeholder="Your Name"
@@ -358,7 +390,7 @@ function ClubDetailContent({ club }: { club: Club }) {
             />
             <input
               type="tel"
-              placeholder="Phone Number"
+              placeholder="Phone Number (for WhatsApp group)"
               value={joinPhone}
               onChange={(e) => setJoinPhone(e.target.value)}
               className="w-full px-4 py-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"

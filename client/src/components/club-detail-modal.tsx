@@ -313,7 +313,13 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
               </p>
             </div>
 
-            {joinSuccess ? (
+            {club.isActive === false ? (
+              <div className="text-center py-4 space-y-2" data-testid="card-club-inactive">
+                <div className="text-3xl">🚫</div>
+                <p className="text-sm font-semibold text-foreground">This club is currently inactive</p>
+                <p className="text-xs text-muted-foreground">Check back later or explore other clubs.</p>
+              </div>
+            ) : joinSuccess ? (
               <div className="text-center py-6 space-y-3" data-testid="card-join-success">
                 <div className="text-4xl">🌱</div>
                 <h3 className="font-serif text-xl font-bold text-primary">You're in the tribe!</h3>
@@ -333,8 +339,21 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
                   </a>
                 )}
               </div>
+            ) : !isAuthenticated ? (
+              <div className="text-center py-4 space-y-3" data-testid="card-join-signin">
+                <p className="text-sm font-semibold text-foreground">Want to join {club.name}?</p>
+                <p className="text-xs text-muted-foreground">Sign in first so the organizer can reach you</p>
+                <a
+                  href="/api/login"
+                  className="inline-block bg-primary text-primary-foreground rounded-xl px-6 py-3 text-sm font-semibold"
+                  data-testid="button-signin-to-join"
+                >
+                  Sign In to Join
+                </a>
+              </div>
             ) : showJoinForm ? (
               <div className="space-y-3" data-testid="form-join">
+                <p className="text-xs text-muted-foreground">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
                 <input
                   type="text"
                   placeholder="Your Name"
@@ -345,7 +364,7 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
                 />
                 <input
                   type="tel"
-                  placeholder="Phone Number"
+                  placeholder="Phone Number (for WhatsApp group)"
                   value={joinPhone}
                   onChange={(e) => setJoinPhone(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"

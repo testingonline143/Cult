@@ -1,49 +1,35 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import type { JoinRequest, Club } from "@shared/schema";
 
 export default function Admin() {
-  const [password, setPassword] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"clubs" | "joins">("clubs");
-  const [error, setError] = useState("");
 
-  const handleLogin = () => {
-    if (password === "sangh2026") {
-      setAuthenticated(true);
-      setError("");
-    } else {
-      setError("Wrong password");
-    }
-  };
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Loading...</div>
+      </div>
+    );
+  }
 
-  if (!authenticated) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-sm space-y-4">
-          <div className="text-center">
-            <div className="text-4xl mb-3">🔐</div>
-            <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-admin-title">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">Enter password to continue</p>
-          </div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            data-testid="input-admin-password"
-          />
-          {error && <p className="text-xs text-red-500 font-medium text-center" data-testid="text-admin-error">{error}</p>}
-          <button
-            onClick={handleLogin}
-            className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold"
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <div className="text-4xl mb-3">🔐</div>
+          <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-admin-title">Admin Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to access the admin dashboard</p>
+          <a
+            href="/api/login"
+            className="inline-block w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold text-center"
             data-testid="button-admin-login"
           >
-            Enter
-          </button>
+            Sign In
+          </a>
         </div>
       </div>
     );
@@ -55,7 +41,10 @@ export default function Admin() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-admin-dashboard-title">🔐 Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">Monitor clubs and member activity</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Monitor clubs and member activity
+              {user?.email && <span className="ml-2 text-xs">({user.email})</span>}
+            </p>
           </div>
           <a href="/" className="text-sm text-primary hover:underline" data-testid="link-admin-home">← Home</a>
         </div>
@@ -83,9 +72,21 @@ export default function Admin() {
   );
 }
 
+function AccessDenied() {
+  return (
+    <div className="text-center py-16 space-y-3">
+      <div className="text-4xl">🚫</div>
+      <h2 className="font-serif text-xl font-bold text-foreground" data-testid="text-access-denied">Access Denied</h2>
+      <p className="text-sm text-muted-foreground">You don't have admin privileges.</p>
+      <a href="/" className="inline-block text-sm text-primary hover:underline" data-testid="link-go-home">Go Home</a>
+    </div>
+  );
+}
+
 function ClubsMonitorTab() {
-  const { data: clubs = [], isLoading } = useQuery<Club[]>({
+  const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
     queryKey: ["/api/admin/clubs"],
+    retry: false,
   });
 
   const deactivateMutation = useMutation({
@@ -108,6 +109,10 @@ function ClubsMonitorTab() {
 
   if (isLoading) {
     return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+  }
+
+  if (error) {
+    return <AccessDenied />;
   }
 
   if (clubs.length === 0) {
@@ -193,8 +198,9 @@ function ClubsMonitorTab() {
 }
 
 function JoinRequestsTab() {
-  const { data: requests = [], isLoading } = useQuery<JoinRequest[]>({
+  const { data: requests = [], isLoading, error } = useQuery<JoinRequest[]>({
     queryKey: ["/api/admin/join-requests"],
+    retry: false,
   });
 
   const markDoneMutation = useMutation({
@@ -208,6 +214,10 @@ function JoinRequestsTab() {
 
   if (isLoading) {
     return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+  }
+
+  if (error) {
+    return <AccessDenied />;
   }
 
   if (requests.length === 0) {

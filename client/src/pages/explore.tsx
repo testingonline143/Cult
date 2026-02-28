@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Search, Users, MapPin, Calendar } from "lucide-react";
+import { Search } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { ClubDetailModal } from "@/components/club-detail-modal";
+import { ClubCard } from "@/components/club-card";
 import { CATEGORIES, CITIES, CATEGORY_EMOJI } from "@shared/schema";
 import type { Club } from "@shared/schema";
 
@@ -22,10 +22,10 @@ export default function Explore() {
   if (activeCity !== "All Cities") queryParams.set("city", activeCity);
   if (activeVibe !== "all") queryParams.set("vibe", activeVibe);
 
-  const { data: clubs = [], isLoading } = useQuery<Club[]>({
-    queryKey: ["/api/clubs", search, activeCategory, activeCity, activeVibe],
+  const { data: clubs = [], isLoading } = useQuery<(Club & { recentJoins?: number })[]>({
+    queryKey: ["/api/clubs-with-activity", search, activeCategory, activeCity, activeVibe],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs?${queryParams.toString()}`);
+      const res = await fetch(`/api/clubs-with-activity?${queryParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch clubs");
       return res.json();
     },
@@ -54,22 +54,25 @@ export default function Explore() {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide" data-testid="filter-categories">
-          {ALL_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-              data-testid={`filter-cat-${cat.toLowerCase()}`}
-            >
-              {cat !== "All" && CATEGORY_EMOJI[cat] ? `${CATEGORY_EMOJI[cat]} ` : ""}
-              {cat}
-            </button>
-          ))}
+        <div className="relative mb-3" data-testid="filter-categories">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {ALL_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  activeCategory === cat
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+                data-testid={`filter-cat-${cat.toLowerCase()}`}
+              >
+                {cat !== "All" && CATEGORY_EMOJI[cat] ? `${CATEGORY_EMOJI[cat]} ` : ""}
+                {cat}
+              </button>
+            ))}
+          </div>
+          <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
         </div>
 
         <div className="flex items-center gap-3 mb-6">
@@ -121,48 +124,13 @@ export default function Explore() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clubs.map((club, index) => (
-              <motion.div
+            {clubs.filter(c => c.isActive !== false).map((club, index) => (
+              <ClubCard
                 key={club.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedClub(club)}
-                className="bg-card border border-border rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
-                data-testid={`card-explore-club-${club.id}`}
-              >
-                <div
-                  className="h-28 flex items-center justify-center text-5xl"
-                  style={{ backgroundColor: club.bgColor || "#f0f9f0" }}
-                >
-                  {club.emoji}
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-serif font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">
-                      {club.name}
-                    </h3>
-                    <span className="flex-shrink-0 bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5 rounded-full">
-                      {club.category}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{club.shortDesc}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {club.memberCount}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {club.city || club.location}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {club.schedule}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
+                club={club}
+                index={index}
+                onViewClub={(c) => setSelectedClub(c)}
+              />
             ))}
           </div>
         )}

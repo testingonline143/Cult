@@ -35,19 +35,18 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `GET /api/logout` — logout and clear session
   - `GET /api/clubs` — list all clubs (supports `?category=` query param for filtering)
   - `GET /api/clubs/:id` — get single club with full details
-  - `POST /api/join` — submit a join request; auto-increments memberCount and foundingTaken atomically
-  - `POST /api/club-submissions` — submit a new club (legacy submission form)
+  - `POST /api/join` — submit a join request (authenticated); auto-increments memberCount and foundingTaken atomically
   - `POST /api/clubs/create` — **instant club creation** (authenticated, creates live club immediately, sets creatorUserId)
   - `GET /api/organizer/my-club` — get authenticated user's club (by creatorUserId)
   - `GET /api/organizer/join-requests/:clubId` — get join requests for organizer's club (authenticated, verifies ownership)
   - `PATCH /api/organizer/join-requests/:id/contacted` — mark join request as contacted
   - `PATCH /api/organizer/club/:id` — update club details (authenticated, verifies ownership)
   - `POST /api/clubs/:id/events` — create event for a club (authenticated, verifies ownership)
-  - `GET /api/admin/clubs` — list all clubs for admin monitoring
-  - `PATCH /api/admin/clubs/:id/deactivate` — deactivate a club
-  - `PATCH /api/admin/clubs/:id/activate` — reactivate a club
-  - `GET /api/admin/join-requests` — list all join requests (newest first)
-  - `PATCH /api/admin/join-requests/:id/done` — mark join request as done
+  - `GET /api/admin/clubs` — list all clubs for admin monitoring (admin only)
+  - `PATCH /api/admin/clubs/:id/deactivate` — deactivate a club (admin only)
+  - `PATCH /api/admin/clubs/:id/activate` — reactivate a club (admin only)
+  - `GET /api/admin/join-requests` — list all join requests, newest first (admin only)
+  - `PATCH /api/admin/join-requests/:id/done` — mark join request as done (admin only)
   - `PATCH /api/user/profile` — update authenticated user's name and bio
   - `GET /api/user/join-requests` — get authenticated user's join requests
   - `GET /api/user/events` — get authenticated user's RSVP'd events
@@ -77,7 +76,6 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
   - `sessions` — sid (PK), sess (jsonb), expire (timestamp) — used by express-session for Replit Auth
   - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, markedDone, createdAt
-  - `club_submissions` — id (UUID), clubName, organizerName, whatsappNumber, category, meetupFrequency, markedDone, createdAt
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
   - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, createdAt
   - `event_rsvps` — id (UUID), eventId, userId, status, checkedIn, checkedInAt, createdAt
@@ -111,13 +109,15 @@ Design preference: Earthy, nature-inspired theme matching the sangh-v2 HTML refe
 ### Key Features
 - **Instant club creation**: Authenticated users fill a rich form (name, category, description, schedule, location, organizer name, WhatsApp, city) → club goes live immediately → redirected to organizer dashboard
 - **Member count auto-increment**: Joining a club atomically increments memberCount and foundingTaken (if spots available)
-- **Admin dashboard** (/admin): Password "sangh2026", shows live clubs monitoring with deactivate/activate controls, plus join requests
+- **Admin dashboard** (/admin): Requires Replit Auth + `ADMIN_USER_ID` env var match; shows live clubs monitoring with deactivate/activate controls, plus join requests. Non-admin users see "Access Denied"
 - **Replit Auth sign-in**: Google, GitHub, Apple, email sign-in via `/api/login`; session-based auth
 - **Organizer dashboard** (/organizer): Identifies organizer by creatorUserId; club overview, manage join requests, create events, edit club details, QR codes for events, attendance tracking
 - **Onboarding quiz** (/onboarding): 5-step quiz (interests, availability, vibe, experience, user type) with progress bar, slide transitions, loading screen → matched clubs page
 - **Quiz gate**: New users redirected to quiz after first login; returning users skip quiz. "Redo Quiz" option in profile.
 - **Club detail page** (/club/:id): Dedicated shareable page with full club info, events, join form, organizer info, WhatsApp link
-- **Explore page** (/explore): Search, category/city/vibe filters, club cards with join
+- **Explore page** (/explore): Search, category/city/vibe filters, uses shared `ClubCard` component with health status, founding spots, and recent joins; gradient scroll hint on category filter bar
+- **Deactivated club handling**: Club detail page and modal show "inactive" notice for deactivated clubs; explore page filters them out
+- **Authenticated joins**: `POST /api/join` requires authentication; join forms show "Sign In to Join" for unauthenticated users; WhatsApp purpose explained in form
 - **Events system**: Organizers create events with QR codes, users RSVP, homepage shows upcoming events
 - **QR check-in** (/checkin/:eventId): Scan QR at event to check in; shows RSVP status, one-tap check-in
 - **WhatsApp sharing**: Share buttons on club cards, detail pages, and modals using Web Share API with WhatsApp fallback

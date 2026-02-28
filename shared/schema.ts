@@ -47,17 +47,6 @@ export const joinRequests = pgTable("join_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const clubSubmissions = pgTable("club_submissions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  clubName: text("club_name").notNull(),
-  organizerName: text("organizer_name").notNull(),
-  whatsappNumber: text("whatsapp_number").notNull(),
-  category: text("category").notNull(),
-  meetupFrequency: text("meetup_frequency"),
-  markedDone: boolean("marked_done").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const userQuizAnswers = pgTable("user_quiz_answers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -96,7 +85,6 @@ export const eventRsvps = pgTable("event_rsvps", {
 
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
-export const insertClubSubmissionSchema = createInsertSchema(clubSubmissions).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
 export const insertEventRsvpSchema = createInsertSchema(eventRsvps).omit({ id: true, createdAt: true });
@@ -105,8 +93,6 @@ export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
 export type JoinRequest = typeof joinRequests.$inferSelect;
 export type InsertJoinRequest = z.infer<typeof insertJoinRequestSchema>;
-export type ClubSubmission = typeof clubSubmissions.$inferSelect;
-export type InsertClubSubmission = z.infer<typeof insertClubSubmissionSchema>;
 export type QuizAnswers = typeof userQuizAnswers.$inferSelect;
 export type InsertQuizAnswers = z.infer<typeof insertQuizAnswersSchema>;
 export type Event = typeof events.$inferSelect;
