@@ -31,7 +31,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <HeroSection onMatch={handleMatch} />
       <ActivityTicker />
