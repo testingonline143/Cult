@@ -87,12 +87,12 @@ export function OrganizerSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <div className="bg-card border border-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-[hsl(var(--clay))]" />
+          <div className="glass-card rounded-3xl p-8 sm:p-12 text-center relative overflow-visible">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neon to-neon/30 rounded-t-3xl" />
 
             <div className="text-[52px] mb-5">{"\u{1F3D5}\uFE0F"}</div>
-            <h2 className="font-sans text-2xl sm:text-3xl md:text-4xl font-black text-foreground tracking-tight leading-[1.1] mb-3.5">
-              Got a cult? <span className="text-[hsl(var(--clay))]">Put it on the map.</span>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-foreground tracking-tight leading-[1.1] mb-3.5">
+              Got a cult? <span className="neon-text">Put it on the map.</span>
             </h2>
             <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[500px] mx-auto mb-8">
               List your club for free. Get discovered by hundreds of people looking for exactly what you're building. Goes live instantly.
@@ -100,8 +100,8 @@ export function OrganizerSection() {
 
             <div className="flex gap-3 justify-center flex-wrap mb-8">
               {["Free forever", "Goes live instantly", "More members", "Get discovered"].map((perk) => (
-                <span key={perk} className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground px-3.5 py-1.5 rounded-full bg-background border border-border">
-                  <Check className="w-3.5 h-3.5 text-primary" />
+                <span key={perk} className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground px-3.5 py-1.5 rounded-full glass-card">
+                  <Check className="w-3.5 h-3.5 text-neon" />
                   {perk}
                 </span>
               ))}
@@ -112,7 +112,7 @@ export function OrganizerSection() {
                 <motion.div key="cta" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="bg-primary text-primary-foreground rounded-full px-9 py-4 text-[15px] font-semibold transition-all"
+                    className="bg-neon text-background rounded-full px-9 py-4 text-[15px] font-semibold transition-all neon-glow"
                     data-testid="button-list-club-cta"
                   >
                     Create My Club for Free →
@@ -131,11 +131,11 @@ export function OrganizerSection() {
                 >
                   {!isAuthenticated ? (
                     <div className="text-center space-y-4 py-6">
-                      <LogIn className="w-10 h-10 text-primary mx-auto" />
+                      <LogIn className="w-10 h-10 text-neon mx-auto" />
                       <p className="text-sm text-muted-foreground">Sign in first to create your club</p>
                       <button
                         onClick={() => { window.location.href = "/api/login"; }}
-                        className="bg-primary text-primary-foreground rounded-xl px-8 py-3 text-sm font-semibold"
+                        className="bg-neon text-background rounded-xl px-8 py-3 text-sm font-semibold"
                         data-testid="button-sign-in-to-create"
                       >
                         Sign In
@@ -192,7 +192,7 @@ export function OrganizerSection() {
                         <textarea
                           placeholder="Tell people what your club is about, what you do, who should join..."
                           rows={3}
-                          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-neon/30 resize-none"
                           data-testid="input-full-desc"
                           value={fullDesc}
                           onChange={(e) => setFullDesc(e.target.value)}
@@ -249,7 +249,7 @@ export function OrganizerSection() {
                       <button
                         type="submit"
                         disabled={createMutation.isPending}
-                        className="w-full bg-primary text-primary-foreground rounded-xl py-3.5 text-[15px] font-semibold transition-all disabled:opacity-60"
+                        className="w-full bg-neon text-background rounded-xl py-3.5 text-[15px] font-semibold transition-all disabled:opacity-60 neon-glow"
                         data-testid="button-submit-club"
                       >
                         {createMutation.isPending ? (
@@ -275,7 +275,7 @@ export function OrganizerSection() {
                   data-testid="text-creation-success"
                 >
                   <div className="text-5xl mb-3">{"\u{1F331}"}</div>
-                  <h3 className="font-serif text-xl font-bold text-primary mb-2">Your Club is Live!</h3>
+                  <h3 className="font-display text-xl font-bold neon-text mb-2">Your Club is Live!</h3>
                   <p className="text-sm text-muted-foreground">
                     Redirecting you to your organizer dashboard...
                   </p>

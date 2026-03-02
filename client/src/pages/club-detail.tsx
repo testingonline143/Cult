@@ -11,9 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Club } from "@shared/schema";
 
 const HEALTH_STYLES: Record<string, { dot: string; text: string; label: string }> = {
-  green: { dot: "bg-green-500", text: "text-green-700 dark:text-green-400", label: "Very Active" },
-  yellow: { dot: "bg-yellow-500", text: "text-yellow-700 dark:text-yellow-400", label: "Active" },
-  red: { dot: "bg-red-400", text: "text-red-600 dark:text-red-400", label: "Needs Members" },
+  green: { dot: "bg-emerald-500", text: "text-emerald-400", label: "Very Active" },
+  yellow: { dot: "bg-yellow-500", text: "text-yellow-400", label: "Active" },
+  red: { dot: "bg-red-400", text: "text-red-400", label: "Needs Members" },
 };
 
 interface ClubEvent {
@@ -45,7 +45,7 @@ export default function ClubDetail() {
           <div className="text-4xl mb-4">
             <User className="w-12 h-12 mx-auto text-muted-foreground" />
           </div>
-          <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-club-not-found">
+          <h2 className="font-display text-xl font-bold text-foreground mb-2" data-testid="text-club-not-found">
             Club not found
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
@@ -63,8 +63,7 @@ export default function ClubDetail() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="p-8 text-center max-w-md w-full">
-          <div className="text-4xl mb-4">🚫</div>
-          <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-club-inactive">
+          <h2 className="font-display text-xl font-bold text-foreground mb-2" data-testid="text-club-inactive">
             This club is currently inactive
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
@@ -161,8 +160,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   return (
     <div className="min-h-screen bg-background">
       <div
-        className="relative px-4 sm:px-6 pt-4 pb-8"
-        style={{ backgroundColor: club.bgColor || undefined }}
+        className="relative px-4 sm:px-6 pt-4 pb-8 glass-card"
       >
         <div className="max-w-2xl mx-auto">
           <div className="mb-6 flex items-center justify-between gap-2 flex-wrap">
@@ -190,7 +188,7 @@ function ClubDetailContent({ club }: { club: Club }) {
             {club.category}
           </div>
           <h1
-            className="font-serif text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight mb-3"
+            className="font-display text-3xl sm:text-4xl font-bold neon-text tracking-tight leading-tight mb-3"
             data-testid="text-club-name"
           >
             {club.name}
@@ -220,8 +218,8 @@ function ClubDetailContent({ club }: { club: Club }) {
 
         {club.organizerName && (
           <Card className="p-4 flex items-center gap-3" data-testid="card-organizer">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0">
-              {club.organizerAvatar || <User className="w-5 h-5 text-primary" />}
+            <div className="w-10 h-10 rounded-full bg-neon/10 flex items-center justify-center text-lg shrink-0">
+              {club.organizerAvatar || <User className="w-5 h-5 neon-text" />}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm text-foreground">{club.organizerName}</div>
@@ -237,7 +235,7 @@ function ClubDetailContent({ club }: { club: Club }) {
               </div>
             </div>
             {club.organizerYears && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-[hsl(var(--clay))]/10 text-[hsl(var(--clay))] rounded-full border border-[hsl(var(--clay))]/20 whitespace-nowrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-neon/10 neon-text rounded-full neon-border whitespace-nowrap">
                 {club.organizerYears.split(" ")[0]} organizer
               </span>
             )}
@@ -246,37 +244,36 @@ function ClubDetailContent({ club }: { club: Club }) {
 
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4">
-            <Calendar className="w-5 h-5 text-primary mb-2" />
+            <Calendar className="w-5 h-5 neon-text mb-2" />
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Schedule</div>
             <div className="text-sm font-medium text-foreground" data-testid="text-schedule">{club.schedule}</div>
           </Card>
           <Card className="p-4">
-            <MapPin className="w-5 h-5 text-primary mb-2" />
+            <MapPin className="w-5 h-5 neon-text mb-2" />
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Location</div>
             <div className="text-sm font-medium text-foreground" data-testid="text-location">{club.location}</div>
           </Card>
           <Card className="p-4">
-            <Users className="w-5 h-5 text-primary mb-2" />
+            <Users className="w-5 h-5 neon-text mb-2" />
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Members</div>
             <div className="text-sm font-medium text-foreground" data-testid="text-member-count">{club.memberCount} members</div>
           </Card>
           <Card className="p-4">
-            <Clock className="w-5 h-5 text-primary mb-2" />
+            <Clock className="w-5 h-5 neon-text mb-2" />
             <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Active Since</div>
             <div className="text-sm font-medium text-foreground" data-testid="text-active-since">{club.activeSince || "—"}</div>
           </Card>
         </div>
 
         {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
-          <Card className="p-5 bg-orange-50/50 dark:bg-orange-900/10 border-orange-200/30 dark:border-orange-800/20 space-y-3" data-testid="section-recent-activity">
-            <h3 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
-              🔥 Recent Activity
+          <Card className="p-5 glass-card neon-border space-y-3" data-testid="section-recent-activity">
+            <h3 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+              Recent Activity
             </h3>
             <div className="space-y-2">
               {activity.recentJoins > 0 && (
                 <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
-                  <span className="text-orange-500">🌱</span>
-                  <span className="text-foreground font-medium">
+                  <span className="neon-text font-medium">
                     {activity.recentJoins} {activity.recentJoins === 1 ? "person" : "people"} joined this week
                   </span>
                 </div>
@@ -290,7 +287,6 @@ function ClubDetailContent({ club }: { club: Club }) {
               )}
               {activity.totalEvents > 0 && (
                 <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
-                  <span className="text-orange-500">📅</span>
                   <span className="text-foreground font-medium">{activity.totalEvents} events hosted</span>
                 </div>
               )}
@@ -305,19 +301,19 @@ function ClubDetailContent({ club }: { club: Club }) {
 
         <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
 
-        <Card className="p-4 bg-[hsl(var(--clay))]/[0.06] border-[hsl(var(--clay))]/15" data-testid="card-founding">
+        <Card className="p-4 glass-card neon-border" data-testid="card-founding">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-[hsl(var(--clay))]" />
-              <span className="text-sm font-semibold text-[hsl(var(--clay))]">Founding Member Spots</span>
+              <Star className="w-4 h-4 neon-text" />
+              <span className="text-sm font-semibold neon-text">Founding Member Spots</span>
             </div>
-            <span className="text-xs font-bold text-[hsl(var(--clay))]">
+            <span className="text-xs font-bold neon-text">
               {allFoundingTaken ? "All taken" : `${foundingSpotsLeft} of ${club.foundingTotal ?? 20} left`}
             </span>
           </div>
-          <div className="w-full h-2 bg-[hsl(var(--clay))]/10 rounded-full overflow-hidden mb-2">
+          <div className="w-full h-2 bg-neon/10 rounded-full overflow-hidden mb-2">
             <div
-              className="h-full bg-[hsl(var(--clay))] rounded-full transition-all"
+              className="h-full bg-neon rounded-full transition-all neon-glow"
               style={{ width: `${Math.min(foundingProgress, 100)}%` }}
               data-testid="bar-founding-progress"
             />
@@ -331,11 +327,11 @@ function ClubDetailContent({ club }: { club: Club }) {
 
         {club.highlights && club.highlights.length > 0 && (
           <Card className="p-5 space-y-3" data-testid="section-highlights">
-            <h3 className="font-serif text-lg font-bold text-foreground flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary" /> Club Highlights
+            <h3 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 neon-text" /> Club Highlights
             </h3>
             {club.highlights.map((highlight, index) => (
-              <div key={index} className="border-l-2 border-primary/30 pl-3 text-sm text-foreground italic" data-testid="text-highlight">
+              <div key={index} className="border-l-2 border-neon/30 pl-3 text-sm text-foreground italic" data-testid="text-highlight">
                 {highlight}
               </div>
             ))}
@@ -345,9 +341,9 @@ function ClubDetailContent({ club }: { club: Club }) {
         {joinSuccess ? (
           <Card className="p-6 text-center space-y-3" data-testid="card-join-success">
             <div className="text-4xl">
-              <Star className="w-10 h-10 mx-auto text-[hsl(var(--clay))]" />
+              <Star className="w-10 h-10 mx-auto neon-text" />
             </div>
-            <h3 className="font-serif text-xl font-bold text-foreground">You're in the tribe!</h3>
+            <h3 className="font-display text-xl font-bold neon-text">You're in the tribe!</h3>
             <p className="text-sm text-muted-foreground">
               Organizer will add you to WhatsApp group within 24 hours.
             </p>
@@ -356,7 +352,7 @@ function ClubDetailContent({ club }: { club: Club }) {
                 href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just joined ${club.name} on CultFam. Please add me to the group!`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#25D366] text-white rounded-md px-5 py-3 text-sm font-semibold transition-all border border-[#25D366]"
+                className="inline-flex items-center gap-2 bg-emerald-600 text-foreground rounded-md px-5 py-3 text-sm font-semibold transition-all border border-emerald-600"
                 data-testid="button-join-whatsapp"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -366,11 +362,11 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         ) : !isAuthenticated ? (
           <Card className="p-6 text-center space-y-3" data-testid="card-join-signin">
-            <h3 className="font-serif text-lg font-bold text-foreground mb-1">Want to join {club.name}?</h3>
+            <h3 className="font-display text-lg font-bold text-foreground mb-1">Want to join {club.name}?</h3>
             <p className="text-sm text-muted-foreground">Sign in first so the organizer can reach you</p>
             <a
               href="/api/login"
-              className="inline-block bg-primary text-primary-foreground rounded-md px-6 py-3 text-sm font-semibold"
+              className="inline-block bg-neon text-primary-foreground rounded-md px-6 py-3 text-sm font-semibold neon-glow"
               data-testid="button-signin-to-join"
             >
               Sign In to Join
@@ -378,14 +374,14 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         ) : showJoinForm ? (
           <Card className="p-6 space-y-3" data-testid="form-join">
-            <h3 className="font-serif text-lg font-bold text-foreground mb-1">Join {club.name}</h3>
+            <h3 className="font-display text-lg font-bold text-foreground mb-1">Join {club.name}</h3>
             <p className="text-xs text-muted-foreground mb-1">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
             <input
               type="text"
               placeholder="Your Name"
               value={joinName}
               onChange={(e) => setJoinName(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-4 py-3 rounded-md glass-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 placeholder:text-muted-foreground"
               data-testid="input-join-name"
             />
             <input
@@ -393,11 +389,11 @@ function ClubDetailContent({ club }: { club: Club }) {
               placeholder="Phone Number (for WhatsApp group)"
               value={joinPhone}
               onChange={(e) => setJoinPhone(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-4 py-3 rounded-md glass-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 placeholder:text-muted-foreground"
               data-testid="input-join-phone"
             />
             {joinError && (
-              <p className="text-xs text-red-500 font-medium" data-testid="text-join-error">{joinError}</p>
+              <p className="text-xs text-destructive font-medium" data-testid="text-join-error">{joinError}</p>
             )}
             <Button
               onClick={handleJoinSubmit}
@@ -482,7 +478,7 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
   return (
     <div data-testid="section-club-events">
       <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-        <Calendar className="w-4 h-4 text-primary" />
+        <Calendar className="w-4 h-4 neon-text" />
         Upcoming Events
       </h3>
       <div className="space-y-3">
@@ -493,7 +489,7 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
           return (
             <Card
               key={event.id}
-              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              className="p-4 cursor-pointer hover-elevate transition-all"
               onClick={() => navigate(`/event/${event.id}`)}
               data-testid={`club-event-${event.id}`}
             >
@@ -517,7 +513,6 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
                   <Button
                     size="sm"
                     variant="outline"
-                    className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20"
                     onClick={(e) => handleShareEvent(event, e)}
                     data-testid={`button-share-rsvp-club-${event.id}`}
                   >
@@ -546,7 +541,7 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
 function ClubDetailSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-4 sm:px-6 pt-4 pb-8 bg-muted/30">
+      <div className="px-4 sm:px-6 pt-4 pb-8 glass-card">
         <div className="max-w-2xl mx-auto">
           <Skeleton className="w-20 h-5 mb-6" />
           <Skeleton className="w-16 h-16 rounded-md mb-4" />

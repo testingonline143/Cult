@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { Shield, ShieldAlert, Users, Activity, Ban } from "lucide-react";
 import type { JoinRequest, Club } from "@shared/schema";
 
 export default function Admin() {
@@ -20,12 +21,14 @@ export default function Admin() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4 text-center">
-          <div className="text-4xl mb-3">🔐</div>
-          <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-admin-title">Admin Dashboard</h1>
+          <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mx-auto">
+            <Shield className="w-8 h-8 neon-text" />
+          </div>
+          <h1 className="font-display text-2xl font-bold neon-text" data-testid="text-admin-title">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Sign in to access the admin dashboard</p>
           <a
             href="/api/login"
-            className="inline-block w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold text-center"
+            className="inline-block w-full bg-primary text-primary-foreground rounded-md py-3 text-sm font-semibold text-center"
             data-testid="button-admin-login"
           >
             Sign In
@@ -38,28 +41,31 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-2 mb-6 flex-wrap">
           <div>
-            <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-admin-dashboard-title">🔐 Admin Dashboard</h1>
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 neon-text" />
+              <h1 className="font-display text-2xl font-bold neon-text" data-testid="text-admin-dashboard-title">Admin Dashboard</h1>
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               Monitor clubs and member activity
               {user?.email && <span className="ml-2 text-xs">({user.email})</span>}
             </p>
           </div>
-          <a href="/" className="text-sm text-primary hover:underline" data-testid="link-admin-home">← Home</a>
+          <a href="/" className="text-sm neon-text hover:underline" data-testid="link-admin-home">&larr; Home</a>
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setActiveTab("clubs")}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === "clubs" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === "clubs" ? "bg-primary text-primary-foreground neon-glow" : "glass-card text-muted-foreground"}`}
             data-testid="tab-clubs"
           >
             Live Clubs
           </button>
           <button
             onClick={() => setActiveTab("joins")}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === "joins" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === "joins" ? "bg-primary text-primary-foreground neon-glow" : "glass-card text-muted-foreground"}`}
             data-testid="tab-join-requests"
           >
             Join Requests
@@ -75,10 +81,12 @@ export default function Admin() {
 function AccessDenied() {
   return (
     <div className="text-center py-16 space-y-3">
-      <div className="text-4xl">🚫</div>
-      <h2 className="font-serif text-xl font-bold text-foreground" data-testid="text-access-denied">Access Denied</h2>
+      <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mx-auto">
+        <ShieldAlert className="w-8 h-8 text-destructive" />
+      </div>
+      <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-access-denied">Access Denied</h2>
       <p className="text-sm text-muted-foreground">You don't have admin privileges.</p>
-      <a href="/" className="inline-block text-sm text-primary hover:underline" data-testid="link-go-home">Go Home</a>
+      <a href="/" className="inline-block text-sm neon-text hover:underline" data-testid="link-go-home">Go Home</a>
     </div>
   );
 }
@@ -125,16 +133,16 @@ function ClubsMonitorTab() {
   return (
     <div className="space-y-6" data-testid="list-admin-clubs">
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-primary" data-testid="text-total-clubs">{clubs.length}</div>
+        <div className="glass-card rounded-md p-4 text-center">
+          <div className="text-2xl font-bold neon-text" data-testid="text-total-clubs">{clubs.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Clubs</div>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-green-600" data-testid="text-active-clubs">{activeClubs.length}</div>
+        <div className="glass-card rounded-md p-4 text-center">
+          <div className="text-2xl font-bold neon-text" data-testid="text-active-clubs">{activeClubs.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Active</div>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-red-500" data-testid="text-inactive-clubs">{inactiveClubs.length}</div>
+        <div className="glass-card rounded-md p-4 text-center">
+          <div className="text-2xl font-bold text-destructive" data-testid="text-inactive-clubs">{inactiveClubs.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Deactivated</div>
         </div>
       </div>
@@ -143,25 +151,25 @@ function ClubsMonitorTab() {
         {clubs.map((club) => (
           <div
             key={club.id}
-            className={`flex items-center gap-4 p-4 rounded-xl border border-border ${club.isActive === false ? "opacity-50 bg-muted/30" : "bg-card"}`}
+            className={`flex items-center gap-4 p-4 rounded-md glass-card ${club.isActive === false ? "opacity-50" : ""}`}
             data-testid={`row-admin-club-${club.id}`}
           >
             <div className="text-2xl shrink-0">{club.emoji}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-sm text-foreground" data-testid={`text-admin-club-name-${club.id}`}>{club.name}</span>
-                <span className="text-xs text-muted-foreground">·</span>
+                <span className="text-xs text-muted-foreground">&middot;</span>
                 <span className="text-xs text-muted-foreground">{club.category}</span>
                 {club.isActive === false && (
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-full">
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-destructive/20 text-destructive rounded-md">
                     Deactivated
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                <span>👤 {club.organizerName}</span>
-                <span>👥 {club.memberCount} members</span>
-                <span>📍 {club.city}</span>
+                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {club.organizerName}</span>
+                <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> {club.memberCount} members</span>
+                <span>{club.city}</span>
                 {club.createdAt && (
                   <span>
                     Created {new Date(club.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
@@ -174,7 +182,7 @@ function ClubsMonitorTab() {
                 <button
                   onClick={() => activateMutation.mutate(club.id)}
                   disabled={activateMutation.isPending}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all whitespace-nowrap"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-md bg-neon/10 neon-text transition-all whitespace-nowrap"
                   data-testid={`button-activate-${club.id}`}
                 >
                   Activate
@@ -183,7 +191,7 @@ function ClubsMonitorTab() {
                 <button
                   onClick={() => deactivateMutation.mutate(club.id)}
                   disabled={deactivateMutation.isPending}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all whitespace-nowrap"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-md bg-destructive/10 text-destructive transition-all whitespace-nowrap"
                   data-testid={`button-deactivate-${club.id}`}
                 >
                   Deactivate
@@ -229,19 +237,19 @@ function JoinRequestsTab() {
       {requests.map((req) => (
         <div
           key={req.id}
-          className={`flex items-center gap-4 p-4 rounded-xl border border-border ${req.markedDone ? "opacity-40" : "bg-card"}`}
+          className={`flex items-center gap-4 p-4 rounded-md glass-card ${req.markedDone ? "opacity-40" : ""}`}
           data-testid={`row-join-request-${req.id}`}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm text-foreground" data-testid={`text-join-name-${req.id}`}>{req.name}</span>
-              <span className="text-xs text-muted-foreground">·</span>
+              <span className="text-xs text-muted-foreground">&middot;</span>
               <span className="text-xs text-muted-foreground" data-testid={`text-join-phone-${req.id}`}>{req.phone}</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-medium text-primary" data-testid={`text-join-club-${req.id}`}>{req.clubName}</span>
+              <span className="text-xs font-medium neon-text" data-testid={`text-join-club-${req.id}`}>{req.clubName}</span>
               <span className="text-xs text-muted-foreground">
-                {req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                {req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "\u2014"}
               </span>
             </div>
           </div>
@@ -249,14 +257,14 @@ function JoinRequestsTab() {
             <button
               onClick={() => markDoneMutation.mutate(req.id)}
               disabled={markDoneMutation.isPending}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all whitespace-nowrap"
+              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-neon/10 neon-text transition-all whitespace-nowrap"
               data-testid={`button-mark-done-${req.id}`}
             >
               Mark as Done
             </button>
           )}
           {req.markedDone && (
-            <span className="text-xs font-semibold text-muted-foreground" data-testid={`text-done-${req.id}`}>Done ✓</span>
+            <span className="text-xs font-semibold text-muted-foreground" data-testid={`text-done-${req.id}`}>Done</span>
           )}
         </div>
       ))}

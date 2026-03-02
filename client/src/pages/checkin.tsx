@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -95,12 +94,12 @@ export default function CheckinPage() {
   if (eventLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md p-6 space-y-4">
+        <div className="glass-card rounded-md w-full max-w-md p-6 space-y-4">
           <Skeleton className="h-8 w-3/4" />
           <Skeleton className="h-5 w-1/2" />
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="h-12 w-full" />
-        </Card>
+        </div>
       </div>
     );
   }
@@ -108,16 +107,16 @@ export default function CheckinPage() {
   if (eventError || !eventData) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md p-6 text-center space-y-4">
+        <div className="glass-card rounded-md w-full max-w-md p-6 text-center space-y-4">
           <XCircle className="mx-auto h-12 w-12 text-destructive" />
-          <h2 className="text-xl font-semibold" data-testid="text-error-title">Event Not Found</h2>
+          <h2 className="text-xl font-display font-semibold text-foreground" data-testid="text-error-title">Event Not Found</h2>
           <p className="text-muted-foreground" data-testid="text-error-message">
             This event doesn't exist or may have been removed.
           </p>
           <Button variant="outline" onClick={() => window.location.href = "/"} data-testid="button-go-home">
             Go Home
           </Button>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -127,7 +126,7 @@ export default function CheckinPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md p-6 space-y-6">
+      <div className="glass-card rounded-md w-full max-w-md p-6 space-y-6">
         {eventData.club && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-2xl">{eventData.club.emoji}</span>
@@ -136,7 +135,7 @@ export default function CheckinPage() {
         )}
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold" data-testid="text-event-title">{eventData.title}</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground" data-testid="text-event-title">{eventData.title}</h1>
           {eventData.description && (
             <p className="text-muted-foreground" data-testid="text-event-description">{eventData.description}</p>
           )}
@@ -145,22 +144,22 @@ export default function CheckinPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <CalendarDays className="h-5 w-5 text-muted-foreground shrink-0" />
-            <span className="text-sm" data-testid="text-event-date">{formatDate(eventData.startsAt)}</span>
+            <span className="text-sm text-foreground" data-testid="text-event-date">{formatDate(eventData.startsAt)}</span>
           </div>
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
-            <span className="text-sm" data-testid="text-event-time">
+            <span className="text-sm text-foreground" data-testid="text-event-time">
               {formatTime(eventData.startsAt)}
               {eventData.endsAt && ` - ${formatTime(eventData.endsAt)}`}
             </span>
           </div>
           <div className="flex items-center gap-3">
             <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
-            <span className="text-sm" data-testid="text-event-location">{eventData.locationText}</span>
+            <span className="text-sm text-foreground" data-testid="text-event-location">{eventData.locationText}</span>
           </div>
         </div>
 
-        <div className="border-t pt-4">
+        <div className="border-t border-border pt-4">
           {!isAuthenticated ? (
             <div className="text-center space-y-4">
               <LogIn className="mx-auto h-10 w-10 text-muted-foreground" />
@@ -173,8 +172,8 @@ export default function CheckinPage() {
             </div>
           ) : isCheckedIn ? (
             <div className="text-center space-y-3">
-              <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
-              <h2 className="text-xl font-semibold" data-testid="text-checked-in">You're checked in!</h2>
+              <CheckCircle2 className="mx-auto h-14 w-14 neon-text neon-text-glow" />
+              <h2 className="text-xl font-display font-semibold neon-text" data-testid="text-checked-in">You're checked in!</h2>
               <p className="text-muted-foreground text-sm">Enjoy the event</p>
               {userRsvp?.checkedInAt && (
                 <Badge variant="secondary" data-testid="badge-checkin-time">
@@ -215,7 +214,7 @@ export default function CheckinPage() {
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

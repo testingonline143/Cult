@@ -12,7 +12,7 @@ const FEATURES = [
 ];
 
 function CellValue({ value }: { value: boolean | string }) {
-  if (value === true) return <Check className="w-4 h-4 text-primary mx-auto" />;
+  if (value === true) return <Check className="w-4 h-4 text-neon mx-auto" />;
   if (value === false) return <X className="w-4 h-4 text-muted-foreground/40 mx-auto" />;
   return <span className="text-xs sm:text-sm">{value}</span>;
 }
@@ -28,9 +28,9 @@ export function CompareSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-sm font-medium text-primary mb-3">Why CultFam</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Built for <span className="italic font-serif">Tirupati</span>.{" "}
+          <p className="text-sm font-medium neon-text mb-3">Why CultFam</p>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            Built for <span className="italic font-display neon-text">Tirupati</span>.{" "}
             <br className="hidden sm:block" />
             Not imported from Gurgaon.
           </h2>
@@ -41,16 +41,16 @@ export function CompareSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-md border border-border overflow-x-auto"
+          className="rounded-md glass-card overflow-x-auto"
           data-testid="table-comparison"
         >
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left p-3 sm:p-4 font-semibold">Feature</th>
+              <tr className="border-b border-border/50 bg-card/30">
+                <th className="text-left p-3 sm:p-4 font-semibold text-foreground">Feature</th>
                 <th className="text-center p-3 sm:p-4 font-medium text-muted-foreground">Meetup</th>
                 <th className="text-center p-3 sm:p-4 font-medium text-muted-foreground">Misfits</th>
-                <th className="text-center p-3 sm:p-4 font-semibold text-primary">
+                <th className="text-center p-3 sm:p-4 font-semibold neon-text">
                   <span className="inline-flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
                     CultFam
@@ -62,7 +62,7 @@ export function CompareSection() {
               {FEATURES.map((row, i) => (
                 <tr
                   key={row.label}
-                  className={`border-b border-border/50 last:border-b-0 ${i % 2 === 0 ? "" : "bg-muted/10"}`}
+                  className={`border-b border-border/30 last:border-b-0 ${i % 2 === 0 ? "" : "bg-card/20"}`}
                 >
                   <td className="p-3 sm:p-4 text-foreground font-medium">{row.label}</td>
                   <td className="p-3 sm:p-4 text-center text-muted-foreground">
@@ -71,7 +71,7 @@ export function CompareSection() {
                   <td className="p-3 sm:p-4 text-center text-muted-foreground">
                     <CellValue value={row.misfits} />
                   </td>
-                  <td className="p-3 sm:p-4 text-center font-medium text-primary">
+                  <td className="p-3 sm:p-4 text-center font-medium neon-text">
                     <CellValue value={row.cultfam} />
                   </td>
                 </tr>

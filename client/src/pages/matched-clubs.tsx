@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Users } from "lucide-react";
+import { ArrowLeft, MapPin, Users, Crosshair } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { ClubDetailModal } from "@/components/club-detail-modal";
 import type { Club } from "@shared/schema";
@@ -48,8 +48,10 @@ export default function MatchedClubs() {
         </a>
 
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">🎯</div>
-          <h1 className="font-serif text-2xl font-bold text-foreground" data-testid="text-matches-title">
+          <div className="mb-3">
+            <Crosshair className="w-10 h-10 mx-auto neon-text" />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-foreground" data-testid="text-matches-title">
             Your Top Matches{user?.city ? ` in ${user.city}` : ""}
           </h1>
           <p className="text-sm text-muted-foreground mt-2">
@@ -60,16 +62,15 @@ export default function MatchedClubs() {
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
+              <div key={i} className="h-32 glass-card rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : matchedClubs.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-3">🔍</div>
             <p className="text-muted-foreground">No clubs matched yet. More clubs coming soon!</p>
             <button
               onClick={() => navigate("/")}
-              className="mt-4 bg-primary text-primary-foreground px-6 py-2 rounded-xl text-sm font-semibold"
+              className="mt-4 bg-neon text-primary-foreground px-6 py-2 rounded-xl text-sm font-semibold neon-glow"
               data-testid="button-browse-all"
             >
               Browse All Clubs
@@ -83,21 +84,21 @@ export default function MatchedClubs() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-card border border-border rounded-2xl p-5 cursor-pointer hover:shadow-lg transition-shadow"
+                className="glass-card glass-card-hover rounded-2xl p-5 cursor-pointer transition-all"
                 onClick={() => setSelectedClub(club)}
                 data-testid={`card-match-${club.id}`}
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-3xl flex-shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-neon/10 flex items-center justify-center text-3xl flex-shrink-0">
                     {club.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-serif font-bold text-foreground truncate" data-testid={`text-match-name-${club.id}`}>
+                      <h3 className="font-display font-bold text-foreground truncate" data-testid={`text-match-name-${club.id}`}>
                         {club.name}
                       </h3>
                       <span
-                        className="flex-shrink-0 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full"
+                        className="flex-shrink-0 bg-neon/10 neon-text text-xs font-bold px-2 py-0.5 rounded-full neon-border"
                         data-testid={`badge-match-score-${club.id}`}
                       >
                         {club.matchScore}% match
@@ -125,7 +126,7 @@ export default function MatchedClubs() {
         <div className="text-center mt-8">
           <button
             onClick={() => navigate("/explore")}
-            className="text-sm text-primary hover:underline font-medium"
+            className="text-sm neon-text hover:underline font-medium"
             data-testid="link-explore-all"
           >
             Explore All Clubs →

@@ -28,10 +28,11 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
   });
 
   return (
-    <section id="hero" className="relative min-h-[85vh] flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden bg-[hsl(var(--primary)/1)]">
+    <section id="hero" className="relative min-h-[85vh] flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden bg-background">
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-white/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-15%] left-[-10%] w-[400px] h-[400px] bg-[hsl(var(--clay))]/[0.08] rounded-full blur-[100px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-neon/[0.05] via-transparent to-transparent" />
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-neon/[0.03] rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-15%] left-[-10%] w-[400px] h-[400px] bg-neon/[0.05] rounded-full blur-[100px]" />
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")", backgroundRepeat: "repeat", backgroundSize: "256px" }} />
       </div>
 
@@ -41,8 +42,8 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/20 bg-white/[0.07] text-[11px] font-bold tracking-[2.5px] uppercase text-white/70 mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--clay))] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-neon animate-pulse" />
             Tirupati
           </div>
         </motion.div>
@@ -51,18 +52,18 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="font-sans font-black text-white leading-[0.95] tracking-tight mb-6"
+          className="font-display font-black text-foreground leading-[0.95] tracking-tight mb-6"
           style={{ fontSize: "clamp(48px, 10vw, 96px)", letterSpacing: "-3px" }}
           data-testid="text-hero-headline"
         >
-          Find your <span className="text-[hsl(var(--clay))]">cult.</span>
+          Find your <span className="neon-text neon-text-glow">cult.</span>
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.35 }}
-          className="text-white/60 max-w-[480px] mx-auto mb-10 leading-relaxed"
+          className="text-muted-foreground max-w-[480px] mx-auto mb-10 leading-relaxed"
           style={{ fontSize: "clamp(16px, 2.2vw, 20px)" }}
           data-testid="text-hero-subheadline"
         >
@@ -77,14 +78,14 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
         >
           <button
             onClick={() => document.getElementById("clubs")?.scrollIntoView({ behavior: "smooth" })}
-            className="bg-[hsl(var(--clay))] hover:brightness-110 text-white rounded-full px-10 py-4 text-base font-bold transition-all shadow-lg shadow-[hsl(var(--clay))]/25"
+            className="bg-neon text-background rounded-full px-10 py-4 text-base font-bold transition-all neon-glow"
             data-testid="button-explore-clubs"
           >
             Explore Clubs
           </button>
           <button
             onClick={() => document.getElementById("match")?.scrollIntoView({ behavior: "smooth" })}
-            className="text-white/60 hover:text-white rounded-full px-8 py-4 text-sm font-medium transition-all border border-white/15 hover:border-white/30 hover:bg-white/[0.05]"
+            className="text-muted-foreground hover:text-foreground rounded-full px-8 py-4 text-sm font-medium transition-all glass-card glass-card-hover"
             data-testid="button-find-match"
           >
             Find Your Match
@@ -107,8 +108,8 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
               className="text-center"
               data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <div className="font-sans text-2xl sm:text-3xl font-black text-white leading-none">{stat.value}</div>
-              <div className="text-[11px] text-white/40 mt-1 uppercase tracking-wider font-medium">{stat.label}</div>
+              <div className="font-display text-2xl sm:text-3xl font-black text-foreground leading-none">{stat.value}</div>
+              <div className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider font-medium">{stat.label}</div>
             </div>
           ))}
         </motion.div>
@@ -122,7 +123,7 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
       >
         <button
           onClick={() => document.getElementById("match")?.scrollIntoView({ behavior: "smooth" })}
-          className="text-white/30 hover:text-white/50 transition-colors animate-bounce"
+          className="text-muted-foreground/50 hover:text-neon transition-colors animate-bounce"
           aria-label="Scroll down"
           data-testid="button-scroll-down"
         >
@@ -164,7 +165,7 @@ export function MatchSection({ onMatch }: HeroSectionProps) {
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h2 className="font-sans text-2xl sm:text-3xl font-black text-foreground tracking-tight mb-2">
+          <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground tracking-tight mb-2">
             What are you into?
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -177,7 +178,7 @@ export function MatchSection({ onMatch }: HeroSectionProps) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)]"
+          className="glass-card rounded-2xl p-5 sm:p-6"
           data-testid="card-match-widget"
         >
           <div className="mb-4">
@@ -189,8 +190,8 @@ export function MatchSection({ onMatch }: HeroSectionProps) {
                   onClick={() => toggleInterest(interest.id)}
                   className={`px-3.5 py-2 rounded-full border-[1.5px] text-[13px] font-medium transition-all ${
                     selectedInterests.includes(interest.id)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background border-border text-muted-foreground hover:border-primary/40"
+                      ? "bg-neon text-background border-neon"
+                      : "bg-background border-border text-muted-foreground hover:border-neon/40"
                   }`}
                   data-testid={`button-interest-${interest.id.toLowerCase()}`}
                 >
@@ -209,8 +210,8 @@ export function MatchSection({ onMatch }: HeroSectionProps) {
                   onClick={() => toggleTime(time.id)}
                   className={`px-3.5 py-2 rounded-full border-[1.5px] text-[13px] font-medium transition-all ${
                     selectedTimes.includes(time.id)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background border-border text-muted-foreground hover:border-primary/40"
+                      ? "bg-neon text-background border-neon"
+                      : "bg-background border-border text-muted-foreground hover:border-neon/40"
                   }`}
                   data-testid={`button-time-${time.id}`}
                 >
@@ -222,7 +223,7 @@ export function MatchSection({ onMatch }: HeroSectionProps) {
 
           <button
             onClick={handleMatch}
-            className="w-full bg-[hsl(var(--clay))] hover:brightness-110 text-white border-none rounded-xl py-3.5 text-sm font-bold transition-all"
+            className="w-full bg-neon text-background border-none rounded-xl py-3.5 text-sm font-bold transition-all neon-glow"
             data-testid="button-show-matches"
           >
             Show My Matches

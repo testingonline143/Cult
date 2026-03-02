@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import type { Club } from "@shared/schema";
 
 const HEALTH_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
-  green: { dot: "bg-green-500", bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-400" },
-  yellow: { dot: "bg-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-900/20", text: "text-yellow-700 dark:text-yellow-400" },
-  red: { dot: "bg-red-400", bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400" },
+  green: { dot: "bg-emerald-500", bg: "bg-emerald-500/10", text: "text-emerald-400" },
+  yellow: { dot: "bg-yellow-500", bg: "bg-yellow-500/10", text: "text-yellow-400" },
+  red: { dot: "bg-red-400", bg: "bg-red-500/10", text: "text-red-400" },
 };
 
 interface ClubCardProps {
@@ -41,7 +41,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
       transition={{ duration: 0.4, delay: index * 0.05 }}
     >
       <div
-        className="bg-card border border-border rounded-2xl overflow-hidden transition-all hover-elevate cursor-pointer"
+        className="glass-card glass-card-hover rounded-2xl overflow-visible transition-all hover-elevate cursor-pointer"
         data-testid={`card-club-${club.id}`}
         onClick={() => onViewClub?.(club)}
       >
@@ -63,7 +63,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
             {club.category}
           </div>
           <h3
-            className="font-serif text-xl font-bold text-primary tracking-tight leading-tight mb-2"
+            className="font-display text-xl font-bold neon-text tracking-tight leading-tight mb-2"
             data-testid={`text-club-name-${club.id}`}
           >
             {club.name}
@@ -76,7 +76,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
           </p>
 
           {foundingSpotsLeft > 0 && (
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[hsl(var(--clay))] bg-[hsl(var(--clay))]/[0.08] border border-[hsl(var(--clay))]/20 px-2.5 py-1 rounded-full mb-4">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-neon bg-neon/[0.08] border border-neon/20 px-2.5 py-1 rounded-full mb-4">
               <Star className="w-3 h-3" />
               {foundingSpotsLeft} Founding spots left
             </div>
@@ -84,10 +84,10 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
 
           {club.recentJoins != null && club.recentJoins > 0 && (
             <div
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400 px-2.5 py-1 rounded-full mb-4"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full mb-4"
               data-testid={`badge-recent-joins-${club.id}`}
             >
-              🔥 {club.recentJoins} joined this week
+              {club.recentJoins} joined this week
             </div>
           )}
 
@@ -117,7 +117,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
 
           <div className="flex items-center gap-2">
             <button
-              className="flex-1 bg-primary text-primary-foreground rounded-[10px] py-2.5 text-[13px] font-semibold transition-all"
+              className="flex-1 bg-neon text-background rounded-[10px] py-2.5 text-[13px] font-semibold transition-all"
               data-testid={`button-view-club-${club.id}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -148,7 +148,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
                 href={`https://wa.me/${club.whatsappNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-[42px] h-[42px] bg-[#25D366] text-white rounded-[10px] text-lg flex items-center justify-center shrink-0 transition-all"
+                className="w-[42px] h-[42px] bg-emerald-600 text-foreground rounded-[10px] text-lg flex items-center justify-center shrink-0 transition-all"
                 data-testid={`button-chat-club-${club.id}`}
                 onClick={(e) => e.stopPropagation()}
               >

@@ -39,18 +39,18 @@ export function ActivityTicker() {
   return (
     <div
       data-testid="section-activity-ticker"
-      className="bg-primary py-2.5 overflow-hidden"
+      className="glass-card border-x-0 py-2.5 overflow-hidden"
     >
       <div className="flex animate-marquee whitespace-nowrap">
         {items.map((item, i) => (
           <span
             key={i}
             data-testid="text-activity-item"
-            className="text-sm font-medium text-primary-foreground/70 mx-8 inline-flex items-center gap-1.5 shrink-0"
+            className="text-sm font-medium text-muted-foreground mx-8 inline-flex items-center gap-1.5 shrink-0"
           >
             <span className="text-base">{item.clubEmoji}</span>
-            <span className="text-primary-foreground font-semibold">{item.name}</span> joined {item.clubName}
-            <span className="text-primary-foreground/40 text-xs">· {getRelativeTime(item.createdAt)}</span>
+            <span className="text-foreground font-semibold">{item.name}</span> joined {item.clubName}
+            <span className="text-muted-foreground/50 text-xs">· {getRelativeTime(item.createdAt)}</span>
           </span>
         ))}
       </div>

@@ -75,8 +75,8 @@ export function UpcomingEvents() {
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-10" data-testid="section-upcoming-events">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-serif text-xl font-bold text-foreground" data-testid="text-events-title">
-          Happening Soon 🎉
+        <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-events-title">
+          Happening Soon
         </h2>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
@@ -89,7 +89,7 @@ export function UpcomingEvents() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="flex-shrink-0 w-72 bg-card border border-border rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer"
+              className="flex-shrink-0 w-72 glass-card glass-card-hover rounded-2xl p-4 transition-all cursor-pointer"
               onClick={() => navigate(`/event/${event.id}`)}
               data-testid={`card-event-${event.id}`}
             >
@@ -97,7 +97,7 @@ export function UpcomingEvents() {
                 <span className="text-2xl">{event.clubEmoji}</span>
                 <span className="text-xs text-muted-foreground font-medium truncate">{event.clubName}</span>
               </div>
-              <h3 className="font-serif font-bold text-foreground text-sm mb-2 line-clamp-2">{event.title}</h3>
+              <h3 className="font-display font-bold text-foreground text-sm mb-2 line-clamp-2">{event.title}</h3>
               <div className="space-y-1.5 mb-3">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Calendar className="w-3 h-3" />
@@ -115,7 +115,7 @@ export function UpcomingEvents() {
               {isJustRsvpd ? (
                 <button
                   onClick={(e) => handleShareEvent(event, e)}
-                  className="w-full bg-[#25D366] text-white rounded-xl py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
+                  className="w-full bg-neon/20 neon-text neon-border border rounded-md py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
                   data-testid={`button-share-rsvp-${event.id}`}
                 >
                   <Share2 className="w-3 h-3" />
@@ -125,7 +125,7 @@ export function UpcomingEvents() {
                 <button
                   onClick={(e) => { e.stopPropagation(); rsvpMutation.mutate(event.id); }}
                   disabled={rsvpMutation.isPending}
-                  className="w-full bg-primary text-primary-foreground rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
+                  className="w-full bg-neon text-background rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
                   data-testid={`button-rsvp-${event.id}`}
                 >
                   Count Me In

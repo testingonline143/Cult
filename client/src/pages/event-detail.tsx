@@ -3,9 +3,8 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Calendar, MapPin, Users, Clock, Share2, CheckCircle2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Event, Club, EventRsvp } from "@shared/schema";
 
@@ -92,8 +91,8 @@ export default function EventDetail() {
           <Skeleton className="h-10 w-3/4" />
           <Skeleton className="h-5 w-1/2" />
           <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="h-40 w-full rounded-2xl" />
-          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-md" />
+          <Skeleton className="h-12 w-full rounded-md" />
         </div>
       </div>
     );
@@ -102,9 +101,11 @@ export default function EventDetail() {
   if (error || !eventData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="p-8 text-center max-w-md w-full">
-          <div className="text-4xl mb-4">📅</div>
-          <h2 className="font-serif text-xl font-bold text-foreground mb-2" data-testid="text-event-not-found">
+        <div className="glass-card rounded-md p-8 text-center max-w-md w-full">
+          <div className="w-14 h-14 rounded-2xl glass-card flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-7 h-7 text-muted-foreground" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2" data-testid="text-event-not-found">
             Event not found
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
@@ -113,7 +114,7 @@ export default function EventDetail() {
           <Button onClick={() => navigate("/")} data-testid="button-go-home">
             Go Home
           </Button>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -140,7 +141,7 @@ export default function EventDetail() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-2 mb-6 flex-wrap">
           <button
             onClick={() => navigate(-1 as any)}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -151,7 +152,7 @@ export default function EventDetail() {
           </button>
           <button
             onClick={() => handleShareEvent(eventData, clubName)}
-            className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium neon-text transition-colors"
             data-testid="button-share-event"
           >
             <Share2 className="w-4 h-4" />
@@ -162,7 +163,7 @@ export default function EventDetail() {
         {club && (
           <Link
             href={`/club/${club.id}`}
-            className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-md glass-card glass-card-hover transition-colors"
             data-testid="link-event-club"
           >
             <span className="text-lg">{club.emoji}</span>
@@ -171,34 +172,34 @@ export default function EventDetail() {
           </Link>
         )}
 
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground mb-4" data-testid="text-event-title">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-4" data-testid="text-event-title">
           {eventData.title}
         </h1>
 
         {isPast && (
-          <div className="inline-block px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-bold uppercase mb-4" data-testid="badge-past">
+          <div className="inline-block px-3 py-1 rounded-md glass-card text-muted-foreground text-xs font-bold uppercase mb-4" data-testid="badge-past">
             Past Event
           </div>
         )}
 
-        <Card className="p-4 sm:p-5 mb-6">
+        <div className="glass-card rounded-md p-4 sm:p-5 mb-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Calendar className="w-4 h-4 text-primary" />
+              <div className="w-9 h-9 rounded-md bg-neon/10 flex items-center justify-center shrink-0">
+                <Calendar className="w-4 h-4 neon-text" />
               </div>
               <div>
                 <div className="text-sm font-medium text-foreground" data-testid="text-event-date">{formatDate(eventData.startsAt)}</div>
                 <div className="text-xs text-muted-foreground" data-testid="text-event-time">
                   {formatTime(eventData.startsAt)}
-                  {eventData.endsAt && ` — ${formatTime(eventData.endsAt)}`}
+                  {eventData.endsAt && ` \u2014 ${formatTime(eventData.endsAt)}`}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <MapPin className="w-4 h-4 text-primary" />
+              <div className="w-9 h-9 rounded-md bg-neon/10 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 neon-text" />
               </div>
               <div>
                 <div className="text-sm font-medium text-foreground" data-testid="text-event-location">{eventData.locationText}</div>
@@ -207,7 +208,7 @@ export default function EventDetail() {
                     href={eventData.locationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs neon-text hover:underline"
                     data-testid="link-event-map"
                   >
                     Open in Maps
@@ -217,18 +218,18 @@ export default function EventDetail() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4 text-primary" />
+              <div className="w-9 h-9 rounded-md bg-neon/10 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 neon-text" />
               </div>
               <div>
                 <div className="text-sm font-medium text-foreground" data-testid="text-event-capacity">
-                  {rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
+                  {rsvpCount} going &middot; {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
                 </div>
                 <div className="text-xs text-muted-foreground">of {eventData.maxCapacity} max</div>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
         {eventData.description && (
           <div className="mb-6">
@@ -240,19 +241,19 @@ export default function EventDetail() {
         )}
 
         {justRsvpd && !isPast && (
-          <Card className="p-5 mb-6 border-primary/20 bg-primary/5 text-center" data-testid="card-rsvp-success">
-            <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-2" />
-            <h3 className="font-serif text-lg font-bold text-foreground mb-1">You're in! 🎉</h3>
-            <p className="text-sm text-muted-foreground mb-4">Bring your friends along — the more the merrier!</p>
+          <div className="glass-card neon-border border rounded-md p-5 mb-6 text-center" data-testid="card-rsvp-success">
+            <CheckCircle2 className="w-10 h-10 neon-text mx-auto mb-2 neon-text-glow" />
+            <h3 className="font-display text-lg font-bold text-foreground mb-1">You're in!</h3>
+            <p className="text-sm text-muted-foreground mb-4">Bring your friends along &mdash; the more the merrier!</p>
             <button
               onClick={() => handleShareAfterRsvp(eventData, clubName)}
-              className="w-full bg-[#25D366] text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2"
+              className="w-full bg-neon/20 neon-text rounded-md py-3 text-sm font-semibold flex items-center justify-center gap-2 neon-border border"
               data-testid="button-share-after-rsvp"
             >
               <Share2 className="w-4 h-4" />
               Share with Friends on WhatsApp
             </button>
-          </Card>
+          </div>
         )}
 
         {!isPast && (
@@ -261,7 +262,7 @@ export default function EventDetail() {
               <div className="text-center space-y-3">
                 <Button
                   size="lg"
-                  className="w-full rounded-xl py-6 text-sm font-semibold"
+                  className="w-full rounded-md py-6 text-sm font-semibold"
                   onClick={() => { window.location.href = "/api/login"; }}
                   data-testid="button-sign-in-rsvp"
                 >
@@ -270,14 +271,14 @@ export default function EventDetail() {
               </div>
             ) : hasRsvp && !justRsvpd ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary text-sm font-semibold" data-testid="text-already-rsvpd">
+                <div className="flex items-center justify-center gap-2 py-3 rounded-md bg-neon/10 neon-text text-sm font-semibold" data-testid="text-already-rsvpd">
                   <CheckCircle2 className="w-4 h-4" />
                   You're going!
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleShareAfterRsvp(eventData, clubName)}
-                    className="flex-1 bg-[#25D366] text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2"
+                    className="flex-1 bg-neon/20 neon-text rounded-md py-3 text-sm font-semibold flex items-center justify-center gap-2 neon-border border"
                     data-testid="button-share-rsvpd"
                   >
                     <Share2 className="w-4 h-4" />
@@ -286,7 +287,7 @@ export default function EventDetail() {
                   <button
                     onClick={() => cancelRsvpMutation.mutate()}
                     disabled={cancelRsvpMutation.isPending}
-                    className="px-4 py-3 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="px-4 py-3 rounded-md glass-card text-sm text-muted-foreground hover:text-foreground transition-colors"
                     data-testid="button-cancel-rsvp"
                   >
                     {cancelRsvpMutation.isPending ? "..." : "Cancel"}
@@ -296,7 +297,7 @@ export default function EventDetail() {
             ) : !justRsvpd && spotsLeft > 0 ? (
               <Button
                 size="lg"
-                className="w-full rounded-xl py-6 text-sm font-semibold"
+                className="w-full rounded-md py-6 text-sm font-semibold"
                 onClick={() => rsvpMutation.mutate()}
                 disabled={rsvpMutation.isPending}
                 data-testid="button-rsvp"
@@ -304,7 +305,7 @@ export default function EventDetail() {
                 {rsvpMutation.isPending ? "Joining..." : "Count Me In"}
               </Button>
             ) : !justRsvpd && spotsLeft <= 0 ? (
-              <div className="text-center py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium" data-testid="text-event-full">
+              <div className="text-center py-3 rounded-md glass-card text-muted-foreground text-sm font-medium" data-testid="text-event-full">
                 This event is full
               </div>
             ) : null}
@@ -312,7 +313,7 @@ export default function EventDetail() {
         )}
 
         {isPast && (
-          <div className="text-center py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium" data-testid="text-event-past">
+          <div className="text-center py-3 rounded-md glass-card text-muted-foreground text-sm font-medium" data-testid="text-event-past">
             This event has already happened
           </div>
         )}

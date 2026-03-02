@@ -9,7 +9,7 @@ The project follows a full-stack TypeScript monorepo pattern with a React fronte
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Design preference: Bold, youthful, high-energy brand. Sans-serif headings (font-sans font-black), Instrument Sans for body text. Vibrant teal-green primary (152 55% 28%) with punchy coral accent (14 90% 58%) and warm cream backgrounds. Dark immersive hero section (Partiful/cult.fit inspired) with massive headline, single CTA, stats row. Activity ticker (AroundU inspired). Matching widget moved below fold. Gen-Z copy style throughout. Emojis used for category icons and step icons.
+Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-display`) for bold headings, Inter (`font-sans`) for body text. Neon green primary (#00FF94, `155 100% 50%`) on near-black background (#0A0A0A). Glassmorphism: semi-transparent cards with `backdrop-blur-lg` (use `glass-card` / `glass-card-hover` CSS classes). Neon accent text via `neon-text` class, glow effects via `neon-glow` / `neon-text-glow`. Custom Tailwind color `neon` available. Gen-Z copy style throughout. Emojis used for category icons.
 
 ## System Architecture
 
@@ -131,7 +131,7 @@ Design preference: Bold, youthful, high-energy brand. Sans-serif headings (font-
 ## External Dependencies
 
 - **PostgreSQL**: Primary database, connected via `DATABASE_URL` env var using `pg` (node-postgres) driver
-- **Google Fonts**: Plus Jakarta Sans, Lora, JetBrains Mono loaded via CDN in index.html
+- **Google Fonts**: Space Grotesk, Inter loaded via CDN in index.html
 - **Replit Plugins**: `@replit/vite-plugin-runtime-error-modal`, `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner` (dev-only)
 - **Auth**: Replit Auth (OpenID Connect) — no external SMS service needed
 - **No external APIs**: All data is self-contained in the PostgreSQL database

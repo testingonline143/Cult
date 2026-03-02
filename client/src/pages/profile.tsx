@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated } = useAuth();
@@ -22,7 +22,7 @@ export default function Profile() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <a
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mb-6"
+          className="inline-flex items-center gap-1.5 text-sm neon-text hover:underline mb-6"
           data-testid="link-profile-home"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -76,13 +76,13 @@ function ProfileHeader({ user }: { user: User }) {
   const displayName = user.firstName || user.email || "User";
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 mb-4" data-testid="card-profile">
+    <div className="glass-card rounded-md p-6 mb-4" data-testid="card-profile">
       <div className="flex items-start gap-4">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+        <div className="w-16 h-16 rounded-full bg-neon/10 flex items-center justify-center shrink-0 overflow-hidden neon-border border">
           {user.profileImageUrl ? (
             <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover rounded-full" />
           ) : (
-            "🧑"
+            <UserIcon className="w-7 h-7 neon-text" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -94,7 +94,7 @@ function ProfileHeader({ user }: { user: User }) {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30"
                   data-testid="input-edit-name"
                   autoFocus
                 />
@@ -106,17 +106,17 @@ function ProfileHeader({ user }: { user: User }) {
                   onChange={(e) => setEditBio(e.target.value.slice(0, 200))}
                   placeholder="Tell the club about yourself"
                   rows={3}
-                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 resize-none"
                   data-testid="input-edit-bio"
                 />
                 <p className="text-xs text-muted-foreground text-right mt-0.5">{editBio.length}/200</p>
               </div>
-              {error && <p className="text-xs text-red-500" data-testid="text-edit-error">{error}</p>}
+              {error && <p className="text-xs text-destructive" data-testid="text-edit-error">{error}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
                   disabled={updateMutation.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
                   data-testid="button-save-profile"
                 >
                   <Check className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ function ProfileHeader({ user }: { user: User }) {
                 </button>
                 <button
                   onClick={() => { setEditing(false); setEditName(user.firstName || ""); setEditBio(user.bio || ""); setError(""); }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-semibold"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-md glass-card text-muted-foreground text-xs font-semibold"
                   data-testid="button-cancel-edit"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -135,17 +135,17 @@ function ProfileHeader({ user }: { user: User }) {
           ) : (
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-serif text-2xl font-bold text-primary" data-testid="text-profile-name">{displayName}</h1>
+                <h1 className="font-display text-2xl font-bold neon-text" data-testid="text-profile-name">{displayName}</h1>
                 <button
                   onClick={() => setEditing(true)}
-                  className="w-7 h-7 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 flex items-center justify-center transition-all"
+                  className="w-7 h-7 rounded-full glass-card text-muted-foreground flex items-center justify-center transition-all"
                   data-testid="button-edit-name"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
               </div>
               {user.email && <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-email">{user.email}</p>}
-              {user.city && <p className="text-xs text-muted-foreground mt-0.5">📍 {user.city}</p>}
+              {user.city && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" /> {user.city}</p>}
               {user.bio && <p className="text-sm text-foreground mt-2" data-testid="text-profile-bio">{user.bio}</p>}
             </div>
           )}
@@ -167,7 +167,7 @@ function ProfileActions({ user }: { user: User }) {
       {user.quizCompleted && (
         <button
           onClick={handleRedoQuiz}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-md glass-card text-xs font-semibold text-muted-foreground transition-all"
           data-testid="button-redo-quiz"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -207,7 +207,7 @@ function UserEvents({ userId }: { userId: string }) {
 
   return (
     <div className="mb-6">
-      <h2 className="font-serif text-lg font-bold text-foreground mb-4" data-testid="text-your-events-title">
+      <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-your-events-title">
         Your Upcoming Events ({upcomingRsvps.length})
       </h2>
       <div className="space-y-2" data-testid="list-user-events">
@@ -216,17 +216,17 @@ function UserEvents({ userId }: { userId: string }) {
           return (
             <div
               key={rsvp.id}
-              className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl"
+              className="flex items-center gap-4 p-4 glass-card rounded-md"
               data-testid={`card-rsvp-event-${rsvp.eventId}`}
             >
               <div className="text-2xl shrink-0">{rsvp.clubEmoji}</div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm text-foreground">{rsvp.eventTitle}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">{rsvp.clubName}</div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                    {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} &middot; {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
@@ -234,7 +234,9 @@ function UserEvents({ userId }: { userId: string }) {
                   </span>
                 </div>
               </div>
-              <span className="text-xs font-semibold text-green-600 dark:text-green-400 shrink-0">Going ✓</span>
+              <span className="text-xs font-semibold neon-text shrink-0 flex items-center gap-1">
+                <Check className="w-3 h-3" /> Going
+              </span>
             </div>
           );
         })}
@@ -269,15 +271,17 @@ function JoinedClubs({ userId }: { userId: string }) {
 
   return (
     <div>
-      <h2 className="font-serif text-lg font-bold text-foreground mb-4" data-testid="text-joined-clubs-title">
+      <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-joined-clubs-title">
         Clubs You've Joined ({joinedClubs.length})
       </h2>
 
       {joinedClubs.length === 0 ? (
-        <div className="text-center py-12 bg-card border border-border rounded-2xl" data-testid="text-no-joined-clubs">
-          <div className="text-4xl mb-3">🌿</div>
+        <div className="text-center py-12 glass-card rounded-md" data-testid="text-no-joined-clubs">
+          <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center mx-auto mb-3">
+            <Users className="w-6 h-6 text-muted-foreground" />
+          </div>
           <p className="text-sm text-muted-foreground">You haven't joined any clubs yet.</p>
-          <a href="/" className="text-sm text-primary hover:underline mt-2 inline-block" data-testid="link-explore-clubs">
+          <a href="/" className="text-sm neon-text hover:underline mt-2 inline-block" data-testid="link-explore-clubs">
             Explore clubs
           </a>
         </div>
@@ -288,13 +292,13 @@ function JoinedClubs({ userId }: { userId: string }) {
             return (
               <div
                 key={club.id}
-                className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl"
+                className="flex items-center gap-4 p-4 glass-card rounded-md"
                 data-testid={`card-joined-club-${club.id}`}
               >
                 <div className="text-3xl shrink-0">{club.emoji}</div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm text-foreground" data-testid={`text-club-name-${club.id}`}>{club.name}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{club.category} · {club.memberCount} members</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{club.category} &middot; {club.memberCount} members</div>
                   {request?.createdAt && (
                     <div className="text-xs text-muted-foreground mt-0.5">
                       Joined {new Date(request.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
@@ -302,7 +306,7 @@ function JoinedClubs({ userId }: { userId: string }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`w-2 h-2 rounded-full ${club.healthStatus === "green" ? "bg-green-500" : club.healthStatus === "yellow" ? "bg-yellow-500" : "bg-red-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${club.healthStatus === "green" ? "bg-neon" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"}`} />
                   <span className="text-xs text-muted-foreground">{club.healthLabel}</span>
                 </div>
               </div>
@@ -313,14 +317,14 @@ function JoinedClubs({ userId }: { userId: string }) {
 
       {joinRequests.length > 0 && (
         <div className="mt-8">
-          <h2 className="font-serif text-lg font-bold text-foreground mb-4" data-testid="text-request-history-title">
+          <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-request-history-title">
             Request History ({joinRequests.length})
           </h2>
           <div className="space-y-2" data-testid="list-request-history">
             {joinRequests.map((req) => (
               <div
                 key={req.id}
-                className="flex items-center gap-3 p-3 bg-muted/30 border border-border/50 rounded-lg"
+                className="flex items-center gap-3 p-3 glass-card rounded-md"
                 data-testid={`row-request-${req.id}`}
               >
                 <div className="flex-1 min-w-0">
@@ -330,9 +334,9 @@ function JoinedClubs({ userId }: { userId: string }) {
                   </span>
                 </div>
                 {req.markedDone ? (
-                  <span className="text-xs font-semibold text-green-600 dark:text-green-400" data-testid={`text-status-${req.id}`}>Added ✓</span>
+                  <span className="text-xs font-semibold neon-text flex items-center gap-1" data-testid={`text-status-${req.id}`}><Check className="w-3 h-3" /> Added</span>
                 ) : (
-                  <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400" data-testid={`text-status-${req.id}`}>Pending</span>
+                  <span className="text-xs font-semibold text-chart-4" data-testid={`text-status-${req.id}`}>Pending</span>
                 )}
               </div>
             ))}
