@@ -16,7 +16,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Check-in (/checkin/:eventId), 404
-- **Navigation**: Fixed bottom tab bar (`client/src/components/bottom-nav.tsx`) with 5 tabs: HOME (/), EXPLORE (/explore), EVENTS (/events), CREATE (/create), PROFILE (/profile). Only visible on these 5 routes. Admin/organizer/onboarding/club-detail/event-detail pages use top Navbar instead.
+- **Navigation**: Top Navbar on home page + fixed bottom tab bar (`client/src/components/bottom-nav.tsx`) with 5 tabs: HOME (/), EXPLORE (/explore), EVENTS (/events), CREATE (/create), PROFILE (/profile). Bottom nav only visible on these 5 routes. Home page has both Navbar at top and bottom nav. Admin/organizer/onboarding/club-detail/event-detail pages use top Navbar only.
 - **Styling**: Tailwind CSS with CSS variables for theming (dark-mode-first, glassmorphic design)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions

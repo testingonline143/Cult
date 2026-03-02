@@ -1,34 +1,52 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn } from "lucide-react";
 
 export default function Profile() {
-  const { user, isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate("/");
-  }, [isAuthenticated, navigate]);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-neon border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-  if (!user) return null;
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-background pb-24 flex items-center justify-center px-4">
+        <div className="glass-card rounded-2xl p-8 text-center max-w-sm w-full space-y-4">
+          <div className="w-16 h-16 rounded-full bg-neon/10 flex items-center justify-center mx-auto neon-border border">
+            <UserIcon className="w-8 h-8 neon-text" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-sign-in-heading">
+            Your Profile
+          </h2>
+          <p className="text-sm text-muted-foreground" data-testid="text-sign-in-message">
+            Sign in to view your profile, joined clubs, and upcoming events.
+          </p>
+          <button
+            onClick={() => { window.location.href = "/api/login"; }}
+            className="bg-neon text-background rounded-xl px-8 py-3 text-sm font-semibold inline-flex items-center gap-2"
+            data-testid="button-sign-in-profile"
+          >
+            <LogIn className="w-4 h-4" />
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
-        <a
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm neon-text hover:underline mb-6"
-          data-testid="link-profile-home"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </a>
-
         <ProfileHeader user={user} />
         <ProfileActions user={user} />
         <UserEvents userId={user.id} />
