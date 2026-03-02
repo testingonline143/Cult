@@ -78,6 +78,7 @@ export const eventRsvps = pgTable("event_rsvps", {
   eventId: varchar("event_id").notNull(),
   userId: varchar("user_id").notNull(),
   status: text("status").notNull().default("going"),
+  checkinToken: varchar("checkin_token").default(sql`gen_random_uuid()`),
   checkedIn: boolean("checked_in").default(false),
   checkedInAt: timestamp("checked_in_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -87,7 +88,7 @@ export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, creat
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
-export const insertEventRsvpSchema = createInsertSchema(eventRsvps).omit({ id: true, createdAt: true });
+export const insertEventRsvpSchema = createInsertSchema(eventRsvps).omit({ id: true, checkinToken: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;

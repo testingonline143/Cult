@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import multer from "multer";
+import QRCode from "qrcode";
 import { storage } from "./storage";
 import { insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
@@ -490,25 +491,97 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/events/:id/checkin", isAuthenticated, async (req: any, res) => {
+  app.get("/api/rsvps/:rsvpId/qr", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const rsvp = await storage.getRsvpById(req.params.rsvpId);
+      if (!rsvp) {
+        return res.status(404).json({ message: "RSVP not found" });
+      }
+      if (rsvp.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const payload = JSON.stringify({
+        token: rsvp.checkinToken,
+        eventId: rsvp.eventId,
+        userId: rsvp.userId,
+      });
+      const qrBuffer = await QRCode.toBuffer(payload, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#000000", light: "#FFFFFF" },
+      });
+      res.set("Content-Type", "image/png");
+      res.send(qrBuffer);
+    } catch (err) {
+      console.error("Error generating QR:", err);
+      res.status(500).json({ message: "Failed to generate QR code" });
+    }
+  });
+
+  app.post("/api/checkin", isAuthenticated, async (req: any, res) => {
+    try {
+      const organizerUserId = req.user.claims.sub;
+      const { token, eventId } = req.body;
+      if (!token) {
+        return res.status(400).json({ success: false, message: "Token is required" });
+      }
+      if (!eventId) {
+        return res.status(400).json({ success: false, message: "Event ID is required" });
+      }
+      const rsvp = await storage.getRsvpByToken(token);
+      if (!rsvp) {
+        return res.status(404).json({ success: false, message: "Invalid ticket — RSVP not found" });
+      }
+      if (rsvp.eventId !== eventId) {
+        return res.status(400).json({ success: false, message: "This ticket is for a different event" });
+      }
+      const event = await storage.getEvent(rsvp.eventId);
+      if (!event) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+      const club = await storage.getClub(event.clubId);
+      if (!club || club.creatorUserId !== organizerUserId) {
+        return res.status(403).json({ success: false, message: "Only the event organizer can scan check-ins" });
+      }
+      if (rsvp.checkedIn) {
+        return res.json({ success: true, alreadyCheckedIn: true, name: rsvp.userName, checkedInAt: rsvp.checkedInAt });
+      }
+      const updated = await storage.checkInRsvpByToken(token);
+      res.json({ success: true, name: rsvp.userName, checkedInAt: updated?.checkedInAt });
+    } catch (err) {
+      console.error("Error checking in:", err);
+      res.status(500).json({ success: false, message: "Failed to check in" });
+    }
+  });
+
+  app.get("/api/events/:id/attendance", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const event = await storage.getEvent(req.params.id);
       if (!event) {
-        return res.status(404).json({ success: false, message: "Event not found" });
+        return res.status(404).json({ message: "Event not found" });
       }
-      const rsvp = await storage.getUserRsvp(event.id, userId);
-      if (!rsvp || rsvp.status !== "going") {
-        return res.status(400).json({ success: false, message: "You haven't RSVP'd to this event" });
+      const club = await storage.getClub(event.clubId);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Only the club organizer can view attendance" });
       }
-      if (rsvp.checkedIn) {
-        return res.json({ success: true, alreadyCheckedIn: true, rsvp });
-      }
-      const updated = await storage.checkInRsvp(event.id, userId);
-      res.json({ success: true, rsvp: updated });
+      const attendees = await storage.getEventAttendees(req.params.id);
+      const checkedIn = attendees.filter(a => a.checkedIn).length;
+      const totalRsvps = attendees.length;
+      res.json({
+        totalRsvps,
+        checkedIn,
+        notYetArrived: totalRsvps - checkedIn,
+        attendees: attendees.map(a => ({
+          name: a.userName,
+          checkedIn: !!a.checkedIn,
+          checkedInAt: a.checkedInAt,
+        })),
+      });
     } catch (err) {
-      console.error("Error checking in:", err);
-      res.status(500).json({ success: false, message: "Failed to check in" });
+      console.error("Error fetching attendance:", err);
+      res.status(500).json({ message: "Failed to fetch attendance" });
     }
   });
 

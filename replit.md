@@ -15,7 +15,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Check-in (/checkin/:eventId), 404
+- **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Scan Event (/scan/:eventId), 404
 - **Navigation**: Landing page (/) uses top Navbar only (no bottom tab bar). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`) with 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), CREATE (/create), PROFILE (/profile). Bottom nav visible on these 5 routes. HOME tab (/home) shows a clean mobile feed with "Find Your Tribe in Tirupati", "Happening Today", and "Trending Clubs". Admin/organizer/onboarding/club-detail/event-detail pages use top Navbar only.
 - **Styling**: Tailwind CSS with CSS variables for theming (dark-mode-first, glassmorphic design)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
@@ -57,7 +57,9 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
   - `GET /api/clubs/:id/events` — get events for a specific club
   - `POST /api/events/:id/rsvp` — RSVP to an event (authenticated)
   - `DELETE /api/events/:id/rsvp` — cancel RSVP (authenticated)
-  - `POST /api/events/:id/checkin` — check in to an event (authenticated)
+  - `GET /api/rsvps/:rsvpId/qr` — generate personal QR ticket PNG for an RSVP (authenticated, owner only)
+  - `POST /api/checkin` — organizer scans member QR to check them in (authenticated, organizer only, body: { token })
+  - `GET /api/events/:id/attendance` — get attendance summary with attendee list (organizer only)
   - `GET /api/events/:id/attendees` — get attendees with check-in status (organizer only)
   - `POST /api/quiz` — submit quiz answers (authenticated)
   - `GET /api/quiz/matches` — get matched clubs based on quiz answers (authenticated)
@@ -79,7 +81,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
   - `join_requests` — id (UUID), clubId, clubName, name, phone, markedDone, createdAt
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
   - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, createdAt
-  - `event_rsvps` — id (UUID), eventId, userId, status, checkedIn, checkedInAt, createdAt
+  - `event_rsvps` — id (UUID), eventId, userId, status, checkinToken (UUID, auto-generated), checkedIn, checkedInAt, createdAt
 - **Migrations**: Raw SQL migrations applied in server startup; drizzle-kit for reference
 - **Seeding**: `server/seed.ts` contains hardcoded club data for initial population
 
@@ -121,7 +123,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 - **Authenticated joins**: `POST /api/join` requires authentication; join forms show "Sign In to Join" for unauthenticated users; WhatsApp purpose explained in form
 - **Events system**: Organizers create events with QR codes, users RSVP, homepage shows upcoming events. **Event duplication**: organizers can one-tap duplicate any event (past or upcoming) — pre-fills title, description, location, and capacity into the create form with a new date picker. "Duplicating from" banner shows source event and can be cleared.
 - **Public event pages** (/event/:id): Standalone shareable event detail page with full event info, RSVP button, WhatsApp share, link back to parent club. Post-RSVP "You're in!" celebration with WhatsApp share prompt. Event cards on homepage and club detail page are clickable and link to event detail page.
-- **QR check-in** (/checkin/:eventId): Scan QR at event to check in; shows RSVP status, one-tap check-in
+- **QR ticket check-in** (organizer scans member): Members get personal QR ticket after RSVP (shown on event detail page via `/api/rsvps/:rsvpId/qr`). Organizers open `/scan/:eventId` to scan member QR codes with phone camera (html5-qrcode). Each QR encodes `{ token, eventId, userId }` — token validated server-side via `POST /api/checkin`. Live attendance dashboard with real-time counts and attendee list.
 - **WhatsApp sharing**: Share buttons on club cards, detail pages, event pages, and modals using Web Share API with WhatsApp fallback. Post-RSVP share prompts on event cards and event detail page.
 - **Open Graph meta tags**: Server-side OG tags for club pages and event pages (bot detection) for rich previews on WhatsApp/social media. Event OG tags include date, time, location, and club name.
 - **Profile page** (/profile): Editable name + bio (200 char), profile photo upload (tap avatar to change, multer + /uploads/ static serving, max 5MB, jpeg/png/webp/gif), joined clubs list, RSVP'd events, request history, redo quiz button

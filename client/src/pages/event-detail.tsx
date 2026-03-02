@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Event, Club, EventRsvp } from "@shared/schema";
@@ -253,6 +253,37 @@ export default function EventDetail() {
               <Share2 className="w-4 h-4" />
               Share with Friends on WhatsApp
             </button>
+          </div>
+        )}
+
+        {hasRsvp && !isPast && userRsvp && (
+          <div className="glass-card neon-border border rounded-2xl p-5 mb-6" data-testid="card-my-ticket">
+            <div className="flex items-center gap-2 mb-4">
+              <Ticket className="w-5 h-5 neon-text" />
+              <h3 className="font-display text-lg font-bold text-foreground">My Ticket</h3>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="bg-white rounded-xl p-3 mb-4">
+                <img
+                  src={`/api/rsvps/${userRsvp.id}/qr`}
+                  alt="Your event ticket QR code"
+                  className="w-[200px] h-[200px]"
+                  data-testid="img-ticket-qr"
+                />
+              </div>
+              <div className="text-center space-y-1">
+                <div className="text-sm font-semibold text-foreground" data-testid="text-ticket-event">{eventData.title}</div>
+                <div className="text-xs text-muted-foreground" data-testid="text-ticket-date">
+                  {formatDate(eventData.startsAt)} &middot; {formatTime(eventData.startsAt)}
+                </div>
+                <div className="text-xs text-muted-foreground">{eventData.locationText}</div>
+              </div>
+              <div className="mt-4 px-4 py-2 rounded-xl bg-neon/10 text-center">
+                <p className="text-xs neon-text font-medium" data-testid="text-ticket-instruction">
+                  Show this QR to the organizer at entry
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

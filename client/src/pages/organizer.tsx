@@ -1,18 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2 } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp } from "@shared/schema";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import QRCodeLib from "qrcode";
 
 export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
@@ -449,9 +441,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 
 function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number }; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
-  const [showQr, setShowQr] = useState(false);
   const [showAttendees, setShowAttendees] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const d = new Date(event.startsAt);
   const isPast = d < new Date();
 
@@ -470,127 +460,92 @@ function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number 
   const totalRsvps = attendeeData?.totalRsvps ?? event.rsvpCount;
   const attendees = attendeeData?.attendees ?? [];
 
-  useEffect(() => {
-    if (showQr && !qrDataUrl) {
-      const checkinUrl = `${window.location.origin}/checkin/${event.id}`;
-      QRCodeLib.toDataURL(checkinUrl, { width: 256, margin: 2 }).then((url: string) => {
-        setQrDataUrl(url);
-      });
-    }
-  }, [showQr, qrDataUrl, event.id]);
-
   return (
-    <>
-      <div
-        className={`glass-card rounded-md p-4 ${isPast ? "opacity-50" : ""}`}
-        data-testid={`event-card-${event.id}`}
-      >
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="font-semibold text-sm text-foreground">{event.title}</div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 glass-card rounded-md text-muted-foreground">Past</span>}
-            <button
-              onClick={() => onDuplicate(event)}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-neon/10 neon-text"
-              data-testid={`button-duplicate-${event.id}`}
-            >
-              <Copy className="w-3 h-3" />
-              Duplicate
-            </button>
-            <button
-              onClick={() => setShowQr(true)}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-neon/10 neon-text"
-              data-testid={`button-show-qr-${event.id}`}
-            >
-              <QrCode className="w-3 h-3" />
-              Show QR
-            </button>
-          </div>
-        </div>
-        {event.description && (
-          <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
-        )}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} &middot; {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-          </span>
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {event.locationText}
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            {event.rsvpCount}/{event.maxCapacity}
-          </span>
-        </div>
-        <div className="mt-3 pt-3 border-t border-border">
+    <div
+      className={`glass-card rounded-md p-4 ${isPast ? "opacity-50" : ""}`}
+      data-testid={`event-card-${event.id}`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="font-semibold text-sm text-foreground">{event.title}</div>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 glass-card rounded-md text-muted-foreground">Past</span>}
           <button
-            onClick={() => setShowAttendees(!showAttendees)}
-            className="flex items-center gap-2 text-xs font-semibold text-foreground"
-            data-testid={`button-toggle-attendees-${event.id}`}
+            onClick={() => onDuplicate(event)}
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-neon/10 neon-text"
+            data-testid={`button-duplicate-${event.id}`}
           >
-            <span data-testid={`text-attendance-stats-${event.id}`}>
-              {checkedInCount}/{totalRsvps} checked in
-            </span>
-            <span className="text-muted-foreground">{showAttendees ? "Hide" : "Show"} attendees</span>
+            <Copy className="w-3 h-3" />
+            Duplicate
           </button>
-          {showAttendees && (
-            <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>
-              {attendees.length === 0 ? (
-                <div className="text-xs text-muted-foreground py-2" data-testid={`text-no-attendees-${event.id}`}>No attendees yet</div>
-              ) : (
-                attendees.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-md"
-                    data-testid={`attendee-row-${a.id}`}
-                  >
-                    {a.checkedIn ? (
-                      <Check className="w-3.5 h-3.5 neon-text" data-testid={`icon-checked-in-${a.id}`} />
-                    ) : (
-                      <Check className="w-3.5 h-3.5 text-muted-foreground/30" data-testid={`icon-not-checked-in-${a.id}`} />
-                    )}
-                    <span className="text-xs text-foreground" data-testid={`text-attendee-name-${a.id}`}>
-                      {a.userName || "Anonymous"}
-                    </span>
-                    {a.checkedIn && (
-                      <span className="text-[10px] neon-text ml-auto" data-testid={`text-checkin-status-${a.id}`}>
-                        Checked in
-                      </span>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+          <Link
+            href={`/scan/${event.id}`}
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-neon/10 neon-text"
+            data-testid={`button-scan-attendees-${event.id}`}
+          >
+            <QrCode className="w-3 h-3" />
+            Scan Attendees
+          </Link>
         </div>
       </div>
-
-      <Dialog open={showQr} onOpenChange={setShowQr}>
-        <DialogContent data-testid={`modal-qr-${event.id}`}>
-          <DialogHeader>
-            <DialogTitle>Check-in QR Code</DialogTitle>
-            <DialogDescription>{event.title}</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt="Check-in QR Code"
-                className="w-64 h-64"
-                data-testid={`img-qr-code-${event.id}`}
-              />
+      {event.description && (
+        <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
+      )}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        <span className="flex items-center gap-1">
+          <Calendar className="w-3 h-3" />
+          {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} &middot; {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+        </span>
+        <span className="flex items-center gap-1">
+          <MapPin className="w-3 h-3" />
+          {event.locationText}
+        </span>
+        <span className="flex items-center gap-1">
+          <Users className="w-3 h-3" />
+          {event.rsvpCount}/{event.maxCapacity}
+        </span>
+      </div>
+      <div className="mt-3 pt-3 border-t border-border">
+        <button
+          onClick={() => setShowAttendees(!showAttendees)}
+          className="flex items-center gap-2 text-xs font-semibold text-foreground"
+          data-testid={`button-toggle-attendees-${event.id}`}
+        >
+          <span data-testid={`text-attendance-stats-${event.id}`}>
+            {checkedInCount}/{totalRsvps} checked in
+          </span>
+          <span className="text-muted-foreground">{showAttendees ? "Hide" : "Show"} attendees</span>
+        </button>
+        {showAttendees && (
+          <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>
+            {attendees.length === 0 ? (
+              <div className="text-xs text-muted-foreground py-2" data-testid={`text-no-attendees-${event.id}`}>No attendees yet</div>
             ) : (
-              <div className="w-64 h-64 flex items-center justify-center text-muted-foreground">Generating...</div>
+              attendees.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center gap-2 py-1.5 px-2 rounded-md"
+                  data-testid={`attendee-row-${a.id}`}
+                >
+                  {a.checkedIn ? (
+                    <Check className="w-3.5 h-3.5 neon-text" data-testid={`icon-checked-in-${a.id}`} />
+                  ) : (
+                    <Check className="w-3.5 h-3.5 text-muted-foreground/30" data-testid={`icon-not-checked-in-${a.id}`} />
+                  )}
+                  <span className="text-xs text-foreground" data-testid={`text-attendee-name-${a.id}`}>
+                    {a.userName || "Anonymous"}
+                  </span>
+                  {a.checkedIn && (
+                    <span className="text-[10px] neon-text ml-auto" data-testid={`text-checkin-status-${a.id}`}>
+                      Checked in
+                    </span>
+                  )}
+                </div>
+              ))
             )}
-            <p className="text-xs text-muted-foreground text-center break-all" data-testid={`text-qr-url-${event.id}`}>
-              {`${window.location.origin}/checkin/${event.id}`}
-            </p>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -37,12 +37,14 @@ export interface IStorage {
   getRsvpCount(eventId: string): Promise<number>;
   getRsvpsByUser(userId: string): Promise<(EventRsvp & { eventTitle: string; eventStartsAt: Date; eventLocation: string; clubName: string; clubEmoji: string })[]>;
   getStats(): Promise<{ totalMembers: number; totalClubs: number; upcomingEvents: number }>;
-  checkInRsvp(eventId: string, userId: string): Promise<EventRsvp | undefined>;
   getCheckedInCount(eventId: string): Promise<number>;
   getEventAttendees(eventId: string): Promise<(EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null })[]>;
   getClubActivity(clubId: string): Promise<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: Date | null }>;
   getRecentActivityFeed(limit?: number): Promise<{ name: string; clubName: string; clubEmoji: string; createdAt: Date | null }[]>;
   getClubsWithRecentJoins(): Promise<Record<string, number>>;
+  getRsvpById(rsvpId: string): Promise<EventRsvp | undefined>;
+  getRsvpByToken(token: string): Promise<(EventRsvp & { userName: string | null }) | undefined>;
+  checkInRsvpByToken(token: string): Promise<EventRsvp | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -300,14 +302,6 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async checkInRsvp(eventId: string, userId: string): Promise<EventRsvp | undefined> {
-    const [updated] = await db.update(eventRsvps)
-      .set({ checkedIn: true, checkedInAt: new Date() })
-      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.userId, userId), eq(eventRsvps.status, "going")))
-      .returning();
-    return updated;
-  }
-
   async getCheckedInCount(eventId: string): Promise<number> {
     const [result] = await db.select({ count: sql<number>`count(*)::int` })
       .from(eventRsvps)
@@ -401,6 +395,37 @@ export class DatabaseStorage implements IStorage {
       .groupBy(joinRequests.clubId);
 
     return Object.fromEntries(results.map(r => [r.clubId, r.count]));
+  }
+
+  async getRsvpById(rsvpId: string): Promise<EventRsvp | undefined> {
+    const [rsvp] = await db.select().from(eventRsvps).where(eq(eventRsvps.id, rsvpId));
+    return rsvp;
+  }
+
+  async getRsvpByToken(token: string): Promise<(EventRsvp & { userName: string | null }) | undefined> {
+    const [result] = await db.select({
+      id: eventRsvps.id,
+      eventId: eventRsvps.eventId,
+      userId: eventRsvps.userId,
+      status: eventRsvps.status,
+      checkinToken: eventRsvps.checkinToken,
+      checkedIn: eventRsvps.checkedIn,
+      checkedInAt: eventRsvps.checkedInAt,
+      createdAt: eventRsvps.createdAt,
+      userName: users.firstName,
+    })
+      .from(eventRsvps)
+      .leftJoin(users, eq(eventRsvps.userId, users.id))
+      .where(and(eq(eventRsvps.checkinToken, token), eq(eventRsvps.status, "going")));
+    return result;
+  }
+
+  async checkInRsvpByToken(token: string): Promise<EventRsvp | undefined> {
+    const [updated] = await db.update(eventRsvps)
+      .set({ checkedIn: true, checkedInAt: new Date() })
+      .where(and(eq(eventRsvps.checkinToken, token), eq(eventRsvps.status, "going")))
+      .returning();
+    return updated;
   }
 }
 
