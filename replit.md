@@ -52,7 +52,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
   - `GET /api/user/join-requests` — get authenticated user's join requests
   - `GET /api/user/events` — get authenticated user's RSVP'd events
   - `GET /api/stats` — returns live platform stats (5-minute cache)
-  - `GET /api/events` — list upcoming events (supports ?city=&limit= params)
+  - `GET /api/events` — list upcoming events with RSVP arrays (supports ?city=&limit= params)
   - `GET /api/events/:id` — get single event with rsvps and club info
   - `GET /api/clubs/:id/events` — get events for a specific club
   - `POST /api/events/:id/rsvp` — RSVP to an event (authenticated)

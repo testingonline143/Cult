@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Users, Crosshair } from "lucide-react";
+import { ArrowLeft, MapPin, Users, Crosshair, Search } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { ClubDetailModal } from "@/components/club-detail-modal";
 import type { Club } from "@shared/schema";
@@ -38,14 +38,14 @@ export default function MatchedClubs() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <a
-          href="/"
+        <Link
+          href="/home"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
           data-testid="link-back-home"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home
-        </a>
+        </Link>
 
         <div className="text-center mb-8">
           <div className="mb-3">
@@ -66,11 +66,15 @@ export default function MatchedClubs() {
             ))}
           </div>
         ) : matchedClubs.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No clubs matched yet. More clubs coming soon!</p>
+          <div className="text-center py-12 glass-card rounded-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-neon/10 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-7 h-7 neon-text" />
+            </div>
+            <h3 className="font-display text-lg font-bold text-foreground mb-2">No matches yet</h3>
+            <p className="text-sm text-muted-foreground mb-4 px-4">More clubs are being added to Tirupati. Browse what's available now!</p>
             <button
-              onClick={() => navigate("/")}
-              className="mt-4 bg-neon text-primary-foreground px-6 py-2 rounded-xl text-sm font-semibold neon-glow"
+              onClick={() => navigate("/explore")}
+              className="bg-neon text-primary-foreground px-6 py-2.5 rounded-xl text-sm font-semibold neon-glow"
               data-testid="button-browse-all"
             >
               Browse All Clubs

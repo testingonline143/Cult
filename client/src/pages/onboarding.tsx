@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { HOBBY_ICONS } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
@@ -33,6 +34,7 @@ const USER_TYPES = [
 
 export default function Onboarding() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState<string[]>([]);
@@ -73,7 +75,10 @@ export default function Onboarding() {
   const toggleInterest = (name: string) => {
     setInterests((prev) => {
       if (prev.includes(name)) return prev.filter((i) => i !== name);
-      if (prev.length >= 3) return prev;
+      if (prev.length >= 3) {
+        toast({ title: "You can select up to 3 interests", description: "Deselect one to choose another" });
+        return prev;
+      }
       return [...prev, name];
     });
   };

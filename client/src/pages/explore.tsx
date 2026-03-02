@@ -129,8 +129,23 @@ export default function Explore() {
           </div>
         ) : clubs.length === 0 ? (
           <div className="text-center py-16">
+            <div className="w-14 h-14 rounded-2xl bg-neon/10 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-7 h-7 neon-text" />
+            </div>
             <h3 className="font-display text-lg font-bold text-foreground mb-2" data-testid="text-no-clubs">No clubs found</h3>
-            <p className="text-sm text-muted-foreground">Try different filters or search terms</p>
+            <p className="text-sm text-muted-foreground mb-4">Try different filters or search terms</p>
+            <button
+              onClick={() => {
+                setSearch("");
+                setActiveCategory("All");
+                setActiveCity("All Cities");
+                setActiveVibe("all");
+              }}
+              className="inline-flex items-center gap-1.5 bg-neon/10 neon-text px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-neon/20"
+              data-testid="button-clear-filters"
+            >
+              Clear All Filters
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-4">

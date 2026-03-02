@@ -205,7 +205,7 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       </div>
 
-      {/* 2. LEADER SECTION */}
+      {/* 2. LEADER + HEALTH SECTION */}
       {club.organizerName && (
         <div className="px-4 py-4 flex justify-between items-center gap-4" data-testid="section-leader">
           <div className="flex items-center gap-3">
@@ -228,6 +228,23 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       )}
 
+      {/* HEALTH STATUS + ACTIVE SINCE */}
+      <div className="px-4 py-2 flex items-center gap-4 flex-wrap" data-testid="section-health">
+        {club.healthLabel && (
+          <span className={`flex items-center gap-1.5 text-xs font-semibold ${
+            club.healthStatus === "green" ? "text-neon" : club.healthStatus === "yellow" ? "text-chart-4" : "text-destructive"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${
+              club.healthStatus === "green" ? "bg-neon" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"
+            }`} />
+            {club.healthLabel}
+          </span>
+        )}
+        {club.activeSince && (
+          <span className="text-xs text-muted-foreground">Active since {club.activeSince}</span>
+        )}
+      </div>
+
       {/* 3. ABOUT SECTION */}
       <div className="px-4 py-4">
         <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">About</h2>
@@ -245,6 +262,31 @@ function ClubDetailContent({ club }: { club: Club }) {
                 {tag}
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* RECENT ACTIVITY */}
+      {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
+        <div className="px-4 py-4" data-testid="section-recent-activity">
+          <div className="glass-card neon-border rounded-2xl p-4 space-y-2">
+            <h3 className="font-display text-base font-bold text-foreground">Recent Activity</h3>
+            {activity.recentJoins > 0 && (
+              <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
+                <Users className="w-4 h-4 neon-text" />
+                <span className="text-foreground">
+                  <span className="font-semibold neon-text">{activity.recentJoins}</span> new {activity.recentJoins === 1 ? "member" : "members"} this week
+                </span>
+              </div>
+            )}
+            {activity.totalEvents > 0 && (
+              <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
+                <Calendar className="w-4 h-4 neon-text" />
+                <span className="text-foreground">
+                  <span className="font-semibold neon-text">{activity.totalEvents}</span> {activity.totalEvents === 1 ? "event" : "events"} hosted
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

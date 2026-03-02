@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard } from "lucide-react";
+import { useLocation, Link } from "wouter";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2 } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp } from "@shared/schema";
 import {
   Dialog,
@@ -47,7 +47,7 @@ export default function Organizer() {
             Sign In
           </button>
           <div className="text-center">
-            <a href="/" className="text-xs neon-text hover:underline" data-testid="link-organizer-home">&larr; Back to Home</a>
+            <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-organizer-home">&larr; Back to Home</Link>
           </div>
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function Organizer() {
             Create a Club
           </button>
           <div className="text-center">
-            <a href="/" className="text-xs neon-text hover:underline" data-testid="link-organizer-home">&larr; Back to Home</a>
+            <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-organizer-home">&larr; Back to Home</Link>
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@ export default function Organizer() {
             <p className="text-xs text-muted-foreground mt-0.5">Organizer Dashboard</p>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/" className="text-xs neon-text hover:underline" data-testid="link-dashboard-home">Home</a>
+            <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-dashboard-home">Home</Link>
           </div>
         </div>
 
@@ -228,9 +228,10 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
             <button
               onClick={() => contactMutation.mutate(req.id)}
               disabled={contactMutation.isPending}
-              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-neon/10 neon-text transition-all whitespace-nowrap"
+              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-neon/10 neon-text transition-all whitespace-nowrap inline-flex items-center gap-1"
               data-testid={`button-contacted-${req.id}`}
             >
+              {contactMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
               Added to WhatsApp
             </button>
           )}

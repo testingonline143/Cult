@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2 } from "lucide-react";
@@ -129,7 +129,7 @@ function ProfileHeader({ user }: { user: User }) {
   const displayName = user.firstName || user.email || "User";
 
   return (
-    <div className="glass-card rounded-md p-6 mb-4" data-testid="card-profile">
+    <div className="glass-card rounded-2xl p-6 mb-4" data-testid="card-profile">
       <div className="flex items-start gap-4">
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -150,6 +150,7 @@ function ProfileHeader({ user }: { user: User }) {
             </div>
           )}
         </button>
+        <span className="text-[10px] text-muted-foreground mt-1 block text-center sm:hidden">Tap to change</span>
         <input
           ref={fileInputRef}
           type="file"
@@ -276,7 +277,20 @@ function UserEvents({ userId }: { userId: string }) {
 
   const upcomingRsvps = rsvps.filter((r) => new Date(r.eventStartsAt) > new Date());
 
-  if (isLoading || upcomingRsvps.length === 0) return null;
+  if (isLoading) {
+    return (
+      <div className="mb-6">
+        <div className="h-5 w-48 bg-muted/20 rounded animate-pulse mb-4" />
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="glass-card rounded-2xl p-4 h-20 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (upcomingRsvps.length === 0) return null;
 
   return (
     <div className="mb-6">
@@ -289,7 +303,7 @@ function UserEvents({ userId }: { userId: string }) {
           return (
             <div
               key={rsvp.id}
-              className="flex items-center gap-4 p-4 glass-card rounded-md"
+              className="flex items-center gap-4 p-4 glass-card rounded-2xl"
               data-testid={`card-rsvp-event-${rsvp.eventId}`}
             >
               <div className="text-2xl shrink-0">{rsvp.clubEmoji}</div>
@@ -339,7 +353,16 @@ function JoinedClubs({ userId }: { userId: string }) {
   const joinedClubs = clubs.filter((c) => clubIds.includes(c.id));
 
   if (loadingRequests || loadingClubs) {
-    return <div className="text-center py-12 text-muted-foreground">Loading your clubs...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="h-5 w-40 bg-muted/20 rounded animate-pulse" />
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="glass-card rounded-2xl p-4 h-20 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -349,14 +372,14 @@ function JoinedClubs({ userId }: { userId: string }) {
       </h2>
 
       {joinedClubs.length === 0 ? (
-        <div className="text-center py-12 glass-card rounded-md" data-testid="text-no-joined-clubs">
+        <div className="text-center py-12 glass-card rounded-2xl" data-testid="text-no-joined-clubs">
           <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center mx-auto mb-3">
             <Users className="w-6 h-6 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">You haven't joined any clubs yet.</p>
-          <a href="/" className="text-sm neon-text hover:underline mt-2 inline-block" data-testid="link-explore-clubs">
+          <Link href="/explore" className="text-sm neon-text hover:underline mt-2 inline-block" data-testid="link-explore-clubs">
             Explore clubs
-          </a>
+          </Link>
         </div>
       ) : (
         <div className="space-y-3" data-testid="list-joined-clubs">
@@ -365,7 +388,7 @@ function JoinedClubs({ userId }: { userId: string }) {
             return (
               <div
                 key={club.id}
-                className="flex items-center gap-4 p-4 glass-card rounded-md"
+                className="flex items-center gap-4 p-4 glass-card rounded-2xl"
                 data-testid={`card-joined-club-${club.id}`}
               >
                 <div className="text-3xl shrink-0">{club.emoji}</div>
@@ -397,7 +420,7 @@ function JoinedClubs({ userId }: { userId: string }) {
             {joinRequests.map((req) => (
               <div
                 key={req.id}
-                className="flex items-center gap-3 p-3 glass-card rounded-md"
+                className="flex items-center gap-3 p-3 glass-card rounded-2xl"
                 data-testid={`row-request-${req.id}`}
               >
                 <div className="flex-1 min-w-0">

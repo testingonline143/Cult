@@ -35,7 +35,7 @@ export function ProcessSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="p-7 glass-card glass-card-hover rounded-md transition-all"
+              className="p-7 glass-card glass-card-hover rounded-2xl transition-all"
               data-testid={`card-step-${step.num}`}
             >
               <div className="font-display text-5xl font-black text-foreground/[0.08] leading-none mb-4">{step.num}</div>

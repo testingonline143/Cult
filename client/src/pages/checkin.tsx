@@ -16,7 +16,7 @@ interface EventDetailResponse extends Event {
 
 export default function CheckinPage() {
   const { eventId } = useParams<{ eventId: string }>();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const { data: eventData, isLoading: eventLoading, error: eventError } = useQuery<EventDetailResponse>({
@@ -91,10 +91,10 @@ export default function CheckinPage() {
     });
   };
 
-  if (eventLoading) {
+  if (eventLoading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <div className="glass-card rounded-md w-full max-w-md p-6 space-y-4">
+        <div className="glass-card rounded-2xl w-full max-w-md p-6 space-y-4">
           <Skeleton className="h-8 w-3/4" />
           <Skeleton className="h-5 w-1/2" />
           <Skeleton className="h-5 w-2/3" />
@@ -107,7 +107,7 @@ export default function CheckinPage() {
   if (eventError || !eventData) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <div className="glass-card rounded-md w-full max-w-md p-6 text-center space-y-4">
+        <div className="glass-card rounded-2xl w-full max-w-md p-6 text-center space-y-4">
           <XCircle className="mx-auto h-12 w-12 text-destructive" />
           <h2 className="text-xl font-display font-semibold text-foreground" data-testid="text-error-title">Event Not Found</h2>
           <p className="text-muted-foreground" data-testid="text-error-message">
@@ -126,7 +126,7 @@ export default function CheckinPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="glass-card rounded-md w-full max-w-md p-6 space-y-6">
+      <div className="glass-card rounded-2xl w-full max-w-md p-6 space-y-6">
         {eventData.club && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-2xl">{eventData.club.emoji}</span>

@@ -322,7 +322,13 @@ export async function registerRoutes(
       const city = req.query.city as string | undefined;
       const limit = parseInt(req.query.limit as string) || 10;
       const events = await storage.getUpcomingEvents(city, limit);
-      res.json(events);
+      const eventsWithRsvps = await Promise.all(
+        events.map(async (event) => {
+          const rsvps = await storage.getRsvpsByEvent(event.id);
+          return { ...event, rsvps };
+        })
+      );
+      res.json(eventsWithRsvps);
     } catch (err) {
       console.error("Error fetching events:", err);
       res.status(500).json({ message: "Failed to fetch events" });
