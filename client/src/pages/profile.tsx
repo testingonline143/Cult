@@ -19,7 +19,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
         <a
           href="/"
           className="inline-flex items-center gap-1.5 text-sm neon-text hover:underline mb-6"

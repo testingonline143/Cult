@@ -15,8 +15,9 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Admin (/admin), Organizer Dashboard (/organizer), Profile (/profile), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Explore (/explore), Club Detail (/club/:id), Event Detail (/event/:id), Check-in (/checkin/:eventId), 404
-- **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
+- **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Check-in (/checkin/:eventId), 404
+- **Navigation**: Fixed bottom tab bar (`client/src/components/bottom-nav.tsx`) with 5 tabs: HOME (/), EXPLORE (/explore), EVENTS (/events), CREATE (/create), PROFILE (/profile). Only visible on these 5 routes. Admin/organizer/onboarding/club-detail/event-detail pages use top Navbar instead.
+- **Styling**: Tailwind CSS with CSS variables for theming (dark-mode-first, glassmorphic design)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
 - **State Management**: TanStack React Query for server state; React useState for local state
@@ -126,7 +127,8 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 - **Profile page** (/profile): Editable name + bio (200 char), joined clubs list, RSVP'd events, request history, redo quiz button
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
-- **Social proof / Activity signals**: Live activity ticker on homepage, "X joined this week" badge on club cards, Recent Activity section on club detail page/modal, Club Highlights editable by organizers
+- **Social proof / Activity signals**: "X joined this week" badge on club cards, Recent Activity section on club detail page/modal, Club Highlights editable by organizers
+- **Mobile-first app layout**: Bottom tab bar navigation (Home/Explore/Events/Create/Profile), pages designed as focused views — Home is a feed with "Happening Today" + "Trending Clubs", Explore has full-width image-style club cards, Events has calendar-style cards with filters, Create has tabbed New Club / New Event forms
 
 ## External Dependencies
 

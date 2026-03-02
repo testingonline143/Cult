@@ -3,18 +3,11 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Star, Calendar, MapPin, Users, MessageCircle, Clock, User, Share2 } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Club } from "@shared/schema";
-
-const HEALTH_STYLES: Record<string, { dot: string; text: string; label: string }> = {
-  green: { dot: "bg-emerald-500", text: "text-emerald-400", label: "Very Active" },
-  yellow: { dot: "bg-yellow-500", text: "text-yellow-400", label: "Active" },
-  red: { dot: "bg-red-400", text: "text-red-400", label: "Needs Members" },
-};
 
 interface ClubEvent {
   id: string;
@@ -134,7 +127,6 @@ function ClubDetailContent({ club }: { club: Club }) {
     },
   });
 
-  const health = HEALTH_STYLES[club.healthStatus] || HEALTH_STYLES["green"];
   const foundingSpotsLeft = (club.foundingTotal ?? 20) - (club.foundingTaken ?? 0);
   const foundingProgress = ((club.foundingTaken ?? 0) / (club.foundingTotal ?? 20)) * 100;
   const allFoundingTaken = foundingSpotsLeft <= 0;
@@ -157,150 +149,111 @@ function ClubDetailContent({ club }: { club: Club }) {
     });
   };
 
+  const tags: string[] = [];
+  if (club.highlights && club.highlights.length > 0) {
+    tags.push(...club.highlights);
+  }
+  if (club.vibe === "casual") {
+    tags.push("Beginner-friendly");
+  }
+  if (club.city) {
+    tags.push(club.city);
+  }
+  if (club.timeOfDay) {
+    tags.push(club.timeOfDay.charAt(0).toUpperCase() + club.timeOfDay.slice(1));
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      <div
-        className="relative px-4 sm:px-6 pt-4 pb-8 glass-card"
-      >
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-6 flex items-center justify-between gap-2 flex-wrap">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="button-back"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => handleShareClub(club)}
-              data-testid="button-share-club"
-            >
-              <Share2 className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background pb-24">
+      {/* 1. HERO SECTION */}
+      <div className="relative h-64 w-full bg-gradient-to-b from-neon/20 via-card to-background flex items-center justify-center">
+        <span className="text-8xl select-none" data-testid="text-club-emoji">{club.emoji}</span>
 
-          <div className="text-6xl mb-4" data-testid="text-club-emoji">{club.emoji}</div>
+        <button
+          onClick={() => navigate("/explore")}
+          className="absolute top-4 left-4 glass-card rounded-full p-2"
+          data-testid="button-back"
+        >
+          <ChevronLeft className="w-5 h-5 text-foreground" />
+        </button>
 
-          <div className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted-foreground mb-2">
-            {club.category}
+        <button
+          onClick={() => handleShareClub(club)}
+          className="absolute top-4 right-4 glass-card rounded-full p-2"
+          data-testid="button-share-club"
+        >
+          <Share2 className="w-5 h-5 text-foreground" />
+        </button>
+
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background to-transparent p-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-neon text-primary-foreground rounded-full px-3 py-1 text-xs font-bold uppercase" data-testid="badge-category">
+              {club.category}
+            </span>
+            {club.schedule && (
+              <span className="glass-card rounded-full px-3 py-1 text-xs font-medium text-foreground" data-testid="badge-schedule">
+                {club.schedule}
+              </span>
+            )}
           </div>
           <h1
-            className="font-display text-3xl sm:text-4xl font-bold neon-text tracking-tight leading-tight mb-3"
+            className="font-display text-3xl font-bold text-foreground mt-2"
             data-testid="text-club-name"
           >
             {club.name}
           </h1>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`flex items-center gap-1.5 text-xs font-semibold ${health.text}`}>
-              <span className={`w-2 h-2 rounded-full ${health.dot}`} />
-              {club.healthLabel}
-            </span>
-            {club.lastActive && (
-              <span className="text-xs text-muted-foreground" data-testid="text-last-active">
-                {club.lastActive}
-              </span>
-            )}
-            <Badge variant="secondary" className="text-xs" data-testid="badge-members">
-              <Users className="w-3 h-3 mr-1" />
-              {club.memberCount} members
-            </Badge>
-          </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* 2. LEADER SECTION */}
+      {club.organizerName && (
+        <div className="px-4 py-4 flex justify-between items-center gap-4" data-testid="section-leader">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-neon/20 flex items-center justify-center shrink-0">
+              <span className="neon-text font-bold text-lg">
+                {club.organizerName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">Leader</div>
+              <div className="font-display font-bold text-foreground">{club.organizerName}</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Members</div>
+            <div className="font-display text-2xl font-bold text-foreground" data-testid="text-member-count">
+              {club.memberCount}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. ABOUT SECTION */}
+      <div className="px-4 py-4">
+        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">About</h2>
         <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-club-description">
           {club.fullDesc}
         </p>
+      </div>
 
-        {club.organizerName && (
-          <Card className="p-4 flex items-center gap-3" data-testid="card-organizer">
-            <div className="w-10 h-10 rounded-full bg-neon/10 flex items-center justify-center text-lg shrink-0">
-              {club.organizerAvatar || <User className="w-5 h-5 neon-text" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm text-foreground">{club.organizerName}</div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
-                {club.organizerYears && <span>{club.organizerYears}</span>}
-                {club.organizerResponse && (
-                  <>
-                    <span className="mx-1">·</span>
-                    <Clock className="w-3 h-3 inline" />
-                    <span>{club.organizerResponse}</span>
-                  </>
-                )}
-              </div>
-            </div>
-            {club.organizerYears && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-neon/10 neon-text rounded-full neon-border whitespace-nowrap">
-                {club.organizerYears.split(" ")[0]} organizer
+      {/* 4. TAGS/HIGHLIGHTS SECTION */}
+      {tags.length > 0 && (
+        <div className="px-4 py-2" data-testid="section-tags">
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag, i) => (
+              <span key={i} className="glass-card rounded-full px-3 py-1.5 text-xs text-muted-foreground" data-testid={`tag-${i}`}>
+                {tag}
               </span>
-            )}
-          </Card>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4">
-            <Calendar className="w-5 h-5 neon-text mb-2" />
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Schedule</div>
-            <div className="text-sm font-medium text-foreground" data-testid="text-schedule">{club.schedule}</div>
-          </Card>
-          <Card className="p-4">
-            <MapPin className="w-5 h-5 neon-text mb-2" />
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Location</div>
-            <div className="text-sm font-medium text-foreground" data-testid="text-location">{club.location}</div>
-          </Card>
-          <Card className="p-4">
-            <Users className="w-5 h-5 neon-text mb-2" />
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Members</div>
-            <div className="text-sm font-medium text-foreground" data-testid="text-member-count">{club.memberCount} members</div>
-          </Card>
-          <Card className="p-4">
-            <Clock className="w-5 h-5 neon-text mb-2" />
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Active Since</div>
-            <div className="text-sm font-medium text-foreground" data-testid="text-active-since">{club.activeSince || "—"}</div>
-          </Card>
+            ))}
+          </div>
         </div>
+      )}
 
-        {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
-          <Card className="p-5 glass-card neon-border space-y-3" data-testid="section-recent-activity">
-            <h3 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-              Recent Activity
-            </h3>
-            <div className="space-y-2">
-              {activity.recentJoins > 0 && (
-                <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
-                  <span className="neon-text font-medium">
-                    {activity.recentJoins} {activity.recentJoins === 1 ? "person" : "people"} joined this week
-                  </span>
-                </div>
-              )}
-              {activity.recentJoinNames.length > 0 && (
-                <div className="text-sm text-muted-foreground pl-6" data-testid="text-recent-names">
-                  {activity.recentJoinNames.join(", ")}
-                  {activity.recentJoins > activity.recentJoinNames.length &&
-                    ` and ${activity.recentJoins - activity.recentJoinNames.length} others`} joined recently
-                </div>
-              )}
-              {activity.totalEvents > 0 && (
-                <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
-                  <span className="text-foreground font-medium">{activity.totalEvents} events hosted</span>
-                </div>
-              )}
-              {activity.lastEventDate && (
-                <div className="text-sm text-muted-foreground pl-6" data-testid="text-last-event">
-                  Last meetup: {new Date(activity.lastEventDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
+      {/* 5. UPCOMING EVENTS SECTION */}
+      <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
 
-        <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
-
+      {/* Founding Member Card */}
+      <div className="px-4 py-4">
         <Card className="p-4 glass-card neon-border" data-testid="card-founding">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-2">
@@ -324,20 +277,10 @@ function ClubDetailContent({ club }: { club: Club }) {
               : "Join now to get your Founding Member badge"}
           </p>
         </Card>
+      </div>
 
-        {club.highlights && club.highlights.length > 0 && (
-          <Card className="p-5 space-y-3" data-testid="section-highlights">
-            <h3 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-              <Star className="w-5 h-5 neon-text" /> Club Highlights
-            </h3>
-            {club.highlights.map((highlight, index) => (
-              <div key={index} className="border-l-2 border-neon/30 pl-3 text-sm text-foreground italic" data-testid="text-highlight">
-                {highlight}
-              </div>
-            ))}
-          </Card>
-        )}
-
+      {/* 6. JOIN CTA */}
+      <div className="px-4 py-6">
         {joinSuccess ? (
           <Card className="p-6 text-center space-y-3" data-testid="card-join-success">
             <div className="text-4xl">
@@ -366,7 +309,7 @@ function ClubDetailContent({ club }: { club: Club }) {
             <p className="text-sm text-muted-foreground">Sign in first so the organizer can reach you</p>
             <a
               href="/api/login"
-              className="inline-block bg-neon text-primary-foreground rounded-md px-6 py-3 text-sm font-semibold neon-glow"
+              className="inline-block bg-neon text-primary-foreground rounded-xl px-6 py-4 font-display font-bold text-lg neon-glow"
               data-testid="button-signin-to-join"
             >
               Sign In to Join
@@ -395,34 +338,34 @@ function ClubDetailContent({ club }: { club: Club }) {
             {joinError && (
               <p className="text-xs text-destructive font-medium" data-testid="text-join-error">{joinError}</p>
             )}
-            <Button
+            <button
               onClick={handleJoinSubmit}
               disabled={joinMutation.isPending}
-              className="w-full"
+              className="w-full bg-neon text-background rounded-xl py-4 font-display font-bold text-lg neon-glow disabled:opacity-50"
               data-testid="button-send-join"
             >
               {joinMutation.isPending ? "Sending..." : "Send Join Request"}
-            </Button>
+            </button>
           </Card>
         ) : (
-          <div className="flex items-center gap-3 pt-2 pb-4">
-            <Button
+          <div className="space-y-3">
+            <button
               onClick={() => setShowJoinForm(true)}
-              className="flex-1"
+              className="w-full bg-neon text-background rounded-xl py-4 font-display font-bold text-lg neon-glow"
               data-testid="button-join"
             >
               I Want to Join
-            </Button>
+            </button>
             {club.whatsappNumber && (
               <a
                 href={`https://wa.me/${club.whatsappNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full glass-card rounded-xl py-3 text-sm font-medium text-foreground"
                 data-testid="button-whatsapp"
               >
-                <Button variant="outline" size="icon">
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
+                <MessageCircle className="w-4 h-4" />
+                Message on WhatsApp
               </a>
             )}
           </div>
@@ -461,107 +404,75 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
     },
   });
 
-  const handleShareEvent = (event: ClubEvent, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const url = `${window.location.origin}/event/${event.id}`;
-    const text = `I'm going to ${event.title} with ${clubName}! Join me: ${url}`;
-    if (navigator.share) {
-      navigator.share({ title: event.title, text: `I'm going to ${event.title} with ${clubName}! Join me`, url }).catch(() => {});
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-    }
-  };
-
   const upcomingEvents = events.filter((e) => new Date(e.startsAt) > new Date());
-  if (upcomingEvents.length === 0) return null;
 
   return (
-    <div data-testid="section-club-events">
-      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-        <Calendar className="w-4 h-4 neon-text" />
-        Upcoming Events
-      </h3>
-      <div className="space-y-3">
-        {upcomingEvents.slice(0, 5).map((event) => {
-          const d = new Date(event.startsAt);
-          const spotsLeft = event.maxCapacity - event.rsvpCount;
-          const isJustRsvpd = justRsvpdId === event.id;
-          return (
-            <Card
-              key={event.id}
-              className="p-4 cursor-pointer hover-elevate transition-all"
-              onClick={() => navigate(`/event/${event.id}`)}
-              data-testid={`club-event-${event.id}`}
-            >
-              <div className="font-medium text-sm text-foreground mb-1">{event.title}</div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {event.locationText}
-                </span>
+    <div className="px-4 py-4" data-testid="section-club-events">
+      <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Upcoming Events</h2>
+      {upcomingEvents.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No upcoming events</p>
+      ) : (
+        <div className="space-y-2">
+          {upcomingEvents.slice(0, 5).map((event) => {
+            const d = new Date(event.startsAt);
+            const month = d.toLocaleDateString("en-IN", { month: "short" });
+            const day = d.getDate();
+            return (
+              <div
+                key={event.id}
+                className="glass-card rounded-xl p-3 flex items-center gap-3 cursor-pointer hover-elevate"
+                onClick={() => navigate(`/event/${event.id}`)}
+                data-testid={`club-event-${event.id}`}
+              >
+                <div className="bg-neon/10 rounded-lg p-2 flex flex-col items-center justify-center shrink-0 min-w-[3rem]">
+                  <span className="text-xs neon-text font-medium">{month}</span>
+                  <span className="font-bold text-foreground text-lg leading-tight">{day}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-display font-semibold text-foreground text-sm truncate">{event.title}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{event.locationText}</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 neon-text shrink-0" />
               </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
-                </span>
-                {isJustRsvpd ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => handleShareEvent(event, e)}
-                    data-testid={`button-share-rsvp-club-${event.id}`}
-                  >
-                    <Share2 className="w-3 h-3 mr-1" />
-                    Share
-                  </Button>
-                ) : isAuthenticated && spotsLeft > 0 ? (
-                  <Button
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); rsvpMutation.mutate(event.id); }}
-                    disabled={rsvpMutation.isPending}
-                    data-testid={`button-rsvp-club-${event.id}`}
-                  >
-                    Count Me In
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 function ClubDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="px-4 sm:px-6 pt-4 pb-8 glass-card">
-        <div className="max-w-2xl mx-auto">
-          <Skeleton className="w-20 h-5 mb-6" />
-          <Skeleton className="w-16 h-16 rounded-md mb-4" />
-          <Skeleton className="w-24 h-3 mb-2" />
-          <Skeleton className="w-64 h-8 mb-3" />
-          <div className="flex gap-3">
-            <Skeleton className="w-20 h-5" />
-            <Skeleton className="w-24 h-5" />
+    <div className="min-h-screen bg-background pb-24">
+      <div className="h-64 w-full bg-gradient-to-b from-card to-background flex items-center justify-center">
+        <Skeleton className="w-20 h-20 rounded-full" />
+      </div>
+      <div className="px-4 py-4 flex justify-between items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div>
+            <Skeleton className="w-16 h-3 mb-1" />
+            <Skeleton className="w-24 h-4" />
           </div>
         </div>
-      </div>
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <Skeleton className="w-full h-16" />
-        <Skeleton className="w-full h-20" />
-        <div className="grid grid-cols-2 gap-3">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
+        <div className="text-right">
+          <Skeleton className="w-16 h-3 mb-1 ml-auto" />
+          <Skeleton className="w-10 h-7 ml-auto" />
         </div>
+      </div>
+      <div className="px-4 py-4 space-y-2">
+        <Skeleton className="w-16 h-3" />
+        <Skeleton className="w-full h-4" />
+        <Skeleton className="w-3/4 h-4" />
+      </div>
+      <div className="px-4 py-2 flex gap-2 flex-wrap">
+        <Skeleton className="w-20 h-7 rounded-full" />
+        <Skeleton className="w-24 h-7 rounded-full" />
+        <Skeleton className="w-16 h-7 rounded-full" />
       </div>
     </div>
   );
