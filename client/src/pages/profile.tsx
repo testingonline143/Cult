@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2 } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -61,6 +62,40 @@ function ProfileHeader({ user }: { user: User }) {
   const [editName, setEditName] = useState(user.firstName || "");
   const [editBio, setEditBio] = useState(user.bio || "");
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const photoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("photo", file);
+      const res = await fetch("/api/user/photo", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Failed to upload");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "Profile photo updated!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to upload photo", variant: "destructive" });
+    },
+  });
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    photoMutation.mutate(file);
+  };
 
   const updateMutation = useMutation({
     mutationFn: async (data: { name: string; bio: string }) => {
@@ -96,13 +131,33 @@ function ProfileHeader({ user }: { user: User }) {
   return (
     <div className="glass-card rounded-md p-6 mb-4" data-testid="card-profile">
       <div className="flex items-start gap-4">
-        <div className="w-16 h-16 rounded-full bg-neon/10 flex items-center justify-center shrink-0 overflow-hidden neon-border border">
-          {user.profileImageUrl ? (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="relative w-16 h-16 rounded-full bg-neon/10 flex items-center justify-center shrink-0 overflow-hidden neon-border border group"
+          disabled={photoMutation.isPending}
+          data-testid="button-upload-photo"
+        >
+          {photoMutation.isPending ? (
+            <Loader2 className="w-6 h-6 neon-text animate-spin" />
+          ) : user.profileImageUrl ? (
             <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover rounded-full" />
           ) : (
             <UserIcon className="w-7 h-7 neon-text" />
           )}
-        </div>
+          {!photoMutation.isPending && (
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+          )}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={handlePhotoSelect}
+          data-testid="input-photo-upload"
+        />
         <div className="flex-1 min-w-0">
           {editing ? (
             <div className="space-y-3">

@@ -1,11 +1,31 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import multer from "multer";
 import { storage } from "./storage";
 import { insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import type { RequestHandler } from "express";
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: path.resolve("uploads"),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || ".jpg";
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, WebP, and GIF images are allowed"));
+    }
+  },
+});
 
 const isAdmin: RequestHandler = (req: any, res, next) => {
   const adminId = process.env.ADMIN_USER_ID;
@@ -228,6 +248,24 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error updating profile:", err);
       res.status(500).json({ success: false, message: "Failed to update profile" });
+    }
+  });
+
+  app.post("/api/user/photo", isAuthenticated, upload.single("photo"), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "No image file provided" });
+      }
+      const url = `/uploads/${req.file.filename}`;
+      const user = await storage.updateUser(userId, { profileImageUrl: url });
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+      res.json({ success: true, url, user });
+    } catch (err) {
+      console.error("Error uploading photo:", err);
+      res.status(500).json({ success: false, message: "Failed to upload photo" });
     }
   });
 

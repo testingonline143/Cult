@@ -124,7 +124,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 - **QR check-in** (/checkin/:eventId): Scan QR at event to check in; shows RSVP status, one-tap check-in
 - **WhatsApp sharing**: Share buttons on club cards, detail pages, event pages, and modals using Web Share API with WhatsApp fallback. Post-RSVP share prompts on event cards and event detail page.
 - **Open Graph meta tags**: Server-side OG tags for club pages and event pages (bot detection) for rich previews on WhatsApp/social media. Event OG tags include date, time, location, and club name.
-- **Profile page** (/profile): Editable name + bio (200 char), joined clubs list, RSVP'd events, request history, redo quiz button
+- **Profile page** (/profile): Editable name + bio (200 char), profile photo upload (tap avatar to change, multer + /uploads/ static serving, max 5MB, jpeg/png/webp/gif), joined clubs list, RSVP'd events, request history, redo quiz button
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
 - **Social proof / Activity signals**: "X joined this week" badge on club cards, Recent Activity section on club detail page/modal, Club Highlights editable by organizers
