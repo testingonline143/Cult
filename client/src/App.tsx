@@ -20,8 +20,9 @@ import Create from "@/pages/create";
 import Checkin from "@/pages/checkin";
 import ClubDetail from "@/pages/club-detail";
 import EventDetail from "@/pages/event-detail";
+import HomeFeed from "@/pages/home-feed";
 
-const QUIZ_EXEMPT_PATHS = ["/onboarding", "/matched-clubs", "/admin", "/organizer", "/checkin", "/club", "/event", "/events", "/create"];
+const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/checkin", "/club", "/event", "/events", "/create"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ function Router() {
     <QuizGate>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/home" component={HomeFeed} />
         <Route path="/admin" component={Admin} />
         <Route path="/organizer" component={OrganizerDashboard} />
         <Route path="/profile" component={Profile} />

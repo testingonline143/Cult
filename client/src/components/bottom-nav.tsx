@@ -2,14 +2,14 @@ import { useLocation } from "wouter";
 import { Home, Compass, Calendar, PlusCircle, User } from "lucide-react";
 
 const TABS = [
-  { path: "/", label: "HOME", icon: Home },
+  { path: "/home", label: "HOME", icon: Home },
   { path: "/explore", label: "EXPLORE", icon: Compass },
   { path: "/events", label: "EVENTS", icon: Calendar },
   { path: "/create", label: "CREATE", icon: PlusCircle },
   { path: "/profile", label: "PROFILE", icon: User },
 ];
 
-const TAB_PATHS = ["/explore", "/events", "/create", "/profile"];
+const TAB_PATHS = ["/home", "/explore", "/events", "/create", "/profile"];
 
 export function BottomNav() {
   const [location, navigate] = useLocation();

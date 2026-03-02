@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { ClubDetailModal } from "@/components/club-detail-modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, MapPin, Users } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday } from "date-fns";
 import type { Club, Event } from "@shared/schema";
 import { Link } from "wouter";
 
@@ -16,18 +18,18 @@ export default function HomeFeed() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const { user } = useAuth();
 
-  const { data: clubs = [] } = useQuery<(Club & { recentJoins?: number })[]>({
+  const { data: clubs = [], isLoading: clubsLoading } = useQuery<(Club & { recentJoins?: number })[]>({
     queryKey: ["/api/clubs-with-activity"],
   });
 
-  const { data: events = [] } = useQuery<EventWithClub[]>({
+  const { data: events = [], isLoading: eventsLoading } = useQuery<EventWithClub[]>({
     queryKey: ["/api/events"],
   });
 
-  const now = new Date();
-  const upcomingEvent = events
-    .filter((e) => new Date(e.startsAt) > now)
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
+  const todayEvents = events
+    .filter((e) => isToday(new Date(e.startsAt)))
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  const todayEvent = todayEvents[0];
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -46,7 +48,7 @@ export default function HomeFeed() {
             data-testid="card-quiz-prompt"
           >
             <div className="flex items-center gap-4">
-              <span className="text-4xl" aria-hidden="true">🎯</span>
+              <ArrowRight className="w-8 h-8 neon-text shrink-0" />
               <div className="flex-1">
                 <h3 className="font-display font-bold text-foreground text-lg">Find your perfect clubs</h3>
                 <p className="text-sm text-muted-foreground">Take a 2-minute quiz to get matched</p>
@@ -68,39 +70,42 @@ export default function HomeFeed() {
           </Link>
         </div>
 
-        {upcomingEvent ? (
-          <div className="glass-card rounded-2xl p-4" data-testid={`card-event-${upcomingEvent.id}`}>
-            {upcomingEvent.clubName && (
+        {eventsLoading ? (
+          <div className="glass-card rounded-2xl p-4 space-y-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+        ) : todayEvent ? (
+          <div className="glass-card rounded-2xl p-4" data-testid={`card-event-${todayEvent.id}`}>
+            {todayEvent.clubName && (
               <p className="neon-text uppercase text-[11px] font-semibold tracking-wider mb-1" data-testid="text-event-club">
-                {upcomingEvent.clubName}
+                {todayEvent.clubName}
               </p>
             )}
             <h3 className="font-display font-bold text-foreground text-lg mb-3" data-testid="text-event-title">
-              {upcomingEvent.title}
+              {todayEvent.title}
             </h3>
             <div className="space-y-2 mb-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4 shrink-0" />
-                <span data-testid="text-event-time">{format(new Date(upcomingEvent.startsAt), "EEE, MMM d · h:mm a")}</span>
+                <span data-testid="text-event-time">{format(new Date(todayEvent.startsAt), "EEE, MMM d · h:mm a")}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 shrink-0" />
-                <span data-testid="text-event-location">{upcomingEvent.locationText}</span>
+                <span data-testid="text-event-location">{todayEvent.locationText}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="w-4 h-4 shrink-0" />
                 <span className="glass-card px-2 py-0.5 rounded-md text-xs" data-testid="text-event-spots">
-                  {upcomingEvent.maxCapacity - (upcomingEvent.rsvpCount ?? 0)} spots left
+                  {todayEvent.maxCapacity - (todayEvent.rsvpCount ?? 0)} spots left
                 </span>
               </div>
             </div>
-            <Link
-              href={`/event/${upcomingEvent.id}`}
-              className="inline-block bg-neon text-background rounded-full px-5 py-2 text-sm font-semibold"
-              data-testid="button-join-event"
-            >
-              Join
-            </Link>
+            <Button asChild size="sm" className="rounded-full bg-neon text-background hover:bg-neon/90" data-testid="button-join-event">
+              <Link href={`/event/${todayEvent.id}`}>Join</Link>
+            </Button>
           </div>
         ) : (
           <p className="text-muted-foreground text-sm" data-testid="text-no-events">No events today</p>
@@ -115,28 +120,42 @@ export default function HomeFeed() {
           </Link>
         </div>
 
-        <div className="flex gap-4 pb-4 overflow-x-auto">
-          {clubs.map((club) => (
-            <button
-              key={club.id}
-              onClick={() => setSelectedClub(club)}
-              className="glass-card rounded-2xl w-44 flex-shrink-0 text-left"
-              data-testid={`card-club-${club.id}`}
-            >
-              <div className="h-28 rounded-t-2xl flex items-end p-3 bg-gradient-to-t from-neon/20 to-background">
-                <span className="text-4xl" aria-hidden="true">{club.emoji}</span>
+        {clubsLoading ? (
+          <div className="flex gap-4 pb-4 overflow-x-auto">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="glass-card rounded-2xl w-44 flex-shrink-0">
+                <Skeleton className="h-28 rounded-t-2xl" />
+                <div className="p-3 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
               </div>
-              <div className="p-3">
-                <p className="font-display font-bold text-sm text-foreground" data-testid={`text-club-name-${club.id}`}>
-                  {club.name}
-                </p>
-                <p className="text-xs text-muted-foreground" data-testid={`text-club-meta-${club.id}`}>
-                  {club.memberCount} members · {club.schedule}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-4 pb-4 overflow-x-auto">
+            {clubs.map((club) => (
+              <button
+                key={club.id}
+                onClick={() => setSelectedClub(club)}
+                className="glass-card rounded-2xl w-44 flex-shrink-0 text-left"
+                data-testid={`card-club-${club.id}`}
+              >
+                <div className="h-28 rounded-t-2xl flex items-end p-3 bg-gradient-to-t from-neon/20 to-background">
+                  <span className="text-4xl" aria-hidden="true">{club.emoji}</span>
+                </div>
+                <div className="p-3">
+                  <p className="font-display font-bold text-sm text-foreground" data-testid={`text-club-name-${club.id}`}>
+                    {club.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground" data-testid={`text-club-meta-${club.id}`}>
+                    {club.memberCount} members · {club.schedule}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <ClubDetailModal club={selectedClub} onClose={() => setSelectedClub(null)} />
