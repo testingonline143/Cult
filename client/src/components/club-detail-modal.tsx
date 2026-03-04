@@ -130,13 +130,14 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
         />
 
         <motion.div
-          className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-background rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border"
+          className="relative w-full sm:max-w-md max-h-[90vh] flex flex-col bg-background rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border"
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
           data-testid="modal-club-detail"
         >
+          <div className="flex-1 min-h-0 overflow-y-auto">
           <div
             className="relative p-6 pb-4 rounded-t-2xl sm:rounded-t-2xl glass-card"
           >
@@ -310,12 +311,7 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
               </p>
             </div>
 
-            {club.isActive === false ? (
-              <div className="text-center py-4 space-y-2" data-testid="card-club-inactive">
-                <p className="text-sm font-semibold text-foreground">This club is currently inactive</p>
-                <p className="text-xs text-muted-foreground">Check back later or explore other clubs.</p>
-              </div>
-            ) : joinSuccess ? (
+            {joinSuccess && (
               <div className="text-center py-6 space-y-3" data-testid="card-join-success">
                 <Star className="w-10 h-10 mx-auto neon-text" />
                 <h3 className="font-display text-xl font-bold neon-text">You're in the tribe!</h3>
@@ -334,19 +330,9 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
                   </a>
                 )}
               </div>
-            ) : !isAuthenticated ? (
-              <div className="text-center py-4 space-y-3" data-testid="card-join-signin">
-                <p className="text-sm font-semibold text-foreground">Want to join {club.name}?</p>
-                <p className="text-xs text-muted-foreground">Sign in first so the organizer can reach you</p>
-                <a
-                  href="/api/login"
-                  className="inline-block bg-neon text-primary-foreground rounded-xl px-6 py-3 text-sm font-semibold neon-glow"
-                  data-testid="button-signin-to-join"
-                >
-                  Sign In to Join
-                </a>
-              </div>
-            ) : showJoinForm ? (
+            )}
+
+            {showJoinForm && !joinSuccess && (
               <div className="space-y-3" data-testid="form-join">
                 <p className="text-xs text-muted-foreground">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
                 <input
@@ -377,29 +363,51 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
                   {joinMutation.isPending ? "Sending..." : "Send Join Request"}
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center gap-2.5 pt-2 pb-2">
-                <button
-                  onClick={() => setShowJoinForm(true)}
-                  className="flex-1 bg-neon text-primary-foreground rounded-xl py-3.5 text-sm font-semibold transition-all neon-glow"
-                  data-testid="button-modal-join"
-                >
-                  I Want to Join
-                </button>
-                {club.whatsappNumber && (
-                  <a
-                    href={`https://wa.me/${club.whatsappNumber}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-[50px] h-[50px] bg-emerald-600 text-foreground rounded-xl text-xl flex items-center justify-center shrink-0 transition-all"
-                    data-testid="button-modal-whatsapp"
-                  >
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
-                  </a>
-                )}
-              </div>
             )}
           </div>
+          </div>
+
+          {club.isActive !== false && !joinSuccess && !showJoinForm && (
+            <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-xl px-6 py-4 rounded-b-2xl" data-testid="modal-sticky-join">
+              {!isAuthenticated ? (
+                <a
+                  href="/api/login"
+                  className="block w-full bg-neon text-primary-foreground text-center rounded-xl py-4 font-display font-bold text-lg neon-glow"
+                  data-testid="button-signin-to-join"
+                >
+                  Sign In to Join
+                </a>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setShowJoinForm(true)}
+                    className="flex-1 bg-neon text-primary-foreground rounded-xl py-3.5 font-display font-bold text-lg transition-all neon-glow"
+                    data-testid="button-modal-join"
+                  >
+                    I Want to Join
+                  </button>
+                  {club.whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${club.whatsappNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-[50px] h-[50px] bg-emerald-600 text-foreground rounded-xl text-xl flex items-center justify-center shrink-0 transition-all"
+                      data-testid="button-modal-whatsapp"
+                    >
+                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {club.isActive === false && (
+            <div className="shrink-0 border-t border-border/50 bg-background/95 px-6 py-4 text-center" data-testid="card-club-inactive">
+              <p className="text-sm font-semibold text-foreground">This club is currently inactive</p>
+              <p className="text-xs text-muted-foreground mt-1">Check back later or explore other clubs.</p>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
