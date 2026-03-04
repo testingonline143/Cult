@@ -255,35 +255,38 @@ function ClubDetailContent({ club }: { club: Club }) {
 
       {isOwner && (
         <div className="px-4 py-3" data-testid="section-organiser-controls">
-          <Card className="p-4 space-y-3">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Organiser Controls</h3>
+          <div className="glass-card neon-border rounded-2xl p-4 space-y-3">
+            <h3 className="text-xs font-bold neon-text uppercase tracking-wider flex items-center gap-2">
+              <Settings className="w-3.5 h-3.5" />
+              Organiser Controls
+            </h3>
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
+              <button
                 onClick={() => navigate(`/organizer`)}
+                className="flex items-center gap-2 bg-neon/15 hover:bg-neon/25 transition-colors rounded-xl px-4 py-2.5 text-sm font-semibold neon-text"
                 data-testid="button-view-dashboard"
               >
-                <LayoutDashboard className="w-4 h-4 mr-2" />
+                <LayoutDashboard className="w-4 h-4" />
                 View Dashboard
-              </Button>
-              <Button
-                variant="outline"
+              </button>
+              <button
                 onClick={() => navigate(`/create?tab=event&clubId=${club.id}`)}
+                className="flex items-center gap-2 bg-neon/15 hover:bg-neon/25 transition-colors rounded-xl px-4 py-2.5 text-sm font-semibold neon-text"
                 data-testid="button-create-event-for-club"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4" />
                 Create Event
-              </Button>
-              <Button
-                variant="outline"
+              </button>
+              <button
                 onClick={() => navigate(`/organizer`)}
+                className="flex items-center gap-2 bg-neon/15 hover:bg-neon/25 transition-colors rounded-xl px-4 py-2.5 text-sm font-semibold neon-text"
                 data-testid="button-edit-club"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <Settings className="w-4 h-4" />
                 Edit Club
-              </Button>
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 

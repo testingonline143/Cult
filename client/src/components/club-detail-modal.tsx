@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, Calendar, MapPin, Users, Share2 } from "lucide-react";
+import { X, Star, Calendar, MapPin, Users, Share2, LayoutDashboard, PlusCircle, Settings } from "lucide-react";
+import { Link } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -310,6 +311,44 @@ export function ClubDetailModal({ club, onClose }: ClubDetailModalProps) {
                   : "Join now to get your Founding Member badge"}
               </p>
             </div>
+
+            {isAuthenticated && user?.id && club.creatorUserId === user.id && (
+              <div className="glass-card neon-border rounded-xl p-4 space-y-3" data-testid="section-organiser-controls">
+                <h3 className="font-display text-base font-bold neon-text flex items-center gap-2">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Organiser Controls
+                </h3>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/organizer"
+                    onClick={onClose}
+                    className="flex items-center gap-2 glass-card rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover-elevate"
+                    data-testid="link-organiser-dashboard"
+                  >
+                    <LayoutDashboard className="w-4 h-4 neon-text" />
+                    View Dashboard
+                  </Link>
+                  <Link
+                    href={`/create?tab=event&clubId=${club.id}`}
+                    onClick={onClose}
+                    className="flex items-center gap-2 glass-card rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover-elevate"
+                    data-testid="link-create-event"
+                  >
+                    <PlusCircle className="w-4 h-4 neon-text" />
+                    Create Event
+                  </Link>
+                  <Link
+                    href="/organizer"
+                    onClick={onClose}
+                    className="flex items-center gap-2 glass-card rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover-elevate"
+                    data-testid="link-edit-club"
+                  >
+                    <Settings className="w-4 h-4 neon-text" />
+                    Edit Club
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {joinSuccess && (
               <div className="text-center py-6 space-y-3" data-testid="card-join-success">

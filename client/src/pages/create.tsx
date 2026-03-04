@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,6 +30,15 @@ export default function Create() {
   const [activeTab, setActiveTab] = useState<"club" | "event">(safeInitialTab);
   const [createdClub, setCreatedClub] = useState<{ name: string; id: string } | null>(null);
   const [eventClubId, setEventClubId] = useState(preselectedClubId);
+
+  useEffect(() => {
+    if (!isOrganiser && activeTab === "event") {
+      setActiveTab("club");
+    }
+    if (isOrganiser && initialTab === "event" && activeTab === "club") {
+      setActiveTab("event");
+    }
+  }, [isOrganiser, activeTab, initialTab]);
 
   if (createdClub) {
     return (
@@ -104,6 +113,12 @@ export default function Create() {
           </button>
           )}
         </div>
+
+        {!isOrganiser && (
+          <p className="text-xs text-muted-foreground mb-4 -mt-2" data-testid="text-unlock-hint">
+            Create a club to unlock event creation
+          </p>
+        )}
 
         {activeTab === "club" ? (
           isAuthenticated ? (

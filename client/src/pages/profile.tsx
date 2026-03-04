@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -236,18 +236,36 @@ function ProfileActions({ user }: { user: User }) {
     navigate("/onboarding");
   };
 
+  const isOrganiserOrAdmin = user.role === "organiser" || user.role === "admin";
+
   return (
-    <div className="flex gap-2 mb-6">
-      {user.quizCompleted && (
-        <button
-          onClick={handleRedoQuiz}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-md glass-card text-xs font-semibold text-muted-foreground transition-all"
-          data-testid="button-redo-quiz"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Redo Quiz
-        </button>
+    <div className="space-y-3 mb-6">
+      {isOrganiserOrAdmin && (
+        <Link href="/organizer" data-testid="link-organiser-dashboard">
+          <div className="glass-card rounded-2xl p-4 neon-border border flex items-center gap-4 cursor-pointer group transition-all">
+            <div className="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center shrink-0">
+              <LayoutDashboard className="w-5 h-5 neon-text" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-display text-sm font-bold neon-text" data-testid="text-organiser-dashboard-label">Organiser Dashboard</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Manage your clubs, events & members</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </div>
+        </Link>
       )}
+      <div className="flex gap-2 flex-wrap">
+        {user.quizCompleted && (
+          <button
+            onClick={handleRedoQuiz}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-md glass-card text-xs font-semibold text-muted-foreground transition-all"
+            data-testid="button-redo-quiz"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Redo Quiz
+          </button>
+        )}
+      </div>
     </div>
   );
 }
