@@ -85,7 +85,7 @@ export function Navbar() {
             <Button
               size="sm"
               className="rounded-full hidden sm:inline-flex"
-              onClick={() => scrollTo("organizer")}
+              onClick={() => { window.location.href = "/create"; }}
               data-testid="button-list-club-nav"
             >
               List Your Club
@@ -138,7 +138,7 @@ export function Navbar() {
                   Sign In
                 </Button>
               )}
-              <Button size="sm" className="mt-2 rounded-full" onClick={() => scrollTo("organizer")} data-testid="button-list-club-mobile">
+              <Button size="sm" className="mt-2 rounded-full" onClick={() => { window.location.href = "/create"; setMobileOpen(false); }} data-testid="button-list-club-mobile">
                 List Your Club
               </Button>
             </div>
