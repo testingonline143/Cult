@@ -9,7 +9,7 @@ const TABS = [
   { path: "/profile", label: "PROFILE", icon: User },
 ];
 
-const TAB_PATHS = ["/home", "/explore", "/events", "/create", "/profile"];
+const TAB_PATHS = ["/home", "/explore", "/events", "/create", "/profile", "/organizer"];
 
 export function BottomNav() {
   const [location, navigate] = useLocation();
