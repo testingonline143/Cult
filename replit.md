@@ -76,7 +76,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 - **ORM**: Drizzle ORM with `drizzle-orm/node-postgres` driver
 - **Schema Location**: `shared/schema.ts` re-exports from `shared/models/auth.ts` — shared between client and server
 - **Tables**:
-  - `users` — id (UUID), email (unique), firstName, lastName, profileImageUrl, bio, city, quizCompleted, createdAt, updatedAt
+  - `users` — id (UUID), email (unique), firstName, lastName, profileImageUrl, bio, city, **role** (text, default 'user', values: 'user'|'organiser'|'admin'), quizCompleted, createdAt, updatedAt
   - `sessions` — sid (PK), sess (jsonb), expire (timestamp) — used by express-session for Replit Auth
   - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, markedDone, createdAt

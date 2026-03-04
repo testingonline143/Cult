@@ -22,11 +22,13 @@ export default function Create() {
   const initialTab = params.get("tab") === "event" ? "event" : "club";
   const preselectedClubId = params.get("clubId") || "";
 
-  const [activeTab, setActiveTab] = useState<"club" | "event">(initialTab);
-  const [createdClub, setCreatedClub] = useState<{ name: string; id: string } | null>(null);
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
+  const safeInitialTab = initialTab === "event" && !isOrganiser ? "club" : initialTab;
+  const [activeTab, setActiveTab] = useState<"club" | "event">(safeInitialTab);
+  const [createdClub, setCreatedClub] = useState<{ name: string; id: string } | null>(null);
   const [eventClubId, setEventClubId] = useState(preselectedClubId);
 
   if (createdClub) {
@@ -88,6 +90,7 @@ export default function Create() {
           >
             New Club
           </button>
+          {isOrganiser && (
           <button
             onClick={() => setActiveTab("event")}
             className={`rounded-full px-6 py-2 font-semibold transition-colors ${
@@ -99,6 +102,7 @@ export default function Create() {
           >
             New Event
           </button>
+          )}
         </div>
 
         {activeTab === "club" ? (
@@ -174,6 +178,7 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
       queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-clubs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-club"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       onSuccess(clubName, data.club?.id || "");
     },
     onError: (err: Error) => {

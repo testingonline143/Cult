@@ -10,17 +10,23 @@ export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "requests" | "events" | "edit">("overview");
+  const [selectedClubIndex, setSelectedClubIndex] = useState(0);
 
-  const { data: club, isLoading, error } = useQuery<Club>({
-    queryKey: ["/api/organizer/my-club"],
+  const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
+    queryKey: ["/api/organizer/my-clubs"],
     queryFn: async () => {
-      const res = await fetch("/api/organizer/my-club", { credentials: "include" });
-      if (!res.ok) throw new Error("No club found");
+      const res = await fetch("/api/organizer/my-clubs", { credentials: "include" });
+      if (!res.ok) {
+        if (res.status === 403) return [];
+        throw new Error("Failed to fetch clubs");
+      }
       return res.json();
     },
     enabled: isAuthenticated,
     retry: false,
   });
+
+  const club = clubs.length > 0 ? clubs[selectedClubIndex] || clubs[0] : null;
 
   if (!isAuthenticated) {
     return (
@@ -53,25 +59,25 @@ export default function Organizer() {
           <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center mx-auto mb-3">
             <LayoutDashboard className="w-6 h-6 neon-text" />
           </div>
-          <p className="text-sm text-muted-foreground">Loading your club...</p>
+          <p className="text-sm text-muted-foreground">Loading your clubs...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !club) {
+  if (error || clubs.length === 0 || !club) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4 text-center">
           <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mx-auto">
             <Users className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h1 className="font-display text-2xl font-bold neon-text" data-testid="text-no-club-title">No Club Yet</h1>
+          <h1 className="font-display text-2xl font-bold neon-text" data-testid="text-no-club-title">No Clubs Yet</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            You haven't created a club yet. Head to the homepage and create one!
+            You haven't created any clubs yet. Create one to get started!
           </p>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/create")}
             className="w-full bg-primary text-primary-foreground rounded-md py-3 text-sm font-semibold"
             data-testid="button-go-create-club"
           >
@@ -99,6 +105,28 @@ export default function Organizer() {
             <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-dashboard-home">Home</Link>
           </div>
         </div>
+
+        {clubs.length > 1 && (
+          <div className="mb-6" data-testid="section-club-switcher">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Switch Club</label>
+            <div className="flex gap-2 overflow-x-auto flex-wrap">
+              {clubs.map((c, index) => (
+                <button
+                  key={c.id}
+                  onClick={() => { setSelectedClubIndex(index); setActiveTab("overview"); }}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all whitespace-nowrap ${
+                    selectedClubIndex === index
+                      ? "bg-primary text-primary-foreground neon-glow"
+                      : "glass-card text-muted-foreground"
+                  }`}
+                  data-testid={`button-switch-club-${c.id}`}
+                >
+                  {c.emoji} {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 mb-6 overflow-x-auto flex-wrap">
           {(["overview", "requests", "events", "edit"] as const).map((tab) => (
@@ -572,7 +600,7 @@ function EditClub({ club }: { club: Club }) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-club"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-clubs"] });
     },
   });
 

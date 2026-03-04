@@ -40,6 +40,28 @@ const isAdmin: RequestHandler = (req: any, res, next) => {
   next();
 };
 
+function requireRole(...roles: string[]): RequestHandler {
+  return async (req: any, res, next) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      if (!roles.includes(user.role)) {
+        return res.status(403).json({ message: "Forbidden: insufficient role" });
+      }
+      next();
+    } catch (err) {
+      console.error("Error checking role:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -193,6 +215,11 @@ export async function registerRoutes(
         creatorUserId: userId,
       });
 
+      const currentUser = await storage.getUser(userId);
+      if (currentUser && currentUser.role === "user") {
+        await storage.updateUserRole(userId, "organiser");
+      }
+
       res.status(201).json({ success: true, message: "Club created and live!", club });
     } catch (err) {
       console.error("Error creating club:", err);
@@ -200,7 +227,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/organizer/my-club", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizer/my-club", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const clubs = await storage.getClubsByCreator(userId);
@@ -214,7 +241,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/organizer/my-clubs", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizer/my-clubs", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const clubs = await storage.getClubsByCreator(userId);
@@ -439,7 +466,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/organizer/join-requests/:clubId", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizer/join-requests/:clubId", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const clubs = await storage.getClubsByCreator(userId);
@@ -455,7 +482,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/organizer/join-requests/:id/contacted", async (req, res) => {
+  app.patch("/api/organizer/join-requests/:id/contacted", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const updated = await storage.markJoinRequestDone(req.params.id);
       if (!updated) return res.status(404).json({ message: "Not found" });
@@ -466,7 +493,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/organizer/club/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/organizer/club/:id", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);

@@ -45,6 +45,7 @@ export interface IStorage {
   getRsvpById(rsvpId: string): Promise<EventRsvp | undefined>;
   getRsvpByToken(token: string): Promise<(EventRsvp & { userName: string | null }) | undefined>;
   checkInRsvpByToken(token: string): Promise<EventRsvp | undefined>;
+  updateUserRole(userId: string, role: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -424,6 +425,14 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(eventRsvps)
       .set({ checkedIn: true, checkedInAt: new Date() })
       .where(and(eq(eventRsvps.checkinToken, token), eq(eventRsvps.status, "going")))
+      .returning();
+    return updated;
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<User | undefined> {
+    const [updated] = await db.update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, userId))
       .returning();
     return updated;
   }

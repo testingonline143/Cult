@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,6 +87,7 @@ function handleShareClub(club: Club) {
 function ClubDetailContent({ club }: { club: Club }) {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const isOwner = !!(user && club.creatorUserId && user.id === club.creatorUserId);
   const joinFormRef = useRef<HTMLDivElement>(null);
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState(false);
@@ -251,6 +252,40 @@ function ClubDetailContent({ club }: { club: Club }) {
           <span className="text-xs text-muted-foreground">Active since {club.activeSince}</span>
         )}
       </div>
+
+      {isOwner && (
+        <div className="px-4 py-3" data-testid="section-organiser-controls">
+          <Card className="p-4 space-y-3">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Organiser Controls</h3>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/organizer`)}
+                data-testid="button-view-dashboard"
+              >
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                View Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/create?tab=event&clubId=${club.id}`)}
+                data-testid="button-create-event-for-club"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Event
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/organizer`)}
+                data-testid="button-edit-club"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Edit Club
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* 3. ABOUT SECTION */}
       <div className="px-4 py-4">
