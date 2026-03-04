@@ -66,6 +66,7 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
   - `GET /api/clubs/:id/activity` — get club activity signals
   - `GET /api/activity/feed` — get recent platform-wide join activity
   - `GET /api/clubs-with-activity` — get all clubs with recentJoins count
+  - `GET /api/organizer/my-clubs` — get ALL clubs created by authenticated user (for multi-club support)
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`

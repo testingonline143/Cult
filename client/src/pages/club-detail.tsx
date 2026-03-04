@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -87,6 +87,7 @@ function handleShareClub(club: Club) {
 function ClubDetailContent({ club }: { club: Club }) {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const joinFormRef = useRef<HTMLDivElement>(null);
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState(false);
   const [joinName, setJoinName] = useState(user?.firstName || "");
@@ -105,6 +106,12 @@ function ClubDetailContent({ club }: { club: Club }) {
   useEffect(() => {
     setJoinName(user?.firstName || "");
   }, [user]);
+
+  useEffect(() => {
+    if (showJoinForm && joinFormRef.current) {
+      joinFormRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showJoinForm]);
 
   const joinMutation = useMutation({
     mutationFn: async (data: { clubId: string; clubName: string; name: string; phone: string }) => {
@@ -164,7 +171,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-32">
       {/* 1. HERO SECTION */}
       <div className="relative h-64 w-full bg-gradient-to-b from-neon/20 via-card to-background flex items-center justify-center">
         <span className="text-8xl select-none" data-testid="text-club-emoji">{club.emoji}</span>
@@ -321,9 +328,9 @@ function ClubDetailContent({ club }: { club: Club }) {
         </Card>
       </div>
 
-      {/* 6. JOIN CTA */}
-      <div className="px-4 py-6">
-        {joinSuccess ? (
+      {/* 6. JOIN CTA - Sticky at bottom */}
+      {joinSuccess ? (
+        <div className="px-4 py-6">
           <Card className="p-6 text-center space-y-3" data-testid="card-join-success">
             <div className="text-4xl">
               <Star className="w-10 h-10 mx-auto neon-text" />
@@ -345,19 +352,9 @@ function ClubDetailContent({ club }: { club: Club }) {
               </a>
             )}
           </Card>
-        ) : !isAuthenticated ? (
-          <Card className="p-6 text-center space-y-3" data-testid="card-join-signin">
-            <h3 className="font-display text-lg font-bold text-foreground mb-1">Want to join {club.name}?</h3>
-            <p className="text-sm text-muted-foreground">Sign in first so the organizer can reach you</p>
-            <a
-              href="/api/login"
-              className="inline-block bg-neon text-primary-foreground rounded-xl px-6 py-4 font-display font-bold text-lg neon-glow"
-              data-testid="button-signin-to-join"
-            >
-              Sign In to Join
-            </a>
-          </Card>
-        ) : showJoinForm ? (
+        </div>
+      ) : showJoinForm ? (
+        <div ref={joinFormRef} className="px-4 py-6">
           <Card className="p-6 space-y-3" data-testid="form-join">
             <h3 className="font-display text-lg font-bold text-foreground mb-1">Join {club.name}</h3>
             <p className="text-xs text-muted-foreground mb-1">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
@@ -389,8 +386,18 @@ function ClubDetailContent({ club }: { club: Club }) {
               {joinMutation.isPending ? "Sending..." : "Send Join Request"}
             </button>
           </Card>
-        ) : (
-          <div className="space-y-3">
+        </div>
+      ) : (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 py-3 space-y-2" data-testid="sticky-join-cta">
+          {!isAuthenticated ? (
+            <a
+              href="/api/login"
+              className="block w-full bg-neon text-primary-foreground text-center rounded-xl py-4 font-display font-bold text-lg neon-glow"
+              data-testid="button-signin-to-join"
+            >
+              Sign In to Join
+            </a>
+          ) : (
             <button
               onClick={() => setShowJoinForm(true)}
               className="w-full bg-neon text-background rounded-xl py-4 font-display font-bold text-lg neon-glow"
@@ -398,21 +405,21 @@ function ClubDetailContent({ club }: { club: Club }) {
             >
               I Want to Join
             </button>
-            {club.whatsappNumber && (
-              <a
-                href={`https://wa.me/${club.whatsappNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full glass-card rounded-xl py-3 text-sm font-medium text-foreground"
-                data-testid="button-whatsapp"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Message on WhatsApp
-              </a>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+          {club.whatsappNumber && (
+            <a
+              href={`https://wa.me/${club.whatsappNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full glass-card rounded-xl py-3 text-sm font-medium text-foreground"
+              data-testid="button-whatsapp"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Message on WhatsApp
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }

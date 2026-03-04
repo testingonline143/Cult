@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { CATEGORIES, CITIES } from "@shared/schema";
 import type { Club } from "@shared/schema";
-import { LogIn, Loader2, Type, AlignLeft, Tag, Repeat, Link } from "lucide-react";
+import { LogIn, Loader2, Type, AlignLeft, Tag, Repeat, Link, PartyPopper, CalendarPlus, LayoutDashboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,12 +14,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Create() {
-  const [activeTab, setActiveTab] = useState<"club" | "event">("club");
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const initialTab = params.get("tab") === "event" ? "event" : "club";
+  const preselectedClubId = params.get("clubId") || "";
+
+  const [activeTab, setActiveTab] = useState<"club" | "event">(initialTab);
+  const [createdClub, setCreatedClub] = useState<{ name: string; id: string } | null>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const [eventClubId, setEventClubId] = useState(preselectedClubId);
+
+  if (createdClub) {
+    return (
+      <div className="min-h-screen bg-background pb-24 px-4 pt-6">
+        <div className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+          <div className="w-20 h-20 rounded-full bg-neon/20 flex items-center justify-center">
+            <PartyPopper className="w-10 h-10 neon-text" />
+          </div>
+          <h1 className="font-display text-3xl font-bold text-foreground" data-testid="text-club-created-title">
+            Your tribe is live!
+          </h1>
+          <p className="text-muted-foreground text-sm max-w-sm" data-testid="text-club-created-name">
+            <span className="font-semibold neon-text">{createdClub.name}</span> is now on the map. What would you like to do next?
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+            <button
+              onClick={() => {
+                setEventClubId(createdClub.id);
+                setCreatedClub(null);
+                setActiveTab("event");
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-neon text-background rounded-xl py-4 font-bold text-sm neon-glow"
+              data-testid="button-create-first-event"
+            >
+              <CalendarPlus className="w-5 h-5" />
+              Create First Event
+            </button>
+            <button
+              onClick={() => navigate("/organizer")}
+              className="flex-1 flex items-center justify-center gap-2 glass-card rounded-xl py-4 font-bold text-sm text-foreground"
+              data-testid="button-go-dashboard"
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24 px-4 pt-6">
@@ -55,12 +103,12 @@ export default function Create() {
 
         {activeTab === "club" ? (
           isAuthenticated ? (
-            <ClubForm />
+            <ClubForm onSuccess={(name, id) => setCreatedClub({ name, id })} />
           ) : (
             <SignInPrompt message="Sign in to create a club" />
           )
         ) : isAuthenticated ? (
-          <EventForm />
+          <EventForm preselectedClubId={eventClubId} />
         ) : (
           <SignInPrompt message="Sign in to create an event" />
         )}
@@ -85,9 +133,8 @@ function SignInPrompt({ message }: { message: string }) {
   );
 }
 
-function ClubForm() {
+function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void }) {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const [clubName, setClubName] = useState("");
   const [fullDesc, setFullDesc] = useState("");
@@ -123,9 +170,11 @@ function ClubForm() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      toast({ title: "Club created successfully!" });
-      navigate("/organizer");
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-club"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      onSuccess(clubName, data.club?.id || "");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -298,22 +347,26 @@ function ClubForm() {
   );
 }
 
-function EventForm() {
+function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
-  const { data: myClub, isLoading: clubLoading } = useQuery<Club>({
-    queryKey: ["/api/organizer/my-club"],
+  const { data: myClubs = [], isLoading: clubsLoading } = useQuery<Club[]>({
+    queryKey: ["/api/organizer/my-clubs"],
   });
 
+  const [selectedClubId, setSelectedClubId] = useState(preselectedClubId || "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dateTime, setDateTime] = useState("");
   const [locationText, setLocationText] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("");
 
+  const effectiveClubId = selectedClubId || (myClubs.length === 1 ? myClubs[0].id : "");
+
   const createEventMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/clubs/${myClub!.id}/events`, {
+      const res = await fetch(`/api/clubs/${effectiveClubId}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -333,11 +386,13 @@ function EventForm() {
     },
     onSuccess: () => {
       toast({ title: "Event created successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setTitle("");
       setDescription("");
       setDateTime("");
       setLocationText("");
       setMaxCapacity("");
+      navigate("/organizer");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -346,6 +401,10 @@ function EventForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!effectiveClubId) {
+      toast({ title: "Please select a club", variant: "destructive" });
+      return;
+    }
     if (!title) {
       toast({ title: "Please enter an event title", variant: "destructive" });
       return;
@@ -357,7 +416,7 @@ function EventForm() {
     createEventMutation.mutate();
   };
 
-  if (clubLoading) {
+  if (clubsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-neon" />
@@ -365,7 +424,7 @@ function EventForm() {
     );
   }
 
-  if (!myClub) {
+  if (myClubs.length === 0) {
     return (
       <div className="glass-card rounded-xl p-8 text-center space-y-3">
         <p className="text-muted-foreground text-sm" data-testid="text-no-club">
@@ -387,6 +446,33 @@ function EventForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {myClubs.length > 1 && (
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            CLUB
+          </label>
+          <Select onValueChange={setSelectedClubId} value={effectiveClubId}>
+            <SelectTrigger className="glass-card rounded-xl" data-testid="select-event-club">
+              <SelectValue placeholder="Select a club" />
+            </SelectTrigger>
+            <SelectContent>
+              {myClubs.map((club) => (
+                <SelectItem key={club.id} value={club.id}>
+                  {club.emoji} {club.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {myClubs.length === 1 && (
+        <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-2">
+          <span className="text-lg">{myClubs[0].emoji}</span>
+          <span className="text-sm font-medium text-foreground">{myClubs[0].name}</span>
+        </div>
+      )}
+
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
           EVENT TITLE

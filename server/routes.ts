@@ -214,6 +214,17 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/organizer/my-clubs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      res.json(clubs);
+    } catch (err) {
+      console.error("Error fetching organizer clubs:", err);
+      res.status(500).json({ message: "Failed to fetch clubs" });
+    }
+  });
+
   app.get("/api/user/join-requests", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
