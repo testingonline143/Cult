@@ -44,9 +44,6 @@ export default function Organizer() {
           >
             Sign In
           </button>
-          <div className="text-center">
-            <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-organizer-home">&larr; Back to Home</Link>
-          </div>
         </div>
       </div>
     );
@@ -83,9 +80,6 @@ export default function Organizer() {
           >
             Create a Club
           </button>
-          <div className="text-center">
-            <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-organizer-home">&larr; Back to Home</Link>
-          </div>
         </div>
       </div>
     );
@@ -100,9 +94,6 @@ export default function Organizer() {
               {club.emoji} {club.name}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">Organizer Dashboard</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/home" className="text-xs neon-text hover:underline" data-testid="link-dashboard-home">Home</Link>
           </div>
         </div>
 
