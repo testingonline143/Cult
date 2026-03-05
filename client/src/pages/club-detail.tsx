@@ -106,11 +106,11 @@ function ClubDetailContent({ club }: { club: Club }) {
     },
   });
 
-  const { data: ratingsData } = useQuery<{ average: number; count: number; userRating: { rating: number; review: string | null } | null }>({
+  const { data: ratingsData } = useQuery<{ average: number; count: number; userRating: { rating: number; review: string | null } | null; hasJoined: boolean }>({
     queryKey: ["/api/clubs", club.id, "ratings"],
     queryFn: async () => {
       const res = await fetch(`/api/clubs/${club.id}/ratings`, { credentials: "include" });
-      if (!res.ok) return { average: 0, count: 0, userRating: null };
+      if (!res.ok) return { average: 0, count: 0, userRating: null, hasJoined: false };
       return res.json();
     },
   });
@@ -175,6 +175,7 @@ function ClubDetailContent({ club }: { club: Club }) {
       queryClient.invalidateQueries({ queryKey: ["/api/clubs-with-activity"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activity/feed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "ratings"] });
     },
     onError: () => {
       setJoinError("Something went wrong. Please try again.");
@@ -494,7 +495,7 @@ function ClubDetailContent({ club }: { club: Club }) {
         <FaqsTab clubId={club.id} />
       )}
 
-      {isAuthenticated && (
+      {isAuthenticated && ratingsData?.hasJoined && (
         <RatingSection
           clubId={club.id}
           showRatingForm={showRatingForm}

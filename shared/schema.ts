@@ -43,6 +43,7 @@ export const joinRequests = pgTable("join_requests", {
   clubName: text("club_name").notNull(),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
+  userId: varchar("user_id"),
   markedDone: boolean("marked_done").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

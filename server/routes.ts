@@ -105,7 +105,8 @@ export async function registerRoutes(
       if (!validated.phone || validated.phone.replace(/\D/g, "").length < 10) {
         return res.status(400).json({ success: false, message: "Phone is required (minimum 10 digits)" });
       }
-      const request = await storage.createJoinRequest(validated);
+      const userId = req.user.claims.sub;
+      const request = await storage.createJoinRequest({ ...validated, userId });
       const updatedClub = await storage.incrementMemberCount(validated.clubId);
       res.json({ success: true, message: "Request saved", data: request, club: updatedClub });
     } catch (err) {
@@ -761,10 +762,12 @@ export async function registerRoutes(
     try {
       const { average, count } = await storage.getClubAverageRating(req.params.id);
       let userRating = null;
+      let hasJoined = false;
       if (req.user?.claims?.sub) {
         userRating = await storage.getUserRating(req.params.id, req.user.claims.sub);
+        hasJoined = await storage.hasUserJoinedClub(req.params.id, req.user.claims.sub);
       }
-      res.json({ average, count, userRating });
+      res.json({ average, count, userRating, hasJoined });
     } catch (err) {
       console.error("Error fetching ratings:", err);
       res.status(500).json({ message: "Failed to fetch ratings" });
@@ -774,6 +777,10 @@ export async function registerRoutes(
   app.post("/api/clubs/:id/ratings", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const hasJoined = await storage.hasUserJoinedClub(req.params.id, userId);
+      if (!hasJoined) {
+        return res.status(403).json({ message: "You must join this club before rating" });
+      }
       const { rating, review } = req.body;
       if (!rating || rating < 1 || rating > 5) {
         return res.status(400).json({ message: "Rating must be between 1 and 5" });

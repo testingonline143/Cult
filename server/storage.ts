@@ -64,6 +64,7 @@ export interface IStorage {
   createMoment(clubId: string, caption: string, emoji?: string): Promise<ClubMoment>;
   deleteMoment(id: string): Promise<void>;
   getJoinRequestCountByClub(clubId: string): Promise<number>;
+  hasUserJoinedClub(clubId: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -540,6 +541,17 @@ export class DatabaseStorage implements IStorage {
       .from(joinRequests)
       .where(eq(joinRequests.clubId, clubId));
     return result?.count ?? 0;
+  }
+
+  async hasUserJoinedClub(clubId: string, userId: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    const userMatch = user?.email
+      ? or(eq(joinRequests.userId, userId), eq(joinRequests.phone, user.email))
+      : eq(joinRequests.userId, userId);
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), userMatch));
+    return (result?.count ?? 0) > 0;
   }
 }
 
