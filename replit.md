@@ -67,6 +67,20 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/activity/feed` — get recent platform-wide join activity
   - `GET /api/clubs-with-activity` — get all clubs with recentJoins count
   - `GET /api/organizer/my-clubs` — get ALL clubs created by authenticated user (for multi-club support)
+  - `GET /api/clubs/:id/ratings` — get average rating + user's existing rating (if authenticated)
+  - `POST /api/clubs/:id/ratings` — submit/update 1-5 star rating with optional review (authenticated)
+  - `GET /api/clubs/:id/faqs` — get club FAQs ordered by sort order
+  - `POST /api/clubs/:id/faqs` — add FAQ (organizer only, verifies creatorUserId)
+  - `PATCH /api/clubs/:id/faqs/:faqId` — update FAQ (organizer only, verifies record belongs to club)
+  - `DELETE /api/clubs/:id/faqs/:faqId` — delete FAQ (organizer only, verifies record belongs to club)
+  - `GET /api/clubs/:id/schedule` — get club schedule entries
+  - `POST /api/clubs/:id/schedule` — add schedule entry (organizer only)
+  - `PATCH /api/clubs/:id/schedule/:entryId` — update schedule entry (organizer only, verifies record belongs to club)
+  - `DELETE /api/clubs/:id/schedule/:entryId` — delete schedule entry (organizer only, verifies record belongs to club)
+  - `GET /api/clubs/:id/moments` — get club moments (newest first)
+  - `POST /api/clubs/:id/moments` — add moment with caption + optional emoji (organizer only)
+  - `DELETE /api/clubs/:id/moments/:momentId` — delete moment (organizer only, verifies record belongs to club)
+  - `GET /api/clubs/:id/join-count` — get count of join requests for a club
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`
@@ -83,6 +97,10 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
   - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, createdAt
   - `event_rsvps` — id (UUID), eventId, userId, status, checkinToken (UUID, auto-generated), checkedIn, checkedInAt, createdAt
+  - `club_ratings` — id (UUID), clubId, userId, rating (integer 1-5), review (text, optional), createdAt. Unique constraint on clubId+userId (one rating per user per club, upsert on conflict).
+  - `club_faqs` — id (UUID), clubId, question (text), answer (text), sortOrder (integer, default 0), createdAt
+  - `club_schedule_entries` — id (UUID), clubId, dayOfWeek (text), startTime (text), endTime (text), activity (text), location (text), createdAt
+  - `club_moments` — id (UUID), clubId, caption (text), imageUrl (text, nullable), emoji (text, nullable), createdAt
 - **Migrations**: Raw SQL migrations applied in server startup; drizzle-kit for reference
 - **Seeding**: `server/seed.ts` contains hardcoded club data for initial population
 
@@ -94,7 +112,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 ### Storage Layer
 - `server/storage.ts` defines an `IStorage` interface and `DatabaseStorage` class implementing it
 - All database access goes through this storage abstraction
-- Key methods: getClubs, getClubsByCreator, incrementMemberCount (atomic SQL), createJoinRequest, markJoinRequestDone, updateClub, createClub, createEvent, createRsvp, checkInRsvp
+- Key methods: getClubs, getClubsByCreator, incrementMemberCount (atomic SQL), createJoinRequest, markJoinRequestDone, updateClub, createClub, createEvent, createRsvp, checkInRsvp, getClubAverageRating, getUserRating, upsertRating, getClubFaqs, createFaq, updateFaq, deleteFaq, getClubSchedule, createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getClubMoments, createMoment, deleteMoment, getJoinRequestCountByClub
 
 ### Auth System
 - **Replit Auth**: Uses OpenID Connect via `server/replit_integrations/auth/` (auto-generated integration)

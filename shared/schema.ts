@@ -84,11 +84,52 @@ export const eventRsvps = pgTable("event_rsvps", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const clubRatings = pgTable("club_ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  rating: integer("rating").notNull(),
+  review: text("review"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const clubFaqs = pgTable("club_faqs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const clubScheduleEntries = pgTable("club_schedule_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  dayOfWeek: text("day_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time"),
+  activity: text("activity").notNull(),
+  location: text("location"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const clubMoments = pgTable("club_moments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  caption: text("caption").notNull(),
+  emoji: text("emoji"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
 export const insertEventRsvpSchema = createInsertSchema(eventRsvps).omit({ id: true, checkinToken: true, createdAt: true });
+export const insertClubRatingSchema = createInsertSchema(clubRatings).omit({ id: true, createdAt: true });
+export const insertClubFaqSchema = createInsertSchema(clubFaqs).omit({ id: true, createdAt: true });
+export const insertClubScheduleEntrySchema = createInsertSchema(clubScheduleEntries).omit({ id: true, createdAt: true });
+export const insertClubMomentSchema = createInsertSchema(clubMoments).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -100,6 +141,14 @@ export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type EventRsvp = typeof eventRsvps.$inferSelect;
 export type InsertEventRsvp = z.infer<typeof insertEventRsvpSchema>;
+export type ClubRating = typeof clubRatings.$inferSelect;
+export type InsertClubRating = z.infer<typeof insertClubRatingSchema>;
+export type ClubFaq = typeof clubFaqs.$inferSelect;
+export type InsertClubFaq = z.infer<typeof insertClubFaqSchema>;
+export type ClubScheduleEntry = typeof clubScheduleEntries.$inferSelect;
+export type InsertClubScheduleEntry = z.infer<typeof insertClubScheduleEntrySchema>;
+export type ClubMoment = typeof clubMoments.$inferSelect;
+export type InsertClubMoment = z.infer<typeof insertClubMomentSchema>;
 
 export const CATEGORIES = [
   "Trekking",

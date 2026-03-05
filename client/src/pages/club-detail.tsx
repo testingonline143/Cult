@@ -3,11 +3,12 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Club } from "@shared/schema";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
 
 interface ClubEvent {
   id: string;
@@ -104,6 +105,50 @@ function ClubDetailContent({ club }: { club: Club }) {
       return res.json();
     },
   });
+
+  const { data: ratingsData } = useQuery<{ average: number; count: number; userRating: { rating: number; review: string | null } | null }>({
+    queryKey: ["/api/clubs", club.id, "ratings"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/ratings`, { credentials: "include" });
+      if (!res.ok) return { average: 0, count: 0, userRating: null };
+      return res.json();
+    },
+  });
+
+  const { data: joinCountData } = useQuery<{ count: number }>({
+    queryKey: ["/api/clubs", club.id, "join-count"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/join-count`);
+      if (!res.ok) return { count: 0 };
+      return res.json();
+    },
+  });
+
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(ratingsData?.userRating?.rating || 0);
+  const [reviewText, setReviewText] = useState(ratingsData?.userRating?.review || "");
+
+  useEffect(() => {
+    if (ratingsData?.userRating) {
+      setSelectedRating(ratingsData.userRating.rating);
+      setReviewText(ratingsData.userRating.review || "");
+    }
+  }, [ratingsData?.userRating]);
+
+  const ratingMutation = useMutation({
+    mutationFn: async (data: { rating: number; review?: string }) => {
+      const res = await apiRequest("POST", `/api/clubs/${club.id}/ratings`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "ratings"] });
+      setShowRatingForm(false);
+    },
+  });
+
+  const activeCount = joinCountData?.count ?? Math.max(1, Math.round(club.memberCount * 0.25));
+  const avgRating = ratingsData?.average ?? 0;
+  const ratingCount = ratingsData?.count ?? 0;
 
   useEffect(() => {
     setJoinName(user?.firstName || "");
@@ -254,16 +299,18 @@ function ClubDetailContent({ club }: { club: Club }) {
           <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Members</div>
         </div>
         <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--ink)]">
-            {Math.max(1, Math.round(club.memberCount * 0.25))}
+          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--ink)]" data-testid="text-active-count">
+            {activeCount}
           </div>
           <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Active</div>
         </div>
         <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--gold)]">
-            4.8
+          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--gold)]" data-testid="text-avg-rating">
+            {ratingCount > 0 ? avgRating.toFixed(1) : "—"}
           </div>
-          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Rating</div>
+          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">
+            {ratingCount > 0 ? `${ratingCount} ${ratingCount === 1 ? "review" : "reviews"}` : "No ratings"}
+          </div>
         </div>
       </div>
 
@@ -435,14 +482,30 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       )}
 
-      {activeTab !== "meet-ups" && activeTab !== "about" && (
-        <div className="px-6 py-8 text-center">
-          <p className="text-sm text-[var(--muted-warm)]">
-            {activeTab === "schedule" && "Schedule details coming soon."}
-            {activeTab === "moments" && "Moments from the club will appear here."}
-            {activeTab === "faqs" && "Frequently asked questions coming soon."}
-          </p>
-        </div>
+      {activeTab === "schedule" && (
+        <ScheduleTab clubId={club.id} fallbackSchedule={club.schedule} />
+      )}
+
+      {activeTab === "moments" && (
+        <MomentsTab clubId={club.id} />
+      )}
+
+      {activeTab === "faqs" && (
+        <FaqsTab clubId={club.id} />
+      )}
+
+      {isAuthenticated && (
+        <RatingSection
+          clubId={club.id}
+          showRatingForm={showRatingForm}
+          setShowRatingForm={setShowRatingForm}
+          selectedRating={selectedRating}
+          setSelectedRating={setSelectedRating}
+          reviewText={reviewText}
+          setReviewText={setReviewText}
+          ratingMutation={ratingMutation}
+          userRating={ratingsData?.userRating || null}
+        />
       )}
 
       {joinSuccess ? (
@@ -611,6 +674,317 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
       )}
     </div>
   );
+}
+
+function RatingSection({
+  clubId,
+  showRatingForm,
+  setShowRatingForm,
+  selectedRating,
+  setSelectedRating,
+  reviewText,
+  setReviewText,
+  ratingMutation,
+  userRating,
+}: {
+  clubId: string;
+  showRatingForm: boolean;
+  setShowRatingForm: (v: boolean) => void;
+  selectedRating: number;
+  setSelectedRating: (v: number) => void;
+  reviewText: string;
+  setReviewText: (v: string) => void;
+  ratingMutation: any;
+  userRating: { rating: number; review: string | null } | null;
+}) {
+  if (!showRatingForm && !userRating) {
+    return (
+      <div className="px-6 py-3">
+        <button
+          onClick={() => setShowRatingForm(true)}
+          className="w-full rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold text-[var(--terra)] transition-colors"
+          style={{ background: 'var(--terra-pale)', border: '1.5px solid rgba(196,98,45,0.2)' }}
+          data-testid="button-rate-club"
+        >
+          <Star className="w-4 h-4" />
+          Rate this club
+        </button>
+      </div>
+    );
+  }
+
+  if (userRating && !showRatingForm) {
+    return (
+      <div className="px-6 py-3">
+        <div className="rounded-xl p-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="card-user-rating">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-semibold text-[var(--muted-warm)] mr-1">Your rating:</span>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} className={`w-4 h-4 ${s <= userRating.rating ? "text-[var(--gold)] fill-[var(--gold)]" : "text-[var(--warm-border)]"}`} />
+              ))}
+            </div>
+            <button
+              onClick={() => setShowRatingForm(true)}
+              className="text-xs font-semibold text-[var(--terra)]"
+              data-testid="button-edit-rating"
+            >
+              Edit
+            </button>
+          </div>
+          {userRating.review && (
+            <p className="text-xs text-[var(--muted-warm)] mt-1.5">{userRating.review}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-3">
+      <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="form-rating">
+        <h3 className="text-sm font-bold text-[var(--ink)]">Rate this club</h3>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <button
+              key={s}
+              onClick={() => setSelectedRating(s)}
+              className="p-1"
+              data-testid={`button-star-${s}`}
+            >
+              <Star className={`w-7 h-7 transition-colors ${s <= selectedRating ? "text-[var(--gold)] fill-[var(--gold)]" : "text-[var(--warm-border)]"}`} />
+            </button>
+          ))}
+        </div>
+        <textarea
+          placeholder="Write a short review (optional)"
+          value={reviewText}
+          onChange={(e) => setReviewText(e.target.value)}
+          rows={2}
+          className="w-full px-3 py-2 rounded-lg text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 placeholder:text-[var(--muted-warm)] resize-none"
+          style={{ background: 'var(--cream)', border: '1.5px solid var(--warm-border)' }}
+          data-testid="input-review"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (selectedRating > 0) {
+                ratingMutation.mutate({ rating: selectedRating, review: reviewText || undefined });
+              }
+            }}
+            disabled={selectedRating === 0 || ratingMutation.isPending}
+            className="flex-1 rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: 'var(--terra)' }}
+            data-testid="button-submit-rating"
+          >
+            {ratingMutation.isPending ? "Submitting..." : "Submit Rating"}
+          </button>
+          <button
+            onClick={() => setShowRatingForm(false)}
+            className="px-4 rounded-lg py-2.5 text-sm font-semibold text-[var(--muted-warm)]"
+            style={{ background: 'var(--cream)' }}
+            data-testid="button-cancel-rating"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleTab({ clubId, fallbackSchedule }: { clubId: string; fallbackSchedule: string }) {
+  const { data: entries = [], isLoading } = useQuery<ClubScheduleEntry[]>({
+    queryKey: ["/api/clubs", clubId, "schedule"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/schedule`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4 space-y-3">
+        <Skeleton className="h-20 rounded-xl" />
+        <Skeleton className="h-20 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div className="px-6 py-6 text-center">
+        <Clock className="w-8 h-8 mx-auto text-[var(--muted-warm2)] mb-2" />
+        <p className="text-sm font-semibold text-[var(--ink3)] mb-1">Schedule coming soon</p>
+        {fallbackSchedule && (
+          <p className="text-xs text-[var(--muted-warm)]">{fallbackSchedule}</p>
+        )}
+      </div>
+    );
+  }
+
+  const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const sorted = [...entries].sort((a, b) => dayOrder.indexOf(a.dayOfWeek) - dayOrder.indexOf(b.dayOfWeek));
+
+  return (
+    <div className="px-6 py-4 space-y-2" data-testid="section-schedule">
+      <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-3">Weekly Schedule</h2>
+      {sorted.map((entry) => (
+        <div
+          key={entry.id}
+          className="rounded-xl p-3.5 flex items-start gap-3"
+          style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+          data-testid={`schedule-entry-${entry.id}`}
+        >
+          <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
+            <span className="text-[10px] font-bold text-[var(--terra)] uppercase">{entry.dayOfWeek.slice(0, 3)}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-sm font-bold text-[var(--ink)]">{entry.activity}</div>
+            <div className="flex items-center gap-1 text-xs text-[var(--muted-warm)] mt-0.5">
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>{entry.startTime}{entry.endTime ? ` – ${entry.endTime}` : ""}</span>
+            </div>
+            {entry.location && (
+              <div className="flex items-center gap-1 text-xs text-[var(--muted-warm)] mt-0.5">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span>{entry.location}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MomentsTab({ clubId }: { clubId: string }) {
+  const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
+    queryKey: ["/api/clubs", clubId, "moments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/moments`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4 space-y-3">
+        <Skeleton className="h-16 rounded-xl" />
+        <Skeleton className="h-16 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (moments.length === 0) {
+    return (
+      <div className="px-6 py-6 text-center">
+        <Activity className="w-8 h-8 mx-auto text-[var(--muted-warm2)] mb-2" />
+        <p className="text-sm font-semibold text-[var(--ink3)]">No moments yet</p>
+        <p className="text-xs text-[var(--muted-warm)] mt-1">Highlights and updates will appear here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4 space-y-3" data-testid="section-moments">
+      <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-3">Recent Moments</h2>
+      {moments.map((moment) => {
+        const timeAgo = getRelativeTime(moment.createdAt);
+        return (
+          <div
+            key={moment.id}
+            className="rounded-xl p-3.5 flex items-start gap-3"
+            style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+            data-testid={`moment-${moment.id}`}
+          >
+            {moment.emoji && (
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-xl" style={{ background: 'var(--terra-pale)' }}>
+                {moment.emoji}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-[var(--ink)] leading-relaxed">{moment.caption}</p>
+              <span className="text-[10px] text-[var(--muted-warm)] mt-1 block">{timeAgo}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FaqsTab({ clubId }: { clubId: string }) {
+  const { data: faqs = [], isLoading } = useQuery<ClubFaq[]>({
+    queryKey: ["/api/clubs", clubId, "faqs"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/faqs`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4 space-y-3">
+        <Skeleton className="h-12 rounded-xl" />
+        <Skeleton className="h-12 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (faqs.length === 0) {
+    return (
+      <div className="px-6 py-6 text-center">
+        <MessageCircle className="w-8 h-8 mx-auto text-[var(--muted-warm2)] mb-2" />
+        <p className="text-sm font-semibold text-[var(--ink3)]">No FAQs yet</p>
+        <p className="text-xs text-[var(--muted-warm)] mt-1">Frequently asked questions will appear here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4" data-testid="section-faqs">
+      <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-3">Frequently Asked Questions</h2>
+      <Accordion type="single" collapsible className="space-y-2">
+        {faqs.map((faq) => (
+          <AccordionItem
+            key={faq.id}
+            value={faq.id}
+            className="rounded-xl overflow-visible"
+            style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+            data-testid={`faq-${faq.id}`}
+          >
+            <AccordionTrigger className="px-4 py-3 text-sm font-semibold text-[var(--ink)] text-left [&[data-state=open]>svg]:rotate-180">
+              {faq.question}
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-3 text-sm text-[var(--muted-warm)] leading-relaxed">
+              {faq.answer}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+}
+
+function getRelativeTime(dateStr: string | Date | null): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 4) return `${diffWeeks}w ago`;
+  return date.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 }
 
 function ClubDetailSkeleton() {

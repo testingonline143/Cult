@@ -3,7 +3,9 @@ import {
   type JoinRequest, type InsertJoinRequest, type User,
   type QuizAnswers, type InsertQuizAnswers, type Event, type InsertEvent,
   type EventRsvp, type InsertEventRsvp,
-  clubs, joinRequests, users, userQuizAnswers, events, eventRsvps
+  type ClubRating, type ClubFaq, type ClubScheduleEntry, type ClubMoment,
+  clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
+  clubRatings, clubFaqs, clubScheduleEntries, clubMoments
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and, gte, ilike, or } from "drizzle-orm";
@@ -46,6 +48,22 @@ export interface IStorage {
   getRsvpByToken(token: string): Promise<(EventRsvp & { userName: string | null }) | undefined>;
   checkInRsvpByToken(token: string): Promise<EventRsvp | undefined>;
   updateUserRole(userId: string, role: string): Promise<User | undefined>;
+  getClubRatings(clubId: string): Promise<ClubRating[]>;
+  getClubAverageRating(clubId: string): Promise<{ average: number; count: number }>;
+  getUserRating(clubId: string, userId: string): Promise<ClubRating | undefined>;
+  upsertRating(clubId: string, userId: string, rating: number, review?: string): Promise<ClubRating>;
+  getClubFaqs(clubId: string): Promise<ClubFaq[]>;
+  createFaq(clubId: string, question: string, answer: string): Promise<ClubFaq>;
+  updateFaq(id: string, question: string, answer: string): Promise<ClubFaq | undefined>;
+  deleteFaq(id: string): Promise<void>;
+  getClubSchedule(clubId: string): Promise<ClubScheduleEntry[]>;
+  createScheduleEntry(clubId: string, data: { dayOfWeek: string; startTime: string; endTime?: string; activity: string; location?: string }): Promise<ClubScheduleEntry>;
+  updateScheduleEntry(id: string, data: { dayOfWeek?: string; startTime?: string; endTime?: string; activity?: string; location?: string }): Promise<ClubScheduleEntry | undefined>;
+  deleteScheduleEntry(id: string): Promise<void>;
+  getClubMoments(clubId: string): Promise<ClubMoment[]>;
+  createMoment(clubId: string, caption: string, emoji?: string): Promise<ClubMoment>;
+  deleteMoment(id: string): Promise<void>;
+  getJoinRequestCountByClub(clubId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -435,6 +453,93 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  async getClubRatings(clubId: string): Promise<ClubRating[]> {
+    return db.select().from(clubRatings).where(eq(clubRatings.clubId, clubId)).orderBy(desc(clubRatings.createdAt));
+  }
+
+  async getClubAverageRating(clubId: string): Promise<{ average: number; count: number }> {
+    const [result] = await db.select({
+      average: sql<number>`COALESCE(AVG(${clubRatings.rating})::numeric(2,1), 0)::float`,
+      count: sql<number>`count(*)::int`,
+    }).from(clubRatings).where(eq(clubRatings.clubId, clubId));
+    return { average: result?.average ?? 0, count: result?.count ?? 0 };
+  }
+
+  async getUserRating(clubId: string, userId: string): Promise<ClubRating | undefined> {
+    const [rating] = await db.select().from(clubRatings)
+      .where(and(eq(clubRatings.clubId, clubId), eq(clubRatings.userId, userId)));
+    return rating;
+  }
+
+  async upsertRating(clubId: string, userId: string, rating: number, review?: string): Promise<ClubRating> {
+    const existing = await this.getUserRating(clubId, userId);
+    if (existing) {
+      const [updated] = await db.update(clubRatings)
+        .set({ rating, review: review || null })
+        .where(eq(clubRatings.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(clubRatings).values({ clubId, userId, rating, review: review || null }).returning();
+    return created;
+  }
+
+  async getClubFaqs(clubId: string): Promise<ClubFaq[]> {
+    return db.select().from(clubFaqs).where(eq(clubFaqs.clubId, clubId)).orderBy(clubFaqs.sortOrder);
+  }
+
+  async createFaq(clubId: string, question: string, answer: string): Promise<ClubFaq> {
+    const [created] = await db.insert(clubFaqs).values({ clubId, question, answer }).returning();
+    return created;
+  }
+
+  async updateFaq(id: string, question: string, answer: string): Promise<ClubFaq | undefined> {
+    const [updated] = await db.update(clubFaqs).set({ question, answer }).where(eq(clubFaqs.id, id)).returning();
+    return updated;
+  }
+
+  async deleteFaq(id: string): Promise<void> {
+    await db.delete(clubFaqs).where(eq(clubFaqs.id, id));
+  }
+
+  async getClubSchedule(clubId: string): Promise<ClubScheduleEntry[]> {
+    return db.select().from(clubScheduleEntries).where(eq(clubScheduleEntries.clubId, clubId));
+  }
+
+  async createScheduleEntry(clubId: string, data: { dayOfWeek: string; startTime: string; endTime?: string; activity: string; location?: string }): Promise<ClubScheduleEntry> {
+    const [created] = await db.insert(clubScheduleEntries).values({ clubId, ...data }).returning();
+    return created;
+  }
+
+  async updateScheduleEntry(id: string, data: { dayOfWeek?: string; startTime?: string; endTime?: string; activity?: string; location?: string }): Promise<ClubScheduleEntry | undefined> {
+    const [updated] = await db.update(clubScheduleEntries).set(data).where(eq(clubScheduleEntries.id, id)).returning();
+    return updated;
+  }
+
+  async deleteScheduleEntry(id: string): Promise<void> {
+    await db.delete(clubScheduleEntries).where(eq(clubScheduleEntries.id, id));
+  }
+
+  async getClubMoments(clubId: string): Promise<ClubMoment[]> {
+    return db.select().from(clubMoments).where(eq(clubMoments.clubId, clubId)).orderBy(desc(clubMoments.createdAt));
+  }
+
+  async createMoment(clubId: string, caption: string, emoji?: string): Promise<ClubMoment> {
+    const [created] = await db.insert(clubMoments).values({ clubId, caption, emoji: emoji || null }).returning();
+    return created;
+  }
+
+  async deleteMoment(id: string): Promise<void> {
+    await db.delete(clubMoments).where(eq(clubMoments.id, id));
+  }
+
+  async getJoinRequestCountByClub(clubId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(joinRequests)
+      .where(eq(joinRequests.clubId, clubId));
+    return result?.count ?? 0;
   }
 }
 

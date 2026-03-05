@@ -757,5 +757,228 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/clubs/:id/ratings", async (req: any, res) => {
+    try {
+      const { average, count } = await storage.getClubAverageRating(req.params.id);
+      let userRating = null;
+      if (req.user?.claims?.sub) {
+        userRating = await storage.getUserRating(req.params.id, req.user.claims.sub);
+      }
+      res.json({ average, count, userRating });
+    } catch (err) {
+      console.error("Error fetching ratings:", err);
+      res.status(500).json({ message: "Failed to fetch ratings" });
+    }
+  });
+
+  app.post("/api/clubs/:id/ratings", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { rating, review } = req.body;
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be between 1 and 5" });
+      }
+      const result = await storage.upsertRating(req.params.id, userId, rating, review);
+      const { average, count } = await storage.getClubAverageRating(req.params.id);
+      res.json({ success: true, rating: result, average, count });
+    } catch (err) {
+      console.error("Error submitting rating:", err);
+      res.status(500).json({ message: "Failed to submit rating" });
+    }
+  });
+
+  app.get("/api/clubs/:id/faqs", async (req, res) => {
+    try {
+      const faqs = await storage.getClubFaqs(req.params.id);
+      res.json(faqs);
+    } catch (err) {
+      console.error("Error fetching FAQs:", err);
+      res.status(500).json({ message: "Failed to fetch FAQs" });
+    }
+  });
+
+  app.post("/api/clubs/:id/faqs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const { question, answer } = req.body;
+      if (!question || !answer) {
+        return res.status(400).json({ message: "Question and answer are required" });
+      }
+      const faq = await storage.createFaq(req.params.id, question, answer);
+      res.status(201).json(faq);
+    } catch (err) {
+      console.error("Error creating FAQ:", err);
+      res.status(500).json({ message: "Failed to create FAQ" });
+    }
+  });
+
+  app.patch("/api/clubs/:id/faqs/:faqId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const { question, answer } = req.body;
+      const existingFaqs = await storage.getClubFaqs(req.params.id);
+      if (!existingFaqs.some(f => f.id === req.params.faqId)) {
+        return res.status(404).json({ message: "FAQ not found in this club" });
+      }
+      const faq = await storage.updateFaq(req.params.faqId, question, answer);
+      res.json(faq);
+    } catch (err) {
+      console.error("Error updating FAQ:", err);
+      res.status(500).json({ message: "Failed to update FAQ" });
+    }
+  });
+
+  app.delete("/api/clubs/:id/faqs/:faqId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const existingFaqs = await storage.getClubFaqs(req.params.id);
+      if (!existingFaqs.some(f => f.id === req.params.faqId)) {
+        return res.status(404).json({ message: "FAQ not found in this club" });
+      }
+      await storage.deleteFaq(req.params.faqId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting FAQ:", err);
+      res.status(500).json({ message: "Failed to delete FAQ" });
+    }
+  });
+
+  app.get("/api/clubs/:id/schedule", async (req, res) => {
+    try {
+      const schedule = await storage.getClubSchedule(req.params.id);
+      res.json(schedule);
+    } catch (err) {
+      console.error("Error fetching schedule:", err);
+      res.status(500).json({ message: "Failed to fetch schedule" });
+    }
+  });
+
+  app.post("/api/clubs/:id/schedule", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const { dayOfWeek, startTime, endTime, activity, location } = req.body;
+      if (!dayOfWeek || !startTime || !activity) {
+        return res.status(400).json({ message: "Day, start time, and activity are required" });
+      }
+      const entry = await storage.createScheduleEntry(req.params.id, { dayOfWeek, startTime, endTime, activity, location });
+      res.status(201).json(entry);
+    } catch (err) {
+      console.error("Error creating schedule entry:", err);
+      res.status(500).json({ message: "Failed to create schedule entry" });
+    }
+  });
+
+  app.patch("/api/clubs/:id/schedule/:entryId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const schedule = await storage.getClubSchedule(req.params.id);
+      if (!schedule.some(s => s.id === req.params.entryId)) {
+        return res.status(404).json({ message: "Schedule entry not found in this club" });
+      }
+      const { dayOfWeek, startTime, endTime, activity, location } = req.body;
+      const entry = await storage.updateScheduleEntry(req.params.entryId, { dayOfWeek, startTime, endTime, activity, location });
+      res.json(entry);
+    } catch (err) {
+      console.error("Error updating schedule entry:", err);
+      res.status(500).json({ message: "Failed to update schedule entry" });
+    }
+  });
+
+  app.delete("/api/clubs/:id/schedule/:entryId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const schedule = await storage.getClubSchedule(req.params.id);
+      if (!schedule.some(s => s.id === req.params.entryId)) {
+        return res.status(404).json({ message: "Schedule entry not found in this club" });
+      }
+      await storage.deleteScheduleEntry(req.params.entryId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting schedule entry:", err);
+      res.status(500).json({ message: "Failed to delete schedule entry" });
+    }
+  });
+
+  app.get("/api/clubs/:id/moments", async (req, res) => {
+    try {
+      const moments = await storage.getClubMoments(req.params.id);
+      res.json(moments);
+    } catch (err) {
+      console.error("Error fetching moments:", err);
+      res.status(500).json({ message: "Failed to fetch moments" });
+    }
+  });
+
+  app.post("/api/clubs/:id/moments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const { caption, emoji } = req.body;
+      if (!caption) {
+        return res.status(400).json({ message: "Caption is required" });
+      }
+      const moment = await storage.createMoment(req.params.id, caption, emoji);
+      res.status(201).json(moment);
+    } catch (err) {
+      console.error("Error creating moment:", err);
+      res.status(500).json({ message: "Failed to create moment" });
+    }
+  });
+
+  app.delete("/api/clubs/:id/moments/:momentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const moments = await storage.getClubMoments(req.params.id);
+      if (!moments.some(m => m.id === req.params.momentId)) {
+        return res.status(404).json({ message: "Moment not found in this club" });
+      }
+      await storage.deleteMoment(req.params.momentId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting moment:", err);
+      res.status(500).json({ message: "Failed to delete moment" });
+    }
+  });
+
+  app.get("/api/clubs/:id/join-count", async (req, res) => {
+    try {
+      const count = await storage.getJoinRequestCountByClub(req.params.id);
+      res.json({ count });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to get join count" });
+    }
+  });
+
   return httpServer;
 }
