@@ -94,6 +94,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   const [joinName, setJoinName] = useState(user?.firstName || "");
   const [joinPhone, setJoinPhone] = useState("");
   const [joinError, setJoinError] = useState("");
+  const [activeTab, setActiveTab] = useState("meet-ups");
 
   const { data: activity } = useQuery<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: string | null }>({
     queryKey: ["/api/clubs", club.id, "activity"],
@@ -171,6 +172,14 @@ function ClubDetailContent({ club }: { club: Club }) {
     tags.push(club.timeOfDay.charAt(0).toUpperCase() + club.timeOfDay.slice(1));
   }
 
+  const tabs = [
+    { id: "meet-ups", label: "Meet-ups" },
+    { id: "schedule", label: "Schedule" },
+    { id: "moments", label: "Moments" },
+    { id: "about", label: "About" },
+    { id: "faqs", label: "FAQs" },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-32">
       <div className="relative h-72 w-full overflow-hidden">
@@ -214,10 +223,30 @@ function ClubDetailContent({ club }: { club: Club }) {
           >
             {club.name}
           </h1>
+          {club.shortDesc && (
+            <p className="font-display text-[13px] italic text-[var(--ink3)] mt-1.5" data-testid="text-club-tagline">
+              {club.shortDesc}
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 px-6 mt-4">
+      <div className="mx-6 mt-3 rounded-2xl p-4 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, var(--terra-pale), rgba(201,168,76,0.08))', border: '1.5px solid rgba(196,98,45,0.2)' }} data-testid="card-founding">
+        <div>
+          <div className="font-display text-[15px] font-bold text-[var(--ink)] flex items-center gap-1.5">
+            <Star className="w-4 h-4 text-[var(--terra)]" />
+            Founding Member Spots
+          </div>
+          <div className="text-xs text-[var(--muted-warm)] mt-0.5">
+            {allFoundingTaken ? "All founding spots taken" : "Join now \u00b7 Get founding badge forever"}
+          </div>
+        </div>
+        <div className="font-mono text-[28px] text-[var(--terra)] tracking-wide leading-none">
+          {allFoundingTaken ? "Full" : `${club.foundingTaken ?? 0}/${club.foundingTotal ?? 20}`}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 px-6 mt-3">
         <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
           <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--terra)]" data-testid="text-member-count">
             {club.memberCount}
@@ -226,9 +255,9 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
         <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
           <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--ink)]">
-            {club.schedule ? club.schedule.split(" ")[0] : "—"}
+            {Math.max(1, Math.round(club.memberCount * 0.25))}
           </div>
-          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Schedule</div>
+          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Active</div>
         </div>
         <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
           <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--gold)]">
@@ -238,148 +267,183 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       </div>
 
-      {club.organizerName && (
-        <div className="px-6 py-4 flex justify-between items-center gap-4" data-testid="section-leader">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)', border: '2px solid var(--terra)' }}>
-              <span className="text-[var(--terra)] font-bold text-lg">
-                {club.organizerName.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <div className="text-[10px] text-[var(--muted-warm)] uppercase tracking-wider font-semibold">Leader</div>
-              <div className="font-display font-bold text-[var(--ink)]">{club.organizerName}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="px-6 py-2 flex items-center gap-4 flex-wrap" data-testid="section-health">
-        {club.healthLabel && (
-          <span className={`flex items-center gap-1.5 text-xs font-semibold ${
-            club.healthStatus === "green" ? "text-[var(--green-accent)]" : club.healthStatus === "yellow" ? "text-chart-4" : "text-destructive"
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${
-              club.healthStatus === "green" ? "bg-[var(--green-accent)]" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"
-            }`} />
-            {club.healthLabel}
-          </span>
-        )}
-        {club.activeSince && (
-          <span className="text-xs text-[var(--muted-warm)]">Active since {club.activeSince}</span>
-        )}
+      <div className="flex mt-5 overflow-x-auto scrollbar-none" style={{ borderBottom: '1.5px solid var(--warm-border)', scrollbarWidth: 'none' }} data-testid="section-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
+              activeTab === tab.id
+                ? "text-[var(--terra)]"
+                : "text-[var(--muted-warm)]"
+            }`}
+            style={{
+              borderBottom: activeTab === tab.id ? '2.5px solid var(--terra)' : '2.5px solid transparent',
+              marginBottom: '-1.5px',
+            }}
+            data-testid={`tab-${tab.id}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {isOwner && (
-        <div className="px-6 py-3" data-testid="section-organiser-controls">
-          <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }}>
-            <h3 className="text-xs font-bold text-[var(--terra)] uppercase tracking-wider flex items-center gap-2">
-              <Settings className="w-3.5 h-3.5" />
-              Organiser Controls
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => navigate(`/organizer`)}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
-                style={{ background: 'var(--terra-pale)' }}
-                data-testid="button-view-dashboard"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                View Dashboard
-              </button>
-              <button
-                onClick={() => navigate(`/create?tab=event&clubId=${club.id}`)}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
-                style={{ background: 'var(--terra-pale)' }}
-                data-testid="button-create-event-for-club"
-              >
-                <Plus className="w-4 h-4" />
-                Create Event
-              </button>
-              <button
-                onClick={() => navigate(`/organizer`)}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
-                style={{ background: 'var(--terra-pale)' }}
-                data-testid="button-edit-club"
-              >
-                <Settings className="w-4 h-4" />
-                Edit Club
-              </button>
+      {activeTab === "meet-ups" && (
+        <>
+          {isOwner && (
+            <div className="px-6 py-3" data-testid="section-organiser-controls">
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }}>
+                <h3 className="text-xs font-bold text-[var(--terra)] uppercase tracking-wider flex items-center gap-2">
+                  <Settings className="w-3.5 h-3.5" />
+                  Organiser Controls
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => navigate(`/organizer`)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
+                    style={{ background: 'var(--terra-pale)' }}
+                    data-testid="button-view-dashboard"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    View Dashboard
+                  </button>
+                  <button
+                    onClick={() => navigate(`/create?tab=event&clubId=${club.id}`)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
+                    style={{ background: 'var(--terra-pale)' }}
+                    data-testid="button-create-event-for-club"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Event
+                  </button>
+                  <button
+                    onClick={() => navigate(`/organizer`)}
+                    className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
+                    style={{ background: 'var(--terra-pale)' }}
+                    data-testid="button-edit-club"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Edit Club
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+
+          <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
+
+          {club.location && (
+            <div className="px-6 pt-3.5 pb-1">
+              <div className="font-mono text-[22px] text-[var(--ink)] tracking-wider leading-none" data-testid="text-venue-heading">
+                Usually Meet At
+              </div>
+            </div>
+          )}
+          {club.location && (
+            <div className="mx-6 mt-2 rounded-2xl p-3.5 flex items-center gap-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="card-venue">
+              <div className="w-[52px] h-[52px] rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: 'linear-gradient(135deg, #E8D5B8, #C4A882)' }}>
+                <MapPin className="w-6 h-6 text-[var(--ink3)]" />
+              </div>
+              <div>
+                <div className="font-display text-sm font-bold text-[var(--ink)]">{club.location}</div>
+                <div className="text-[11px] text-[var(--muted-warm)] leading-relaxed mt-0.5">
+                  {club.schedule && <>{club.schedule}<br /></>}
+                  {club.city}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
+            <div className="px-6 py-4" data-testid="section-recent-activity">
+              <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }}>
+                <h3 className="font-display text-base font-bold text-[var(--ink)]">Recent Activity</h3>
+                {activity.recentJoins > 0 && (
+                  <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
+                    <Users className="w-4 h-4 text-[var(--terra)]" />
+                    <span className="text-[var(--ink)]">
+                      <span className="font-semibold text-[var(--terra)]">{activity.recentJoins}</span> new {activity.recentJoins === 1 ? "member" : "members"} this week
+                    </span>
+                  </div>
+                )}
+                {activity.totalEvents > 0 && (
+                  <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
+                    <Calendar className="w-4 h-4 text-[var(--terra)]" />
+                    <span className="text-[var(--ink)]">
+                      <span className="font-semibold text-[var(--terra)]">{activity.totalEvents}</span> {activity.totalEvents === 1 ? "event" : "events"} hosted
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      <div className="px-6 py-4">
-        <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-2">About</h2>
-        <p className="text-sm text-[var(--muted-warm)] leading-relaxed" data-testid="text-club-description">
-          {club.fullDesc}
-        </p>
-      </div>
+      {activeTab === "about" && (
+        <div className="px-6 py-4 space-y-4">
+          {club.organizerName && (
+            <div className="flex justify-between items-center gap-4" data-testid="section-leader">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)', border: '2px solid var(--terra)' }}>
+                  <span className="text-[var(--terra)] font-bold text-lg">
+                    {club.organizerName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-[10px] text-[var(--muted-warm)] uppercase tracking-wider font-semibold">Leader</div>
+                  <div className="font-display font-bold text-[var(--ink)]">{club.organizerName}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
-      {tags.length > 0 && (
-        <div className="px-6 py-2" data-testid="section-tags">
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag, i) => (
-              <span key={i} className="rounded-full px-3 py-1.5 text-xs text-[var(--ink3)]" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid={`tag-${i}`}>
-                {tag}
+          <div>
+            <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-2">About</h2>
+            <p className="text-sm text-[var(--muted-warm)] leading-relaxed" data-testid="text-club-description">
+              {club.fullDesc}
+            </p>
+          </div>
+
+          {tags.length > 0 && (
+            <div data-testid="section-tags">
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag, i) => (
+                  <span key={i} className="rounded-full px-3 py-1.5 text-xs text-[var(--ink3)]" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid={`tag-${i}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 flex-wrap" data-testid="section-health">
+            {club.healthLabel && (
+              <span className={`flex items-center gap-1.5 text-xs font-semibold ${
+                club.healthStatus === "green" ? "text-[var(--green-accent)]" : club.healthStatus === "yellow" ? "text-chart-4" : "text-destructive"
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${
+                  club.healthStatus === "green" ? "bg-[var(--green-accent)]" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"
+                }`} />
+                {club.healthLabel}
               </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
-        <div className="px-6 py-4" data-testid="section-recent-activity">
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }}>
-            <h3 className="font-display text-base font-bold text-[var(--ink)]">Recent Activity</h3>
-            {activity.recentJoins > 0 && (
-              <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
-                <Users className="w-4 h-4 text-[var(--terra)]" />
-                <span className="text-[var(--ink)]">
-                  <span className="font-semibold text-[var(--terra)]">{activity.recentJoins}</span> new {activity.recentJoins === 1 ? "member" : "members"} this week
-                </span>
-              </div>
             )}
-            {activity.totalEvents > 0 && (
-              <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
-                <Calendar className="w-4 h-4 text-[var(--terra)]" />
-                <span className="text-[var(--ink)]">
-                  <span className="font-semibold text-[var(--terra)]">{activity.totalEvents}</span> {activity.totalEvents === 1 ? "event" : "events"} hosted
-                </span>
-              </div>
+            {club.activeSince && (
+              <span className="text-xs text-[var(--muted-warm)]">Active since {club.activeSince}</span>
             )}
           </div>
         </div>
       )}
 
-      <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
-
-      <div className="px-6 py-4">
-        <Card className="p-4" style={{ border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-founding">
-          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-[var(--terra)]" />
-              <span className="text-sm font-semibold text-[var(--terra)]">Founding Member Spots</span>
-            </div>
-            <span className="text-xs font-bold text-[var(--terra)]">
-              {allFoundingTaken ? "All taken" : `${foundingSpotsLeft} of ${club.foundingTotal ?? 20} left`}
-            </span>
-          </div>
-          <div className="w-full h-2 rounded-full overflow-hidden mb-2" style={{ background: 'var(--terra-pale)' }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${Math.min(foundingProgress, 100)}%`, background: 'var(--terra)', boxShadow: 'var(--warm-shadow2)' }}
-              data-testid="bar-founding-progress"
-            />
-          </div>
-          <p className="text-xs text-[var(--muted-warm)]">
-            {allFoundingTaken
-              ? "All founding spots taken. You can still join!"
-              : "Join now to get your Founding Member badge"}
+      {activeTab !== "meet-ups" && activeTab !== "about" && (
+        <div className="px-6 py-8 text-center">
+          <p className="text-sm text-[var(--muted-warm)]">
+            {activeTab === "schedule" && "Schedule details coming soon."}
+            {activeTab === "moments" && "Moments from the club will appear here."}
+            {activeTab === "faqs" && "Frequently asked questions coming soon."}
           </p>
-        </Card>
-      </div>
+        </div>
+      )}
 
       {joinSuccess ? (
         <div className="px-6 py-6">

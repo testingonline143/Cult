@@ -3,13 +3,17 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Event, Club, EventRsvp } from "@shared/schema";
 
+interface RsvpWithUser extends EventRsvp {
+  userName: string | null;
+}
+
 interface EventDetailResponse extends Event {
-  rsvps: EventRsvp[];
+  rsvps: RsvpWithUser[];
   club: Club | null;
 }
 
@@ -34,6 +38,13 @@ function handleShareAfterRsvp(event: Event, clubName: string) {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   }
 }
+
+const AVATAR_COLORS = [
+  { bg: 'linear-gradient(135deg, #E8D5B8, #C4A882)' },
+  { bg: 'linear-gradient(135deg, #B8D4E8, #82A8C4)' },
+  { bg: 'linear-gradient(135deg, #D4B8E8, #A882C4)' },
+  { bg: 'linear-gradient(135deg, #B8E8C8, #82C498)' },
+];
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
@@ -122,7 +133,8 @@ export default function EventDetail() {
   const club = eventData.club;
   const d = new Date(eventData.startsAt);
   const isPast = d < new Date();
-  const rsvpCount = eventData.rsvps?.filter(r => r.status === "going").length ?? 0;
+  const goingRsvps = eventData.rsvps?.filter(r => r.status === "going") ?? [];
+  const rsvpCount = goingRsvps.length;
   const spotsLeft = eventData.maxCapacity - rsvpCount;
   const userRsvp = eventData.rsvps?.find(r => r.userId === user?.id && r.status === "going");
   const hasRsvp = !!userRsvp;
@@ -137,6 +149,8 @@ export default function EventDetail() {
     const date = new Date(dateStr);
     return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
   };
+
+  const showStickyBar = !isPast && !justRsvpd;
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,25 +182,12 @@ export default function EventDetail() {
 
       <div className="relative z-[5] px-6 -mt-8">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[1.5px] px-2.5 py-1.5 rounded-md mb-2" style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.2)' }}>
-          {club?.category || "Event"}
+          {club?.emoji && <span>{club.emoji}</span>} {club?.category || "Event"} {club && <span>&middot; {club.name}</span>}
         </span>
 
         <h1 className="font-display text-[28px] font-black text-[var(--ink)] leading-[1.1] tracking-tight mb-4" data-testid="text-event-title">
           {eventData.title}
         </h1>
-
-        {club && (
-          <Link
-            href={`/club/${club.id}`}
-            className="inline-flex items-center gap-2 mb-4 px-3 py-2 rounded-[14px] transition-colors hover-elevate"
-            style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
-            data-testid="link-event-club"
-          >
-            <span className="text-lg">{club.emoji}</span>
-            <span className="text-xs font-medium text-[var(--muted-warm)]">{club.name}</span>
-            <ExternalLink className="w-3 h-3 text-[var(--muted-warm)]" />
-          </Link>
-        )}
 
         {isPast && (
           <div className="inline-block px-3 py-1 rounded-md text-[var(--muted-warm)] text-xs font-bold uppercase mb-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="badge-past">
@@ -194,18 +195,48 @@ export default function EventDetail() {
           </div>
         )}
 
-        <div className="rounded-2xl p-4 sm:p-5 mb-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+        {rsvpCount > 0 && (
+          <div className="rounded-[14px] px-4 py-3 flex items-center justify-between gap-2 mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+            <div className="flex items-center">
+              <div className="flex -space-x-2">
+                {goingRsvps.slice(0, 3).map((rsvp, i) => {
+                  const colorIdx = i % AVATAR_COLORS.length;
+                  const letter = rsvp.userName ? rsvp.userName.charAt(0).toUpperCase() : String.fromCharCode(65 + i);
+                  return (
+                    <div
+                      key={rsvp.id}
+                      className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+                      style={{ background: ['var(--terra)', 'var(--green-accent)', 'var(--gold)'][colorIdx], border: '2px solid var(--cream)' }}
+                    >
+                      {letter}
+                    </div>
+                  );
+                })}
+              </div>
+              <span className="text-xs text-[var(--ink3)] font-medium ml-2.5" data-testid="text-joining-count">
+                {rsvpCount > 3 ? `+${rsvpCount - 3} people joining` : `${rsvpCount} joining`}
+              </span>
+            </div>
+            {spotsLeft > 0 && (
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: 'rgba(255,107,53,0.1)', color: '#D4521A', border: '1px solid rgba(196,98,45,0.25)' }}>
+                {spotsLeft} left
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="rounded-2xl p-4 sm:p-5 mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)', border: '1px solid rgba(196,98,45,0.15)' }}>
                 <Calendar className="w-4 h-4 text-[var(--terra)]" />
               </div>
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)] mb-0.5">When</div>
-                <div className="text-[13px] font-semibold text-[var(--ink)] leading-snug" data-testid="text-event-date">{formatDate(eventData.startsAt)}</div>
-                <div className="text-xs text-[var(--muted-warm)]" data-testid="text-event-time">
-                  {formatTime(eventData.startsAt)}
-                  {eventData.endsAt && ` \u2014 ${formatTime(eventData.endsAt)}`}
+                <div className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)] mb-0.5">Date & Time</div>
+                <div className="text-[13px] font-semibold text-[var(--ink)] leading-snug" data-testid="text-event-date">
+                  {formatDate(eventData.startsAt)}
+                  {eventData.endsAt && ` \u00B7 ${formatTime(eventData.startsAt)} \u2013 ${formatTime(eventData.endsAt)}`}
+                  {!eventData.endsAt && ` \u00B7 ${formatTime(eventData.startsAt)}`}
                 </div>
               </div>
             </div>
@@ -215,7 +246,7 @@ export default function EventDetail() {
                 <MapPin className="w-4 h-4 text-[var(--terra)]" />
               </div>
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)] mb-0.5">Where</div>
+                <div className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)] mb-0.5">Location</div>
                 <div className="text-[13px] font-semibold text-[var(--ink)]" data-testid="text-event-location">{eventData.locationText}</div>
                 {eventData.locationUrl && (
                   <a
@@ -225,74 +256,95 @@ export default function EventDetail() {
                     className="text-xs text-[var(--terra)] hover:underline"
                     data-testid="link-event-map"
                   >
-                    Open in Maps
+                    View on Maps
                   </a>
                 )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3" style={{ borderTop: '1px solid var(--warm-border)', paddingTop: '12px' }}>
-              <div className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)', border: '1px solid rgba(196,98,45,0.15)' }}>
-                <Users className="w-4 h-4 text-[var(--terra)]" />
-              </div>
-              <div>
-                <div className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)] mb-0.5">Capacity</div>
-                <div className="text-[13px] font-semibold text-[var(--ink)]" data-testid="text-event-capacity">
-                  {rsvpCount} going &middot; {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
-                </div>
-                <div className="text-xs text-[var(--muted-warm)]">of {eventData.maxCapacity} max</div>
               </div>
             </div>
           </div>
         </div>
 
-        {rsvpCount > 0 && (
-          <div className="rounded-[14px] px-4 py-3 flex items-center justify-between mb-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-            <div className="flex items-center">
-              <div className="flex -space-x-2">
-                {[
-                  { bg: 'var(--terra)', letter: 'A' },
-                  { bg: 'var(--green-accent)', letter: 'B' },
-                  { bg: 'var(--gold)', letter: 'C' },
-                ].slice(0, Math.min(rsvpCount, 3)).map((av, i) => (
-                  <div key={i} className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] font-bold text-white" style={{ background: av.bg, border: '2px solid var(--cream)' }}>
-                    {av.letter}
-                  </div>
-                ))}
+        {club && (
+          <div className="rounded-2xl p-4 flex gap-3.5 items-center mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+            <div className="relative w-[52px] h-[52px] rounded-full flex items-center justify-center text-2xl shrink-0" style={{ background: 'linear-gradient(135deg, #E8D5B8, #C4A882)', border: '2px solid var(--terra)' }}>
+              {club.organizerAvatar || club.emoji}
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2" data-testid="icon-host-crown">
+                <Crown className="w-3.5 h-3.5 text-[var(--gold)] fill-[var(--gold)]" />
               </div>
-              <span className="text-xs text-[var(--ink3)] font-medium ml-2.5">{rsvpCount} joining</span>
             </div>
-            {spotsLeft > 0 && (
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,107,53,0.1)', color: '#D4521A', border: '1px solid rgba(196,98,45,0.25)' }}>
-                {spotsLeft} spots left
-              </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-display text-base font-bold text-[var(--ink)]" data-testid="text-host-name">{club.organizerName || club.name}</div>
+              <div className="text-[11px] text-[var(--muted-warm)]">Club Leader {club.organizerResponse && <span>&middot; {club.organizerResponse}</span>}</div>
+            </div>
+            {club.whatsappNumber && (
+              <a
+                href={`https://wa.me/${club.whatsappNumber.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold shrink-0"
+                style={{ background: 'rgba(37,211,102,0.12)', border: '1.5px solid rgba(37,211,102,0.3)', color: '#1A8A3A' }}
+                data-testid="link-host-whatsapp"
+              >
+                Talk
+              </a>
             )}
           </div>
         )}
 
         {eventData.description && (
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-[var(--muted-warm)] uppercase tracking-wider mb-2">About this event</h3>
-            <p className="text-sm text-[var(--ink)] leading-relaxed whitespace-pre-wrap" data-testid="text-event-description">
+          <div className="rounded-2xl p-4 mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+            <div className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)] mb-2">About This Meet-up</div>
+            <p className="text-[13px] text-[var(--ink3)] leading-[1.7] whitespace-pre-wrap" data-testid="text-event-description">
               {eventData.description}
             </p>
           </div>
         )}
 
-        {club && (
-          <div className="rounded-2xl p-4 flex gap-3.5 items-center mb-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-            <div className="relative w-[52px] h-[52px] rounded-full flex items-center justify-center text-2xl shrink-0" style={{ background: 'linear-gradient(135deg, #E8D5B8, #C4A882)', border: '2px solid var(--terra)' }}>
-              {club.emoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-display text-base font-bold text-[var(--ink)]">{club.organizerName || club.name}</div>
-              <div className="text-[11px] text-[var(--muted-warm)]">Hosted by {club.name}</div>
+        {goingRsvps.length > 0 && (
+          <div className="rounded-2xl p-4 mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="section-people-coming">
+            <div className="font-display text-[15px] font-bold text-[var(--ink)] mb-3">People Coming</div>
+            <div>
+              {goingRsvps.slice(0, 5).map((rsvp, i) => {
+                const colorIdx = i % AVATAR_COLORS.length;
+                const name = rsvp.userName || "Anonymous";
+                const letter = name.charAt(0).toUpperCase();
+                return (
+                  <div
+                    key={rsvp.id}
+                    className="flex items-center gap-2.5 py-2"
+                    style={i > 0 ? { borderTop: '1px solid var(--warm-border2, rgba(26,20,16,0.06))' } : undefined}
+                    data-testid={`person-${rsvp.id}`}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-base font-bold shrink-0"
+                      style={{ background: AVATAR_COLORS[colorIdx].bg, border: '2px solid var(--warm-border)' }}
+                    >
+                      {letter}
+                    </div>
+                    <div className="text-sm font-semibold text-[var(--ink)] flex-1" data-testid={`text-person-name-${rsvp.id}`}>{name}</div>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                      {i === 0 ? "Regular" : "Joining"}
+                    </span>
+                  </div>
+                );
+              })}
+              {goingRsvps.length > 5 && (
+                <div className="flex items-center gap-2.5 py-2" style={{ borderTop: '1px solid rgba(26,20,16,0.06)' }}>
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0"
+                    style={{ background: AVATAR_COLORS[3].bg, border: '2px solid var(--warm-border)' }}
+                  >
+                    +
+                  </div>
+                  <div className="text-sm font-semibold text-[var(--ink)]">+{goingRsvps.length - 5} more joining</div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {justRsvpd && !isPast && (
-          <div className="rounded-2xl p-5 mb-4 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-rsvp-success">
+          <div className="rounded-2xl p-5 mb-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-rsvp-success">
             <CheckCircle2 className="w-10 h-10 text-[var(--terra)] mx-auto mb-2" />
             <h3 className="font-display text-lg font-bold text-[var(--ink)] mb-1">You're in!</h3>
             <p className="text-sm text-[var(--muted-warm)] mb-4">Bring your friends along &mdash; the more the merrier!</p>
@@ -309,7 +361,7 @@ export default function EventDetail() {
         )}
 
         {hasRsvp && !isPast && userRsvp && (
-          <div className="rounded-2xl p-5 mb-4" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-my-ticket">
+          <div className="rounded-2xl p-5 mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-my-ticket">
             <div className="flex items-center gap-2 mb-4">
               <Ticket className="w-5 h-5 text-[var(--terra)]" />
               <h3 className="font-display text-lg font-bold text-[var(--ink)]">My Ticket</h3>
@@ -339,70 +391,83 @@ export default function EventDetail() {
           </div>
         )}
 
-        {!isPast && (
-          <div className="space-y-3 pb-8">
-            {!isAuthenticated ? (
-              <div className="text-center space-y-3">
-                <Button
-                  size="lg"
-                  className="w-full rounded-md py-6 text-sm font-semibold"
-                  onClick={() => { window.location.href = "/api/login"; }}
-                  data-testid="button-sign-in-rsvp"
-                >
-                  Sign In to RSVP
-                </Button>
-              </div>
-            ) : hasRsvp && !justRsvpd ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }} data-testid="text-already-rsvpd">
-                  <CheckCircle2 className="w-4 h-4" />
-                  You're going!
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleShareAfterRsvp(eventData, clubName)}
-                    className="flex-1 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2"
-                    style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.3)' }}
-                    data-testid="button-share-rsvpd"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Invite Friends
-                  </button>
-                  <button
-                    onClick={() => cancelRsvpMutation.mutate()}
-                    disabled={cancelRsvpMutation.isPending}
-                    className="px-4 py-3 rounded-xl text-sm text-[var(--muted-warm)] hover:text-[var(--ink)] transition-colors"
-                    style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
-                    data-testid="button-cancel-rsvp"
-                  >
-                    {cancelRsvpMutation.isPending ? "..." : "Cancel"}
-                  </button>
-                </div>
-              </div>
-            ) : !justRsvpd && spotsLeft > 0 ? (
-              <button
-                onClick={() => rsvpMutation.mutate()}
-                disabled={rsvpMutation.isPending}
-                className="w-full rounded-2xl py-4 font-display font-bold italic text-base tracking-tight flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                style={{ background: 'var(--ink)', color: 'var(--cream)' }}
-                data-testid="button-rsvp"
-              >
-                {rsvpMutation.isPending ? "Joining..." : "Count Me In"}
-              </button>
-            ) : !justRsvpd && spotsLeft <= 0 ? (
-              <div className="text-center py-3 rounded-xl text-[var(--muted-warm)] text-sm font-medium" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="text-event-full">
-                This event is full
-              </div>
-            ) : null}
-          </div>
-        )}
+        <div style={{ height: '90px' }} />
+      </div>
 
-        {isPast && (
-          <div className="text-center py-3 rounded-xl text-[var(--muted-warm)] text-sm font-medium mb-8" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="text-event-past">
+      {showStickyBar && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-[100] flex items-center gap-3"
+          style={{ background: 'var(--cream)', borderTop: '1.5px solid var(--warm-border)', padding: '14px 24px 24px' }}
+          data-testid="sticky-bottom-bar"
+        >
+          <div className="flex-1">
+            <div className="font-mono text-[32px] text-[var(--terra)] leading-none tracking-wide">
+              {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
+            </div>
+            <div className="text-[10px] text-[var(--muted-warm)] font-semibold tracking-wider">
+              of {eventData.maxCapacity} spots
+            </div>
+          </div>
+
+          {!isAuthenticated ? (
+            <button
+              onClick={() => { window.location.href = "/api/login"; }}
+              className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all"
+              style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
+              data-testid="button-sign-in-rsvp"
+            >
+              Sign In to Book
+            </button>
+          ) : hasRsvp ? (
+            <div className="flex-[2] flex gap-2">
+              <button
+                onClick={() => handleShareAfterRsvp(eventData, clubName)}
+                className="flex-1 rounded-2xl py-4 font-display text-sm font-bold italic flex items-center justify-center gap-2"
+                style={{ background: 'transparent', border: '1.5px solid var(--ink)', color: 'var(--ink)' }}
+                data-testid="button-share-rsvpd"
+              >
+                <Share2 className="w-4 h-4" />
+                Invite
+              </button>
+              <button
+                onClick={() => cancelRsvpMutation.mutate()}
+                disabled={cancelRsvpMutation.isPending}
+                className="px-4 py-4 rounded-2xl text-sm text-[var(--muted-warm)]"
+                style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                data-testid="button-cancel-rsvp"
+              >
+                {cancelRsvpMutation.isPending ? "..." : "Cancel"}
+              </button>
+            </div>
+          ) : spotsLeft > 0 ? (
+            <button
+              onClick={() => rsvpMutation.mutate()}
+              disabled={rsvpMutation.isPending}
+              className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
+              data-testid="button-rsvp"
+            >
+              {rsvpMutation.isPending ? "Joining..." : "Book My Spot \u2192"}
+            </button>
+          ) : (
+            <div
+              className="flex-[2] text-center py-4 rounded-2xl text-[var(--muted-warm)] text-sm font-medium"
+              style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+              data-testid="text-event-full"
+            >
+              This event is full
+            </div>
+          )}
+        </div>
+      )}
+
+      {isPast && (
+        <div className="px-6 pb-8">
+          <div className="text-center py-3 rounded-xl text-[var(--muted-warm)] text-sm font-medium" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="text-event-past">
             This event has already happened
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
