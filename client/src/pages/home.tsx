@@ -7,7 +7,6 @@ import { ProcessSection } from "@/components/process-section";
 import { OrganizerSection } from "@/components/organizer-section";
 import { Footer } from "@/components/footer";
 import { ActivityTicker } from "@/components/activity-ticker";
-import { ClubDetailModal } from "@/components/club-detail-modal";
 import { UpcomingEvents } from "@/components/upcoming-events";
 import { useAuth } from "@/hooks/use-auth";
 import { ArrowRight } from "lucide-react";
@@ -15,7 +14,6 @@ import type { Club } from "@shared/schema";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const { user } = useAuth();
 
   const { data: clubs = [], isLoading } = useQuery<(Club & { recentJoins?: number })[]>({
@@ -66,12 +64,10 @@ export default function Home() {
         isLoading={isLoading}
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
-        onViewClub={setSelectedClub}
       />
       <ProcessSection />
       <OrganizerSection />
       <Footer />
-      <ClubDetailModal club={selectedClub} onClose={() => setSelectedClub(null)} />
     </div>
   );
 }

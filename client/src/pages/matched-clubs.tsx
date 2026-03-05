@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Users, Crosshair, Search } from "lucide-react";
 import { Navbar } from "@/components/navbar";
-import { ClubDetailModal } from "@/components/club-detail-modal";
 import type { Club } from "@shared/schema";
 
 interface MatchedClub extends Club {
@@ -15,7 +13,6 @@ interface MatchedClub extends Club {
 export default function MatchedClubs() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
 
   const { data: matchedClubs = [], isLoading } = useQuery<MatchedClub[]>({
     queryKey: ["/api/quiz/matches"],
@@ -90,7 +87,7 @@ export default function MatchedClubs() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className="glass-card glass-card-hover rounded-2xl p-5 cursor-pointer transition-all"
-                onClick={() => setSelectedClub(club)}
+                onClick={() => navigate(`/club/${club.id}`)}
                 data-testid={`card-match-${club.id}`}
               >
                 <div className="flex items-start gap-4">
@@ -140,7 +137,6 @@ export default function MatchedClubs() {
           </button>
         </div>
       </div>
-      <ClubDetailModal club={selectedClub} onClose={() => setSelectedClub(null)} />
     </div>
   );
 }

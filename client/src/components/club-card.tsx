@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Calendar, Users, MapPin, Star, Clock, ArrowRight, Share2 } from "lucide-react";
-import { Link } from "wouter";
+import { Calendar, Users, MapPin, Star, Clock, Share2 } from "lucide-react";
+import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Club } from "@shared/schema";
@@ -14,7 +14,6 @@ const HEALTH_STYLES: Record<string, { dot: string; bg: string; text: string }> =
 interface ClubCardProps {
   club: Club & { recentJoins?: number };
   index: number;
-  onViewClub?: (club: Club) => void;
 }
 
 function shareClub(club: Club, e: React.MouseEvent) {
@@ -29,7 +28,8 @@ function shareClub(club: Club, e: React.MouseEvent) {
   }
 }
 
-export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
+export function ClubCard({ club, index }: ClubCardProps) {
+  const [, navigate] = useLocation();
   const health = HEALTH_STYLES[club.healthStatus] || HEALTH_STYLES["green"];
   const foundingSpotsLeft = (club.foundingTotal ?? 20) - (club.foundingTaken ?? 0);
 
@@ -44,7 +44,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
         className="overflow-visible transition-all hover-elevate cursor-pointer"
         style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "18px" }}
         data-testid={`card-club-${club.id}`}
-        onClick={() => onViewClub?.(club)}
+        onClick={() => navigate(`/club/${club.id}`)}
       >
         <div className="p-5 pb-0 flex justify-between items-start">
           <div
@@ -126,21 +126,11 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
               data-testid={`button-view-club-${club.id}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onViewClub?.(club);
+                navigate(`/club/${club.id}`);
               }}
             >
               View Club
             </button>
-            <Link
-              href={`/club/${club.id}`}
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 text-xs font-semibold transition-colors px-2"
-              style={{ color: "var(--muted-warm)" }}
-              data-testid={`link-club-page-${club.id}`}
-            >
-              View
-              <ArrowRight className="w-3 h-3" />
-            </Link>
             <Button
               size="icon"
               variant="ghost"

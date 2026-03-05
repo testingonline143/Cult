@@ -1,13 +1,11 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { ClubDetailModal } from "@/components/club-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, MapPin, Users } from "lucide-react";
 import { format, isToday } from "date-fns";
 import type { Club, Event } from "@shared/schema";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 interface EventWithClub extends Event {
   clubName?: string;
@@ -15,7 +13,7 @@ interface EventWithClub extends Event {
 }
 
 export default function HomeFeed() {
-  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+  const [, navigate] = useLocation();
   const { user } = useAuth();
 
   const { data: clubs = [], isLoading: clubsLoading } = useQuery<(Club & { recentJoins?: number })[]>({
@@ -165,7 +163,7 @@ export default function HomeFeed() {
             {clubs.map((club) => (
               <button
                 key={club.id}
-                onClick={() => setSelectedClub(club)}
+                onClick={() => navigate(`/club/${club.id}`)}
                 className="rounded-[18px] w-[148px] flex-shrink-0 text-left overflow-hidden"
                 style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
                 data-testid={`card-club-${club.id}`}
@@ -196,7 +194,6 @@ export default function HomeFeed() {
         )}
       </div>
 
-      <ClubDetailModal club={selectedClub} onClose={() => setSelectedClub(null)} />
     </div>
   );
 }
