@@ -44,6 +44,7 @@ export const joinRequests = pgTable("join_requests", {
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   userId: varchar("user_id"),
+  status: text("status").notNull().default("pending"),
   markedDone: boolean("marked_done").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

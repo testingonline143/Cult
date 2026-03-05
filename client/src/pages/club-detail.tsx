@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,6 +124,32 @@ function ClubDetailContent({ club }: { club: Club }) {
     },
   });
 
+  const { data: joinStatus } = useQuery<{ status: string | null; requestId: string | null }>({
+    queryKey: ["/api/clubs", club.id, "join-status"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/join-status`, { credentials: "include" });
+      if (!res.ok) return { status: null, requestId: null };
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/leave`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to leave");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "join-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "ratings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/join-requests"] });
+      setJoinSuccess(false);
+    },
+  });
+
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [selectedRating, setSelectedRating] = useState(ratingsData?.userRating?.rating || 0);
   const [reviewText, setReviewText] = useState(ratingsData?.userRating?.review || "");
@@ -176,9 +202,16 @@ function ClubDetailContent({ club }: { club: Club }) {
       queryClient.invalidateQueries({ queryKey: ["/api/activity/feed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "activity"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "ratings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", club.id, "join-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/join-requests"] });
     },
-    onError: () => {
-      setJoinError("Something went wrong. Please try again.");
+    onError: async (err: any) => {
+      try {
+        const msg = err?.message || "Something went wrong. Please try again.";
+        setJoinError(msg);
+      } catch {
+        setJoinError("Something went wrong. Please try again.");
+      }
     },
   });
 
@@ -509,29 +542,75 @@ function ClubDetailContent({ club }: { club: Club }) {
         />
       )}
 
-      {joinSuccess ? (
+      {joinSuccess || joinStatus?.status === "pending" ? (
         <div className="px-6 py-6">
-          <Card className="p-6 text-center space-y-3" data-testid="card-join-success">
+          <Card className="p-6 text-center space-y-3" data-testid="card-join-pending">
             <div className="text-4xl">
-              <Star className="w-10 h-10 mx-auto text-[var(--terra)]" />
+              <Clock3 className="w-10 h-10 mx-auto text-[var(--gold)]" />
             </div>
-            <h3 className="font-display text-xl font-bold text-[var(--terra)]">You're in the tribe!</h3>
+            <h3 className="font-display text-xl font-bold text-[var(--gold)]">Request Pending</h3>
             <p className="text-sm text-[var(--muted-warm)]">
-              Organizer will add you to WhatsApp group within 24 hours.
+              Your join request has been sent. The organizer will review and approve it soon.
             </p>
             {club.whatsappNumber && (
               <a
-                href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just joined ${club.name} on CultFam. Please add me to the group!`)}`}
+                href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just requested to join ${club.name} on CultFam. Please review my request!`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-white rounded-md px-5 py-3 text-sm font-semibold transition-all"
                 style={{ background: "var(--green-accent)", borderColor: "var(--green-accent)" }}
-                data-testid="button-join-whatsapp"
+                data-testid="button-message-organizer"
               >
                 <MessageCircle className="w-4 h-4" />
                 Message Organizer on WhatsApp
               </a>
             )}
+          </Card>
+        </div>
+      ) : joinStatus?.status === "approved" ? (
+        <div className="px-6 py-6">
+          <Card className="p-6 text-center space-y-3" data-testid="card-member-status">
+            <div className="text-4xl">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-[var(--green-accent)]" />
+            </div>
+            <h3 className="font-display text-xl font-bold text-[var(--green-accent)]">You're a Member!</h3>
+            <p className="text-sm text-[var(--muted-warm)]">
+              You're part of {club.name}. Check out upcoming events and join the community!
+            </p>
+            <button
+              onClick={() => {
+                if (confirm("Are you sure you want to leave this club?")) {
+                  leaveMutation.mutate();
+                }
+              }}
+              disabled={leaveMutation.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold text-destructive transition-all"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+              data-testid="button-leave-club"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              {leaveMutation.isPending ? "Leaving..." : "Leave Club"}
+            </button>
+          </Card>
+        </div>
+      ) : joinStatus?.status === "rejected" ? (
+        <div className="px-6 py-6">
+          <Card className="p-6 text-center space-y-3" data-testid="card-join-rejected">
+            <div className="text-4xl">
+              <XCircle className="w-10 h-10 mx-auto text-destructive" />
+            </div>
+            <h3 className="font-display text-xl font-bold text-destructive">Request Not Approved</h3>
+            <p className="text-sm text-[var(--muted-warm)]">
+              Your previous join request was not approved. You can submit a new request.
+            </p>
+            <button
+              onClick={() => setShowJoinForm(true)}
+              className="rounded-xl px-6 py-3 font-display font-bold text-sm text-white"
+              style={{ background: 'var(--ink)' }}
+              data-testid="button-rejoin"
+            >
+              Request Again
+            </button>
           </Card>
         </div>
       ) : showJoinForm ? (

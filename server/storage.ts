@@ -17,11 +17,20 @@ export interface IStorage {
   createClub(club: InsertClub): Promise<Club>;
   updateClub(id: string, data: Partial<InsertClub>): Promise<Club | undefined>;
   incrementMemberCount(clubId: string): Promise<Club | undefined>;
+  decrementMemberCount(clubId: string): Promise<Club | undefined>;
   createJoinRequest(request: InsertJoinRequest): Promise<JoinRequest>;
   getJoinRequests(): Promise<JoinRequest[]>;
   getJoinRequestsByClub(clubId: string): Promise<JoinRequest[]>;
   getJoinRequestsByPhone(phone: string): Promise<JoinRequest[]>;
+  getJoinRequestsByUser(userId: string): Promise<JoinRequest[]>;
+  getJoinRequest(id: string): Promise<JoinRequest | undefined>;
   markJoinRequestDone(id: string): Promise<JoinRequest | undefined>;
+  approveJoinRequest(id: string): Promise<JoinRequest | undefined>;
+  rejectJoinRequest(id: string): Promise<JoinRequest | undefined>;
+  deleteJoinRequest(id: string): Promise<void>;
+  getPendingJoinRequestCount(clubId: string): Promise<number>;
+  getApprovedMembersByClub(clubId: string): Promise<JoinRequest[]>;
+  hasExistingJoinRequest(clubId: string, userId: string): Promise<JoinRequest | undefined>;
   getClubsByCreator(creatorUserId: string): Promise<Club[]>;
   getUser(id: string): Promise<User | undefined>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
@@ -65,6 +74,7 @@ export interface IStorage {
   deleteMoment(id: string): Promise<void>;
   getJoinRequestCountByClub(clubId: string): Promise<number>;
   hasUserJoinedClub(clubId: string, userId: string): Promise<boolean>;
+  getUserJoinStatus(clubId: string, userId: string): Promise<{ status: string | null; requestId: string | null }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -118,6 +128,56 @@ export class DatabaseStorage implements IStorage {
 
   async markJoinRequestDone(id: string): Promise<JoinRequest | undefined> {
     const [updated] = await db.update(joinRequests).set({ markedDone: true }).where(eq(joinRequests.id, id)).returning();
+    return updated;
+  }
+
+  async approveJoinRequest(id: string): Promise<JoinRequest | undefined> {
+    const [updated] = await db.update(joinRequests).set({ status: "approved", markedDone: true }).where(eq(joinRequests.id, id)).returning();
+    return updated;
+  }
+
+  async rejectJoinRequest(id: string): Promise<JoinRequest | undefined> {
+    const [updated] = await db.update(joinRequests).set({ status: "rejected" }).where(eq(joinRequests.id, id)).returning();
+    return updated;
+  }
+
+  async deleteJoinRequest(id: string): Promise<void> {
+    await db.delete(joinRequests).where(eq(joinRequests.id, id));
+  }
+
+  async getJoinRequest(id: string): Promise<JoinRequest | undefined> {
+    const [request] = await db.select().from(joinRequests).where(eq(joinRequests.id, id));
+    return request;
+  }
+
+  async getJoinRequestsByUser(userId: string): Promise<JoinRequest[]> {
+    return db.select().from(joinRequests).where(eq(joinRequests.userId, userId)).orderBy(desc(joinRequests.createdAt));
+  }
+
+  async getPendingJoinRequestCount(clubId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "pending")));
+    return result?.count ?? 0;
+  }
+
+  async getApprovedMembersByClub(clubId: string): Promise<JoinRequest[]> {
+    return db.select().from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")))
+      .orderBy(desc(joinRequests.createdAt));
+  }
+
+  async hasExistingJoinRequest(clubId: string, userId: string): Promise<JoinRequest | undefined> {
+    const [existing] = await db.select().from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.userId, userId)));
+    return existing;
+  }
+
+  async decrementMemberCount(clubId: string): Promise<Club | undefined> {
+    const [updated] = await db.update(clubs).set({
+      memberCount: sql`GREATEST(${clubs.memberCount} - 1, 0)`,
+      foundingTaken: sql`GREATEST(${clubs.foundingTaken} - 1, 0)`,
+    }).where(eq(clubs.id, clubId)).returning();
     return updated;
   }
 
@@ -303,7 +363,7 @@ export class DatabaseStorage implements IStorage {
 
   async getStats(): Promise<{ totalMembers: number; totalClubs: number; upcomingEvents: number }> {
     const [membersResult] = await db.select({
-      count: sql<number>`(SELECT COUNT(DISTINCT phone) FROM join_requests)::int`,
+      count: sql<number>`(SELECT COUNT(DISTINCT phone) FROM join_requests WHERE status = 'approved')::int`,
     }).from(joinRequests);
 
     const [clubsResult] = await db.select({
@@ -351,11 +411,11 @@ export class DatabaseStorage implements IStorage {
 
     const [joinCountResult] = await db.select({
       count: sql<number>`count(*)::int`,
-    }).from(joinRequests).where(and(eq(joinRequests.clubId, clubId), gte(joinRequests.createdAt, sevenDaysAgo)));
+    }).from(joinRequests).where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved"), gte(joinRequests.createdAt, sevenDaysAgo)));
 
     const recentNames = await db.select({ name: joinRequests.name })
       .from(joinRequests)
-      .where(and(eq(joinRequests.clubId, clubId), gte(joinRequests.createdAt, sevenDaysAgo)))
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved"), gte(joinRequests.createdAt, sevenDaysAgo)))
       .orderBy(desc(joinRequests.createdAt))
       .limit(3);
 
@@ -385,6 +445,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: joinRequests.createdAt,
     })
       .from(joinRequests)
+      .where(eq(joinRequests.status, "approved"))
       .orderBy(desc(joinRequests.createdAt))
       .limit(limit);
 
@@ -411,7 +472,7 @@ export class DatabaseStorage implements IStorage {
       count: sql<number>`count(*)::int`,
     })
       .from(joinRequests)
-      .where(gte(joinRequests.createdAt, sevenDaysAgo))
+      .where(and(eq(joinRequests.status, "approved"), gte(joinRequests.createdAt, sevenDaysAgo)))
       .groupBy(joinRequests.clubId);
 
     return Object.fromEntries(results.map(r => [r.clubId, r.count]));
@@ -539,19 +600,24 @@ export class DatabaseStorage implements IStorage {
   async getJoinRequestCountByClub(clubId: string): Promise<number> {
     const [result] = await db.select({ count: sql<number>`count(*)::int` })
       .from(joinRequests)
-      .where(eq(joinRequests.clubId, clubId));
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")));
     return result?.count ?? 0;
   }
 
   async hasUserJoinedClub(clubId: string, userId: string): Promise<boolean> {
-    const user = await this.getUser(userId);
-    const userMatch = user?.email
-      ? or(eq(joinRequests.userId, userId), eq(joinRequests.phone, user.email))
-      : eq(joinRequests.userId, userId);
     const [result] = await db.select({ count: sql<number>`count(*)::int` })
       .from(joinRequests)
-      .where(and(eq(joinRequests.clubId, clubId), userMatch));
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.userId, userId), eq(joinRequests.status, "approved")));
     return (result?.count ?? 0) > 0;
+  }
+
+  async getUserJoinStatus(clubId: string, userId: string): Promise<{ status: string | null; requestId: string | null }> {
+    const [result] = await db.select({ status: joinRequests.status, id: joinRequests.id })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.userId, userId)))
+      .orderBy(desc(joinRequests.createdAt))
+      .limit(1);
+    return { status: result?.status ?? null, requestId: result?.id ?? null };
   }
 }
 

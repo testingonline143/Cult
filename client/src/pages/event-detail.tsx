@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Event, Club, EventRsvp } from "@shared/schema";
@@ -51,6 +51,7 @@ export default function EventDetail() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [justRsvpd, setJustRsvpd] = useState(false);
+  const [rsvpError, setRsvpError] = useState<string | null>(null);
 
   const { data: eventData, isLoading, error } = useQuery<EventDetailResponse>({
     queryKey: ["/api/events", id],
@@ -72,9 +73,13 @@ export default function EventDetail() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setRsvpError(null);
       if (!data.alreadyRsvpd) {
         setJustRsvpd(true);
       }
+    },
+    onError: (err: Error) => {
+      setRsvpError(err.message);
     },
   });
 
@@ -396,68 +401,85 @@ export default function EventDetail() {
 
       {showStickyBar && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-[100] flex items-center gap-3"
-          style={{ background: 'var(--cream)', borderTop: '1.5px solid var(--warm-border)', padding: '14px 24px 24px' }}
+          className="fixed bottom-0 left-0 right-0 z-[100]"
+          style={{ background: 'var(--cream)', borderTop: '1.5px solid var(--warm-border)' }}
           data-testid="sticky-bottom-bar"
         >
-          <div className="flex-1">
-            <div className="font-mono text-[32px] text-[var(--terra)] leading-none tracking-wide">
-              {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
-            </div>
-            <div className="text-[10px] text-[var(--muted-warm)] font-semibold tracking-wider">
-              of {eventData.maxCapacity} spots
-            </div>
-          </div>
-
-          {!isAuthenticated ? (
-            <button
-              onClick={() => { window.location.href = "/api/login"; }}
-              className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all"
-              style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
-              data-testid="button-sign-in-rsvp"
-            >
-              Sign In to Book
-            </button>
-          ) : hasRsvp ? (
-            <div className="flex-[2] flex gap-2">
-              <button
-                onClick={() => handleShareAfterRsvp(eventData, clubName)}
-                className="flex-1 rounded-2xl py-4 font-display text-sm font-bold italic flex items-center justify-center gap-2"
-                style={{ background: 'transparent', border: '1.5px solid var(--ink)', color: 'var(--ink)' }}
-                data-testid="button-share-rsvpd"
-              >
-                <Share2 className="w-4 h-4" />
-                Invite
-              </button>
-              <button
-                onClick={() => cancelRsvpMutation.mutate()}
-                disabled={cancelRsvpMutation.isPending}
-                className="px-4 py-4 rounded-2xl text-sm text-[var(--muted-warm)]"
-                style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
-                data-testid="button-cancel-rsvp"
-              >
-                {cancelRsvpMutation.isPending ? "..." : "Cancel"}
-              </button>
-            </div>
-          ) : spotsLeft > 0 ? (
-            <button
-              onClick={() => rsvpMutation.mutate()}
-              disabled={rsvpMutation.isPending}
-              className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
-              data-testid="button-rsvp"
-            >
-              {rsvpMutation.isPending ? "Joining..." : "Book My Spot \u2192"}
-            </button>
-          ) : (
-            <div
-              className="flex-[2] text-center py-4 rounded-2xl text-[var(--muted-warm)] text-sm font-medium"
-              style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
-              data-testid="text-event-full"
-            >
-              This event is full
+          {rsvpError && (
+            <div className="px-6 pt-3 pb-1">
+              <div className="flex items-start gap-2 rounded-xl p-3 text-sm" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }} data-testid="text-rsvp-error">
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-destructive font-medium">{rsvpError}</span>
+                  {rsvpError.includes("member") && club && (
+                    <Link href={`/club/${club.id}`} className="block text-xs mt-1 underline" style={{ color: 'var(--terra)' }} data-testid="link-join-club">
+                      Go to club page to join
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
           )}
+          <div className="flex items-center gap-3" style={{ padding: '14px 24px 24px' }}>
+            <div className="flex-1">
+              <div className="font-mono text-[32px] text-[var(--terra)] leading-none tracking-wide">
+                {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
+              </div>
+              <div className="text-[10px] text-[var(--muted-warm)] font-semibold tracking-wider">
+                of {eventData.maxCapacity} spots
+              </div>
+            </div>
+
+            {!isAuthenticated ? (
+              <button
+                onClick={() => { window.location.href = "/api/login"; }}
+                className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
+                data-testid="button-sign-in-rsvp"
+              >
+                Sign In to Book
+              </button>
+            ) : hasRsvp ? (
+              <div className="flex-[2] flex gap-2">
+                <button
+                  onClick={() => handleShareAfterRsvp(eventData, clubName)}
+                  className="flex-1 rounded-2xl py-4 font-display text-sm font-bold italic flex items-center justify-center gap-2"
+                  style={{ background: 'transparent', border: '1.5px solid var(--ink)', color: 'var(--ink)' }}
+                  data-testid="button-share-rsvpd"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Invite
+                </button>
+                <button
+                  onClick={() => cancelRsvpMutation.mutate()}
+                  disabled={cancelRsvpMutation.isPending}
+                  className="px-4 py-4 rounded-2xl text-sm text-[var(--muted-warm)]"
+                  style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                  data-testid="button-cancel-rsvp"
+                >
+                  {cancelRsvpMutation.isPending ? "..." : "Cancel"}
+                </button>
+              </div>
+            ) : spotsLeft > 0 ? (
+              <button
+                onClick={() => rsvpMutation.mutate()}
+                disabled={rsvpMutation.isPending}
+                className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
+                data-testid="button-rsvp"
+              >
+                {rsvpMutation.isPending ? "Joining..." : "Book My Spot \u2192"}
+              </button>
+            ) : (
+              <div
+                className="flex-[2] text-center py-4 rounded-2xl text-[var(--muted-warm)] text-sm font-medium"
+                style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                data-testid="text-event-full"
+              >
+                This event is full
+              </div>
+            )}
+          </div>
         </div>
       )}
 

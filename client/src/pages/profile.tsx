@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -356,6 +356,7 @@ function UserEvents({ userId }: { userId: string }) {
 }
 
 function JoinedClubs({ userId }: { userId: string }) {
+  const { toast } = useToast();
   const { data: joinRequests = [], isLoading: loadingRequests } = useQuery<JoinRequest[]>({
     queryKey: ["/api/user/join-requests", userId],
     queryFn: async () => {
@@ -373,7 +374,27 @@ function JoinedClubs({ userId }: { userId: string }) {
     queryKey: ["/api/clubs"],
   });
 
-  const joinedClubs = clubs.filter((c) => clubIds.includes(c.id));
+  const leaveMutation = useMutation({
+    mutationFn: async (clubId: string) => {
+      const res = await fetch(`/api/clubs/${clubId}/leave`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to leave");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/join-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      toast({ title: "You've left the club" });
+    },
+    onError: () => {
+      toast({ title: "Failed to leave club", variant: "destructive" });
+    },
+  });
+
+  const approvedRequests = joinRequests.filter((r) => (r as any).status === "approved");
+  const pendingRequests = joinRequests.filter((r) => (r as any).status === "pending");
+  const rejectedRequests = joinRequests.filter((r) => (r as any).status === "rejected");
+  const approvedClubs = clubs.filter((c) => approvedRequests.some((r) => r.clubId === c.id));
+  const pendingClubs = clubs.filter((c) => pendingRequests.some((r) => r.clubId === c.id));
 
   if (loadingRequests || loadingClubs) {
     return (
@@ -391,10 +412,10 @@ function JoinedClubs({ userId }: { userId: string }) {
   return (
     <div>
       <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-joined-clubs-title">
-        Clubs You've Joined ({joinedClubs.length})
+        Your Clubs ({approvedClubs.length})
       </h2>
 
-      {joinedClubs.length === 0 ? (
+      {approvedClubs.length === 0 && pendingClubs.length === 0 ? (
         <div className="text-center py-12 glass-card rounded-2xl" data-testid="text-no-joined-clubs">
           <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center mx-auto mb-3">
             <Users className="w-6 h-6 text-muted-foreground" />
@@ -405,33 +426,73 @@ function JoinedClubs({ userId }: { userId: string }) {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3" data-testid="list-joined-clubs">
-          {joinedClubs.map((club) => {
-            const request = joinRequests.find((r) => r.clubId === club.id);
-            return (
-              <div
-                key={club.id}
-                className="flex items-center gap-4 p-4 glass-card rounded-2xl"
-                data-testid={`card-joined-club-${club.id}`}
-              >
-                <div className="text-3xl shrink-0">{club.emoji}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-foreground" data-testid={`text-club-name-${club.id}`}>{club.name}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{club.category} &middot; {club.memberCount} members</div>
-                  {request?.createdAt && (
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      Joined {new Date(request.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+        <>
+          {approvedClubs.length > 0 && (
+            <div className="space-y-3 mb-6" data-testid="list-joined-clubs">
+              {approvedClubs.map((club) => {
+                const request = approvedRequests.find((r) => r.clubId === club.id);
+                return (
+                  <div
+                    key={club.id}
+                    className="flex items-center gap-4 p-4 glass-card rounded-2xl"
+                    data-testid={`card-joined-club-${club.id}`}
+                  >
+                    <Link href={`/club/${club.id}`} className="text-3xl shrink-0">{club.emoji}</Link>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/club/${club.id}`}>
+                        <div className="font-semibold text-sm text-foreground" data-testid={`text-club-name-${club.id}`}>{club.name}</div>
+                      </Link>
+                      <div className="text-xs text-muted-foreground mt-0.5">{club.category} &middot; {club.memberCount} members</div>
+                      <div className="flex items-center gap-1 text-xs mt-0.5" style={{ color: 'var(--green-accent)' }}>
+                        <CheckCircle2 className="w-3 h-3" /> Member
+                      </div>
                     </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`w-2 h-2 rounded-full ${club.healthStatus === "green" ? "bg-[var(--green-accent)]" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"}`} />
-                  <span className="text-xs text-muted-foreground">{club.healthLabel}</span>
-                </div>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Leave ${club.name}?`)) {
+                          leaveMutation.mutate(club.id);
+                        }
+                      }}
+                      disabled={leaveMutation.isPending}
+                      className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                      data-testid={`button-leave-club-${club.id}`}
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {pendingClubs.length > 0 && (
+            <>
+              <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-pending-clubs-title">
+                Pending Requests ({pendingClubs.length})
+              </h2>
+              <div className="space-y-3 mb-6" data-testid="list-pending-clubs">
+                {pendingClubs.map((club) => (
+                  <div
+                    key={club.id}
+                    className="flex items-center gap-4 p-4 glass-card rounded-2xl"
+                    data-testid={`card-pending-club-${club.id}`}
+                  >
+                    <Link href={`/club/${club.id}`} className="text-3xl shrink-0">{club.emoji}</Link>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/club/${club.id}`}>
+                        <div className="font-semibold text-sm text-foreground">{club.name}</div>
+                      </Link>
+                      <div className="text-xs text-muted-foreground mt-0.5">{club.category}</div>
+                      <div className="flex items-center gap-1 text-xs mt-0.5" style={{ color: 'var(--gold)' }}>
+                        <Clock3 className="w-3 h-3" /> Awaiting approval
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </>
+          )}
+        </>
       )}
 
       {joinRequests.length > 0 && (
@@ -440,25 +501,30 @@ function JoinedClubs({ userId }: { userId: string }) {
             Request History ({joinRequests.length})
           </h2>
           <div className="space-y-2" data-testid="list-request-history">
-            {joinRequests.map((req) => (
-              <div
-                key={req.id}
-                className="flex items-center gap-3 p-3 glass-card rounded-2xl"
-                data-testid={`row-request-${req.id}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-foreground">{req.clubName}</span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
-                  </span>
+            {joinRequests.map((req) => {
+              const status = (req as any).status || "pending";
+              return (
+                <div
+                  key={req.id}
+                  className="flex items-center gap-3 p-3 glass-card rounded-2xl"
+                  data-testid={`row-request-${req.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-foreground">{req.clubName}</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                    </span>
+                  </div>
+                  {status === "approved" ? (
+                    <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--green-accent)' }} data-testid={`text-status-${req.id}`}><CheckCircle2 className="w-3 h-3" /> Approved</span>
+                  ) : status === "rejected" ? (
+                    <span className="text-xs font-semibold flex items-center gap-1 text-destructive" data-testid={`text-status-${req.id}`}><XCircle className="w-3 h-3" /> Rejected</span>
+                  ) : (
+                    <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--gold)' }} data-testid={`text-status-${req.id}`}><Clock3 className="w-3 h-3" /> Pending</span>
+                  )}
                 </div>
-                {req.markedDone ? (
-                  <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--green-accent)' }} data-testid={`text-status-${req.id}`}><Check className="w-3 h-3" /> Added</span>
-                ) : (
-                  <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }} data-testid={`text-status-${req.id}`}>Pending</span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

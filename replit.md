@@ -36,11 +36,18 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/logout` — logout and clear session
   - `GET /api/clubs` — list all clubs (supports `?category=` query param for filtering)
   - `GET /api/clubs/:id` — get single club with full details
-  - `POST /api/join` — submit a join request (authenticated); auto-increments memberCount and foundingTaken atomically
+  - `POST /api/join` — submit a join request (authenticated); creates with status 'pending' (does NOT auto-increment counts); duplicate prevention by userId+clubId; rejected requests can be re-submitted
   - `POST /api/clubs/create` — **instant club creation** (authenticated, creates live club immediately, sets creatorUserId)
   - `GET /api/organizer/my-club` — get authenticated user's club (by creatorUserId)
   - `GET /api/organizer/join-requests/:clubId` — get join requests for organizer's club (authenticated, verifies ownership)
   - `PATCH /api/organizer/join-requests/:id/contacted` — mark join request as contacted
+  - `PATCH /api/organizer/join-requests/:id/approve` — approve a join request (increments memberCount and foundingTaken)
+  - `PATCH /api/organizer/join-requests/:id/reject` — reject a join request
+  - `DELETE /api/organizer/clubs/:clubId/members/:requestId` — remove a member (decrements counts)
+  - `GET /api/organizer/clubs/:clubId/members` — get approved members for a club
+  - `GET /api/organizer/clubs/:clubId/pending-count` — get pending request count for a club
+  - `DELETE /api/clubs/:id/leave` — leave a club (authenticated user, decrements counts)
+  - `GET /api/clubs/:id/join-status` — get current user's join status for a club
   - `PATCH /api/organizer/club/:id` — update club details (authenticated, verifies ownership)
   - `POST /api/clubs/:id/events` — create event for a club (authenticated, verifies ownership)
   - `GET /api/admin/clubs` — list all clubs for admin monitoring (admin only)
@@ -55,7 +62,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/events` — list upcoming events with RSVP arrays (supports ?city=&limit= params)
   - `GET /api/events/:id` — get single event with rsvps and club info
   - `GET /api/clubs/:id/events` — get events for a specific club
-  - `POST /api/events/:id/rsvp` — RSVP to an event (authenticated)
+  - `POST /api/events/:id/rsvp` — RSVP to an event (authenticated, requires approved club membership)
   - `DELETE /api/events/:id/rsvp` — cancel RSVP (authenticated)
   - `GET /api/rsvps/:rsvpId/qr` — generate personal QR ticket PNG for an RSVP (authenticated, owner only)
   - `POST /api/checkin` — organizer scans member QR to check them in (authenticated, organizer only, body: { token })
@@ -93,7 +100,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `users` — id (UUID), email (unique), firstName, lastName, profileImageUrl, bio, city, **role** (text, default 'user', values: 'user'|'organiser'|'admin'), quizCompleted, createdAt, updatedAt
   - `sessions` — sid (PK), sess (jsonb), expire (timestamp) — used by express-session for Replit Auth
   - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), createdAt
-  - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, createdAt
+  - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, **status** (text, default 'pending', values: 'pending'|'approved'|'rejected'), createdAt
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
   - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, createdAt
   - `event_rsvps` — id (UUID), eventId, userId, status, checkinToken (UUID, auto-generated), checkedIn, checkedInAt, createdAt
@@ -112,7 +119,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 ### Storage Layer
 - `server/storage.ts` defines an `IStorage` interface and `DatabaseStorage` class implementing it
 - All database access goes through this storage abstraction
-- Key methods: getClubs, getClubsByCreator, incrementMemberCount (atomic SQL), createJoinRequest, markJoinRequestDone, updateClub, createClub, createEvent, createRsvp, checkInRsvp, getClubAverageRating, getUserRating, upsertRating, getClubFaqs, createFaq, updateFaq, deleteFaq, getClubSchedule, createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getClubMoments, createMoment, deleteMoment, getJoinRequestCountByClub
+- Key methods: getClubs, getClubsByCreator, incrementMemberCount, decrementMemberCount, createJoinRequest, approveJoinRequest, rejectJoinRequest, deleteJoinRequest, getJoinRequest, getJoinRequestsByUser, getPendingJoinRequestCount, getApprovedMembersByClub, hasExistingJoinRequest, getUserJoinStatus, hasUserJoinedClub (only counts approved), markJoinRequestDone, updateClub, createClub, createEvent, createRsvp, checkInRsvp, getClubAverageRating, getUserRating, upsertRating, getClubFaqs, createFaq, updateFaq, deleteFaq, getClubSchedule, createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getClubMoments, createMoment, deleteMoment, getJoinRequestCountByClub (only counts approved)
 
 ### Auth System
 - **Replit Auth**: Uses OpenID Connect via `server/replit_integrations/auth/` (auto-generated integration)
@@ -131,7 +138,8 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 
 ### Key Features
 - **Instant club creation**: Authenticated users fill a rich form (name, category, description, schedule, location, organizer name, WhatsApp, city) → club goes live immediately → redirected to organizer dashboard
-- **Member count auto-increment**: Joining a club atomically increments memberCount and foundingTaken (if spots available)
+- **Membership approval flow**: Join requests start as 'pending'. Organizers approve/reject from dashboard. Member count and founding spots only increment on approval. Users can leave clubs (decrements counts). Organizers can remove members. Duplicate join prevention by userId+clubId.
+- **RSVP gating**: Only approved club members (or the club creator) can RSVP to club events. Non-members see an error with a link to the club page.
 - **Admin dashboard** (/admin): Requires Replit Auth + `ADMIN_USER_ID` env var match; shows live clubs monitoring with deactivate/activate controls, plus join requests. Non-admin users see "Access Denied"
 - **Replit Auth sign-in**: Google, GitHub, Apple, email sign-in via `/api/login`; session-based auth
 - **Organizer dashboard** (/organizer): Identifies organizer by creatorUserId; club overview, manage join requests, create events, edit club details, QR codes for events, attendance tracking

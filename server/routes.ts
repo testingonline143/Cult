@@ -106,9 +106,21 @@ export async function registerRoutes(
         return res.status(400).json({ success: false, message: "Phone is required (minimum 10 digits)" });
       }
       const userId = req.user.claims.sub;
-      const request = await storage.createJoinRequest({ ...validated, userId });
-      const updatedClub = await storage.incrementMemberCount(validated.clubId);
-      res.json({ success: true, message: "Request saved", data: request, club: updatedClub });
+      const existing = await storage.hasExistingJoinRequest(validated.clubId, userId);
+      if (existing) {
+        if (existing.status === "pending") {
+          return res.status(400).json({ success: false, message: "You already have a pending request for this club" });
+        }
+        if (existing.status === "approved") {
+          return res.status(400).json({ success: false, message: "You are already a member of this club" });
+        }
+        if (existing.status === "rejected") {
+          await storage.deleteJoinRequest(existing.id);
+        }
+      }
+      const request = await storage.createJoinRequest({ ...validated, userId, status: "pending" });
+      const club = await storage.getClub(validated.clubId);
+      res.json({ success: true, message: "Request sent! The organizer will review your request.", data: request, club });
     } catch (err) {
       if (err instanceof ZodError) {
         const validationError = fromZodError(err);
@@ -256,11 +268,7 @@ export async function registerRoutes(
   app.get("/api/user/join-requests", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user || !user.email) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      const requests = await storage.getJoinRequestsByPhone(user.email);
+      const requests = await storage.getJoinRequestsByUser(userId);
       res.json(requests);
     } catch (err) {
       console.error("Error fetching user join requests:", err);
@@ -440,6 +448,14 @@ export async function registerRoutes(
       if (!event) {
         return res.status(404).json({ success: false, message: "Event not found" });
       }
+      const club = await storage.getClub(event.clubId);
+      const isClubCreator = club && club.creatorUserId === userId;
+      if (!isClubCreator) {
+        const isMember = await storage.hasUserJoinedClub(event.clubId, userId);
+        if (!isMember) {
+          return res.status(403).json({ success: false, message: "You must be an approved member of this club to RSVP. Join the club first!" });
+        }
+      }
       const existingRsvp = await storage.getUserRsvp(event.id, userId);
       if (existingRsvp && existingRsvp.status === "going") {
         return res.json({ success: true, rsvp: existingRsvp, alreadyRsvpd: true });
@@ -491,6 +507,118 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error marking contacted:", err);
       res.status(500).json({ message: "Failed to update" });
+    }
+  });
+
+  app.patch("/api/organizer/join-requests/:id/approve", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const request = await storage.getJoinRequest(req.params.id);
+      if (!request) return res.status(404).json({ message: "Not found" });
+      if (request.status === "approved") return res.json(request);
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      if (!clubs.some(c => c.id === request.clubId)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const updated = await storage.approveJoinRequest(req.params.id);
+      if (updated) {
+        await storage.incrementMemberCount(updated.clubId);
+      }
+      res.json(updated);
+    } catch (err) {
+      console.error("Error approving join request:", err);
+      res.status(500).json({ message: "Failed to approve" });
+    }
+  });
+
+  app.patch("/api/organizer/join-requests/:id/reject", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const request = await storage.getJoinRequest(req.params.id);
+      if (!request) return res.status(404).json({ message: "Not found" });
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      if (!clubs.some(c => c.id === request.clubId)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const updated = await storage.rejectJoinRequest(req.params.id);
+      res.json(updated);
+    } catch (err) {
+      console.error("Error rejecting join request:", err);
+      res.status(500).json({ message: "Failed to reject" });
+    }
+  });
+
+  app.delete("/api/organizer/clubs/:clubId/members/:requestId", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      if (!clubs.some(c => c.id === req.params.clubId)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const request = await storage.getJoinRequest(req.params.requestId);
+      if (!request || request.clubId !== req.params.clubId) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+      if (request.status === "approved") {
+        await storage.decrementMemberCount(req.params.clubId);
+      }
+      await storage.deleteJoinRequest(req.params.requestId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error removing member:", err);
+      res.status(500).json({ message: "Failed to remove member" });
+    }
+  });
+
+  app.get("/api/organizer/clubs/:clubId/members", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      if (!clubs.some(c => c.id === req.params.clubId)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const members = await storage.getApprovedMembersByClub(req.params.clubId);
+      res.json(members);
+    } catch (err) {
+      console.error("Error fetching members:", err);
+      res.status(500).json({ message: "Failed to fetch members" });
+    }
+  });
+
+  app.get("/api/organizer/clubs/:clubId/pending-count", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const count = await storage.getPendingJoinRequestCount(req.params.clubId);
+      res.json({ count });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to get count" });
+    }
+  });
+
+  app.delete("/api/clubs/:id/leave", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.hasExistingJoinRequest(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ message: "You are not a member of this club" });
+      }
+      if (existing.status === "approved") {
+        await storage.decrementMemberCount(req.params.id);
+      }
+      await storage.deleteJoinRequest(existing.id);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error leaving club:", err);
+      res.status(500).json({ message: "Failed to leave club" });
+    }
+  });
+
+  app.get("/api/clubs/:id/join-status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await storage.getUserJoinStatus(req.params.id, userId);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to check status" });
     }
   });
 
