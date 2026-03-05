@@ -173,39 +173,43 @@ function ClubDetailContent({ club }: { club: Club }) {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* 1. HERO SECTION */}
-      <div className="relative h-64 w-full bg-gradient-to-b from-neon/20 via-card to-background flex items-center justify-center">
-        <span className="text-8xl select-none" data-testid="text-club-emoji">{club.emoji}</span>
+      <div className="relative h-72 w-full overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#E8D5B8] via-[#C4A882] to-[#A88860] flex items-center justify-center">
+          <span className="text-[90px] select-none relative z-[2]" data-testid="text-club-emoji">{club.emoji}</span>
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--cream)]" style={{ top: '30%' }} />
 
         <button
           onClick={() => navigate("/explore")}
-          className="absolute top-4 left-4 glass-card rounded-full p-2"
+          className="absolute top-14 left-5 w-9 h-9 rounded-xl bg-white/80 backdrop-blur-sm flex items-center justify-center z-10"
+          style={{ border: '1px solid var(--warm-border)' }}
           data-testid="button-back"
         >
-          <ChevronLeft className="w-5 h-5 text-foreground" />
+          <ChevronLeft className="w-4 h-4 text-[var(--ink)]" />
         </button>
 
         <button
           onClick={() => handleShareClub(club)}
-          className="absolute top-4 right-4 glass-card rounded-full p-2"
+          className="absolute top-14 right-5 w-9 h-9 rounded-xl bg-white/80 backdrop-blur-sm flex items-center justify-center z-10"
+          style={{ border: '1px solid var(--warm-border)' }}
           data-testid="button-share-club"
         >
-          <Share2 className="w-5 h-5 text-foreground" />
+          <Share2 className="w-4 h-4 text-[var(--ink)]" />
         </button>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background to-transparent p-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-neon text-primary-foreground rounded-full px-3 py-1 text-xs font-bold uppercase" data-testid="badge-category">
+        <div className="absolute bottom-0 left-0 right-0 px-6 pb-5 z-[5]">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <span className="inline-flex items-center gap-1.5 text-white text-[10px] font-bold uppercase tracking-[1.5px] px-2.5 py-1 rounded-md" style={{ background: 'var(--terra)' }} data-testid="badge-category">
               {club.category}
             </span>
             {club.schedule && (
-              <span className="glass-card rounded-full px-3 py-1 text-xs font-medium text-foreground" data-testid="badge-schedule">
+              <span className="rounded-md px-2.5 py-1 text-[10px] font-medium text-[var(--ink3)]" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="badge-schedule">
                 {club.schedule}
               </span>
             )}
           </div>
           <h1
-            className="font-display text-3xl font-bold text-foreground mt-2"
+            className="font-display text-4xl font-black text-[var(--ink)] leading-[0.95] tracking-tight"
             data-testid="text-club-name"
           >
             {club.name}
@@ -213,57 +217,71 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       </div>
 
-      {/* 2. LEADER + HEALTH SECTION */}
+      <div className="grid grid-cols-3 gap-2 px-6 mt-4">
+        <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--terra)]" data-testid="text-member-count">
+            {club.memberCount}
+          </div>
+          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Members</div>
+        </div>
+        <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--ink)]">
+            {club.schedule ? club.schedule.split(" ")[0] : "—"}
+          </div>
+          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Schedule</div>
+        </div>
+        <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[28px] leading-none tracking-wide text-[var(--gold)]">
+            4.8
+          </div>
+          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Rating</div>
+        </div>
+      </div>
+
       {club.organizerName && (
-        <div className="px-4 py-4 flex justify-between items-center gap-4" data-testid="section-leader">
+        <div className="px-6 py-4 flex justify-between items-center gap-4" data-testid="section-leader">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-neon/20 flex items-center justify-center shrink-0">
-              <span className="neon-text font-bold text-lg">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)', border: '2px solid var(--terra)' }}>
+              <span className="text-[var(--terra)] font-bold text-lg">
                 {club.organizerName.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider">Leader</div>
-              <div className="font-display font-bold text-foreground">{club.organizerName}</div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Members</div>
-            <div className="font-display text-2xl font-bold text-foreground" data-testid="text-member-count">
-              {club.memberCount}
+              <div className="text-[10px] text-[var(--muted-warm)] uppercase tracking-wider font-semibold">Leader</div>
+              <div className="font-display font-bold text-[var(--ink)]">{club.organizerName}</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* HEALTH STATUS + ACTIVE SINCE */}
-      <div className="px-4 py-2 flex items-center gap-4 flex-wrap" data-testid="section-health">
+      <div className="px-6 py-2 flex items-center gap-4 flex-wrap" data-testid="section-health">
         {club.healthLabel && (
           <span className={`flex items-center gap-1.5 text-xs font-semibold ${
-            club.healthStatus === "green" ? "text-neon" : club.healthStatus === "yellow" ? "text-chart-4" : "text-destructive"
+            club.healthStatus === "green" ? "text-[var(--green-accent)]" : club.healthStatus === "yellow" ? "text-chart-4" : "text-destructive"
           }`}>
             <span className={`w-2 h-2 rounded-full ${
-              club.healthStatus === "green" ? "bg-neon" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"
+              club.healthStatus === "green" ? "bg-[var(--green-accent)]" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"
             }`} />
             {club.healthLabel}
           </span>
         )}
         {club.activeSince && (
-          <span className="text-xs text-muted-foreground">Active since {club.activeSince}</span>
+          <span className="text-xs text-[var(--muted-warm)]">Active since {club.activeSince}</span>
         )}
       </div>
 
       {isOwner && (
-        <div className="px-4 py-3" data-testid="section-organiser-controls">
-          <div className="glass-card neon-border rounded-2xl p-4 space-y-3">
-            <h3 className="text-xs font-bold neon-text uppercase tracking-wider flex items-center gap-2">
+        <div className="px-6 py-3" data-testid="section-organiser-controls">
+          <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }}>
+            <h3 className="text-xs font-bold text-[var(--terra)] uppercase tracking-wider flex items-center gap-2">
               <Settings className="w-3.5 h-3.5" />
               Organiser Controls
             </h3>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => navigate(`/organizer`)}
-                className="flex items-center gap-2 bg-neon/15 hover:bg-neon/25 transition-colors rounded-xl px-4 py-2.5 text-sm font-semibold neon-text"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
+                style={{ background: 'var(--terra-pale)' }}
                 data-testid="button-view-dashboard"
               >
                 <LayoutDashboard className="w-4 h-4" />
@@ -271,7 +289,8 @@ function ClubDetailContent({ club }: { club: Club }) {
               </button>
               <button
                 onClick={() => navigate(`/create?tab=event&clubId=${club.id}`)}
-                className="flex items-center gap-2 bg-neon/15 hover:bg-neon/25 transition-colors rounded-xl px-4 py-2.5 text-sm font-semibold neon-text"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
+                style={{ background: 'var(--terra-pale)' }}
                 data-testid="button-create-event-for-club"
               >
                 <Plus className="w-4 h-4" />
@@ -279,7 +298,8 @@ function ClubDetailContent({ club }: { club: Club }) {
               </button>
               <button
                 onClick={() => navigate(`/organizer`)}
-                className="flex items-center gap-2 bg-neon/15 hover:bg-neon/25 transition-colors rounded-xl px-4 py-2.5 text-sm font-semibold neon-text"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--terra)] transition-colors"
+                style={{ background: 'var(--terra-pale)' }}
                 data-testid="button-edit-club"
               >
                 <Settings className="w-4 h-4" />
@@ -290,20 +310,18 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       )}
 
-      {/* 3. ABOUT SECTION */}
-      <div className="px-4 py-4">
-        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">About</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-club-description">
+      <div className="px-6 py-4">
+        <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-2">About</h2>
+        <p className="text-sm text-[var(--muted-warm)] leading-relaxed" data-testid="text-club-description">
           {club.fullDesc}
         </p>
       </div>
 
-      {/* 4. TAGS/HIGHLIGHTS SECTION */}
       {tags.length > 0 && (
-        <div className="px-4 py-2" data-testid="section-tags">
+        <div className="px-6 py-2" data-testid="section-tags">
           <div className="flex flex-wrap gap-2">
             {tags.map((tag, i) => (
-              <span key={i} className="glass-card rounded-full px-3 py-1.5 text-xs text-muted-foreground" data-testid={`tag-${i}`}>
+              <span key={i} className="rounded-full px-3 py-1.5 text-xs text-[var(--ink3)]" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid={`tag-${i}`}>
                 {tag}
               </span>
             ))}
@@ -311,24 +329,23 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       )}
 
-      {/* RECENT ACTIVITY */}
       {activity && (activity.recentJoins > 0 || activity.totalEvents > 0) && (
-        <div className="px-4 py-4" data-testid="section-recent-activity">
-          <div className="glass-card neon-border rounded-2xl p-4 space-y-2">
-            <h3 className="font-display text-base font-bold text-foreground">Recent Activity</h3>
+        <div className="px-6 py-4" data-testid="section-recent-activity">
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }}>
+            <h3 className="font-display text-base font-bold text-[var(--ink)]">Recent Activity</h3>
             {activity.recentJoins > 0 && (
               <div className="flex items-center gap-2 text-sm" data-testid="text-recent-joins">
-                <Users className="w-4 h-4 neon-text" />
-                <span className="text-foreground">
-                  <span className="font-semibold neon-text">{activity.recentJoins}</span> new {activity.recentJoins === 1 ? "member" : "members"} this week
+                <Users className="w-4 h-4 text-[var(--terra)]" />
+                <span className="text-[var(--ink)]">
+                  <span className="font-semibold text-[var(--terra)]">{activity.recentJoins}</span> new {activity.recentJoins === 1 ? "member" : "members"} this week
                 </span>
               </div>
             )}
             {activity.totalEvents > 0 && (
               <div className="flex items-center gap-2 text-sm" data-testid="text-total-events">
-                <Calendar className="w-4 h-4 neon-text" />
-                <span className="text-foreground">
-                  <span className="font-semibold neon-text">{activity.totalEvents}</span> {activity.totalEvents === 1 ? "event" : "events"} hosted
+                <Calendar className="w-4 h-4 text-[var(--terra)]" />
+                <span className="text-[var(--ink)]">
+                  <span className="font-semibold text-[var(--terra)]">{activity.totalEvents}</span> {activity.totalEvents === 1 ? "event" : "events"} hosted
                 </span>
               </div>
             )}
@@ -336,29 +353,27 @@ function ClubDetailContent({ club }: { club: Club }) {
         </div>
       )}
 
-      {/* 5. UPCOMING EVENTS SECTION */}
       <ClubEvents clubId={club.id} clubName={club.name} isAuthenticated={isAuthenticated} />
 
-      {/* Founding Member Card */}
-      <div className="px-4 py-4">
-        <Card className="p-4 glass-card neon-border" data-testid="card-founding">
+      <div className="px-6 py-4">
+        <Card className="p-4" style={{ border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-founding">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 neon-text" />
-              <span className="text-sm font-semibold neon-text">Founding Member Spots</span>
+              <Star className="w-4 h-4 text-[var(--terra)]" />
+              <span className="text-sm font-semibold text-[var(--terra)]">Founding Member Spots</span>
             </div>
-            <span className="text-xs font-bold neon-text">
+            <span className="text-xs font-bold text-[var(--terra)]">
               {allFoundingTaken ? "All taken" : `${foundingSpotsLeft} of ${club.foundingTotal ?? 20} left`}
             </span>
           </div>
-          <div className="w-full h-2 bg-neon/10 rounded-full overflow-hidden mb-2">
+          <div className="w-full h-2 rounded-full overflow-hidden mb-2" style={{ background: 'var(--terra-pale)' }}>
             <div
-              className="h-full bg-neon rounded-full transition-all neon-glow"
-              style={{ width: `${Math.min(foundingProgress, 100)}%` }}
+              className="h-full rounded-full transition-all"
+              style={{ width: `${Math.min(foundingProgress, 100)}%`, background: 'var(--terra)', boxShadow: 'var(--warm-shadow2)' }}
               data-testid="bar-founding-progress"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-[var(--muted-warm)]">
             {allFoundingTaken
               ? "All founding spots taken. You can still join!"
               : "Join now to get your Founding Member badge"}
@@ -366,15 +381,14 @@ function ClubDetailContent({ club }: { club: Club }) {
         </Card>
       </div>
 
-      {/* 6. JOIN CTA - Sticky at bottom */}
       {joinSuccess ? (
-        <div className="px-4 py-6">
+        <div className="px-6 py-6">
           <Card className="p-6 text-center space-y-3" data-testid="card-join-success">
             <div className="text-4xl">
-              <Star className="w-10 h-10 mx-auto neon-text" />
+              <Star className="w-10 h-10 mx-auto text-[var(--terra)]" />
             </div>
-            <h3 className="font-display text-xl font-bold neon-text">You're in the tribe!</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="font-display text-xl font-bold text-[var(--terra)]">You're in the tribe!</h3>
+            <p className="text-sm text-[var(--muted-warm)]">
               Organizer will add you to WhatsApp group within 24 hours.
             </p>
             {club.whatsappNumber && (
@@ -382,7 +396,8 @@ function ClubDetailContent({ club }: { club: Club }) {
                 href={`https://wa.me/${club.whatsappNumber}?text=${encodeURIComponent(`Hi! I just joined ${club.name} on CultFam. Please add me to the group!`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-emerald-600 text-foreground rounded-md px-5 py-3 text-sm font-semibold transition-all border border-emerald-600"
+                className="inline-flex items-center gap-2 text-white rounded-md px-5 py-3 text-sm font-semibold transition-all"
+                style={{ background: "var(--green-accent)", borderColor: "var(--green-accent)" }}
                 data-testid="button-join-whatsapp"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -392,16 +407,17 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         </div>
       ) : showJoinForm ? (
-        <div ref={joinFormRef} className="px-4 py-6">
+        <div ref={joinFormRef} className="px-6 py-6">
           <Card className="p-6 space-y-3" data-testid="form-join">
-            <h3 className="font-display text-lg font-bold text-foreground mb-1">Join {club.name}</h3>
-            <p className="text-xs text-muted-foreground mb-1">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
+            <h3 className="font-display text-lg font-bold text-[var(--ink)] mb-1">Join {club.name}</h3>
+            <p className="text-xs text-[var(--muted-warm)] mb-1">Your phone number is shared with the organizer so they can add you to the WhatsApp group.</p>
             <input
               type="text"
               placeholder="Your Name"
               value={joinName}
               onChange={(e) => setJoinName(e.target.value)}
-              className="w-full px-4 py-3 rounded-md glass-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 placeholder:text-muted-foreground"
+              className="w-full px-4 py-3 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 placeholder:text-[var(--muted-warm)]"
+              style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
               data-testid="input-join-name"
             />
             <input
@@ -409,7 +425,8 @@ function ClubDetailContent({ club }: { club: Club }) {
               placeholder="Phone Number (for WhatsApp group)"
               value={joinPhone}
               onChange={(e) => setJoinPhone(e.target.value)}
-              className="w-full px-4 py-3 rounded-md glass-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 placeholder:text-muted-foreground"
+              className="w-full px-4 py-3 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 placeholder:text-[var(--muted-warm)]"
+              style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
               data-testid="input-join-phone"
             />
             {joinError && (
@@ -418,7 +435,8 @@ function ClubDetailContent({ club }: { club: Club }) {
             <button
               onClick={handleJoinSubmit}
               disabled={joinMutation.isPending}
-              className="w-full bg-neon text-background rounded-xl py-4 font-display font-bold text-lg neon-glow disabled:opacity-50"
+              className="w-full text-white rounded-xl py-4 font-display font-bold text-lg disabled:opacity-50"
+              style={{ background: 'var(--ink)', boxShadow: 'var(--warm-shadow)' }}
               data-testid="button-send-join"
             >
               {joinMutation.isPending ? "Sending..." : "Send Join Request"}
@@ -426,35 +444,31 @@ function ClubDetailContent({ club }: { club: Club }) {
           </Card>
         </div>
       ) : (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 py-3 space-y-2" data-testid="sticky-join-cta">
+        <div className="fixed bottom-0 left-0 right-0 z-40 px-6 py-3.5 flex items-center gap-3" style={{ background: 'var(--cream)', borderTop: '1.5px solid var(--warm-border)' }} data-testid="sticky-join-cta">
           {!isAuthenticated ? (
             <a
               href="/api/login"
-              className="block w-full bg-neon text-primary-foreground text-center rounded-xl py-4 font-display font-bold text-lg neon-glow"
+              className="block w-full text-center rounded-2xl py-4 font-display font-bold italic text-lg tracking-tight transition-all"
+              style={{ background: 'var(--ink)', color: 'var(--cream)' }}
               data-testid="button-signin-to-join"
             >
               Sign In to Join
             </a>
           ) : (
-            <button
-              onClick={() => setShowJoinForm(true)}
-              className="w-full bg-neon text-background rounded-xl py-4 font-display font-bold text-lg neon-glow"
-              data-testid="button-join"
-            >
-              I Want to Join
-            </button>
-          )}
-          {club.whatsappNumber && (
-            <a
-              href={`https://wa.me/${club.whatsappNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full glass-card rounded-xl py-3 text-sm font-medium text-foreground"
-              data-testid="button-whatsapp"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Message on WhatsApp
-            </a>
+            <>
+              <div className="flex-1">
+                <div className="font-mono text-[32px] leading-none tracking-wide text-[var(--terra)]">FREE</div>
+                <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider">FOUNDING MEMBER</div>
+              </div>
+              <button
+                onClick={() => setShowJoinForm(true)}
+                className="flex-[2] rounded-2xl py-4 font-display font-bold italic text-base tracking-tight flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'var(--ink)', color: 'var(--cream)' }}
+                data-testid="button-join"
+              >
+                Join the Tribe <ArrowRight className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       )}
@@ -494,12 +508,12 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
   const upcomingEvents = events.filter((e) => new Date(e.startsAt) > new Date());
 
   return (
-    <div className="px-4 py-4" data-testid="section-club-events">
-      <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Upcoming Events</h2>
+    <div className="px-6 py-4" data-testid="section-club-events">
+      <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-3">Upcoming Events</h2>
       {upcomingEvents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No upcoming events</p>
+        <p className="text-sm text-[var(--muted-warm)]">No upcoming events</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {upcomingEvents.slice(0, 5).map((event) => {
             const d = new Date(event.startsAt);
             const month = d.toLocaleDateString("en-IN", { month: "short" });
@@ -507,22 +521,25 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
             return (
               <div
                 key={event.id}
-                className="glass-card rounded-xl p-3 flex items-center gap-3 cursor-pointer hover-elevate"
+                className="rounded-xl overflow-hidden cursor-pointer hover-elevate"
+                style={{ background: 'var(--ink)', borderRadius: '20px' }}
                 onClick={() => navigate(`/event/${event.id}`)}
                 data-testid={`club-event-${event.id}`}
               >
-                <div className="bg-neon/10 rounded-lg p-2 flex flex-col items-center justify-center shrink-0 min-w-[3rem]">
-                  <span className="text-xs neon-text font-medium">{month}</span>
-                  <span className="font-bold text-foreground text-lg leading-tight">{day}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-display font-semibold text-foreground text-sm truncate">{event.title}</div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    <span className="truncate">{event.locationText}</span>
+                <div className="p-4 flex items-center gap-3">
+                  <div className="rounded-lg p-2 flex flex-col items-center justify-center shrink-0 min-w-[3rem]" style={{ background: 'var(--terra-pale)' }}>
+                    <span className="text-xs text-[var(--terra-light)] font-medium">{month}</span>
+                    <span className="font-bold text-[var(--cream)] text-lg leading-tight">{day}</span>
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display font-semibold text-[var(--cream)] text-sm truncate">{event.title}</div>
+                    <div className="flex items-center gap-1 text-xs text-[var(--muted-warm2)] mt-0.5">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{event.locationText}</span>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-[var(--terra-light)] shrink-0" />
                 </div>
-                <ArrowRight className="w-4 h-4 neon-text shrink-0" />
               </div>
             );
           })}
@@ -535,10 +552,15 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
 function ClubDetailSkeleton() {
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="h-64 w-full bg-gradient-to-b from-card to-background flex items-center justify-center">
+      <div className="h-72 w-full bg-gradient-to-b from-[#E8D5B8] to-background flex items-center justify-center">
         <Skeleton className="w-20 h-20 rounded-full" />
       </div>
-      <div className="px-4 py-4 flex justify-between items-center gap-4">
+      <div className="grid grid-cols-3 gap-2 px-6 mt-4">
+        <Skeleton className="h-20 rounded-[14px]" />
+        <Skeleton className="h-20 rounded-[14px]" />
+        <Skeleton className="h-20 rounded-[14px]" />
+      </div>
+      <div className="px-6 py-4 flex justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <Skeleton className="w-10 h-10 rounded-full" />
           <div>
@@ -546,20 +568,16 @@ function ClubDetailSkeleton() {
             <Skeleton className="w-24 h-4" />
           </div>
         </div>
-        <div className="text-right">
-          <Skeleton className="w-16 h-3 mb-1 ml-auto" />
-          <Skeleton className="w-10 h-7 ml-auto" />
-        </div>
       </div>
-      <div className="px-4 py-4 space-y-2">
+      <div className="px-6 py-4 space-y-2">
         <Skeleton className="w-16 h-3" />
         <Skeleton className="w-full h-4" />
         <Skeleton className="w-3/4 h-4" />
       </div>
-      <div className="px-4 py-2 flex gap-2 flex-wrap">
+      <div className="px-6 py-2 flex gap-2 flex-wrap">
         <Skeleton className="w-20 h-7 rounded-full" />
-        <Skeleton className="w-24 h-7 rounded-full" />
         <Skeleton className="w-16 h-7 rounded-full" />
+        <Skeleton className="w-24 h-7 rounded-full" />
       </div>
     </div>
   );

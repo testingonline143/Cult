@@ -13,17 +13,17 @@ export default {
       colors: {
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
-        border: "hsl(var(--border) / <alpha-value>)",
-        input: "hsl(var(--input) / <alpha-value>)",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
         card: {
           DEFAULT: "hsl(var(--card) / <alpha-value>)",
           foreground: "hsl(var(--card-foreground) / <alpha-value>)",
-          border: "hsl(var(--card-border) / <alpha-value>)",
+          border: "hsl(var(--card-border))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover) / <alpha-value>)",
           foreground: "hsl(var(--popover-foreground) / <alpha-value>)",
-          border: "hsl(var(--popover-border) / <alpha-value>)",
+          border: "hsl(var(--popover-border))",
         },
         primary: {
           DEFAULT: "hsl(var(--primary) / <alpha-value>)",
@@ -52,6 +52,10 @@ export default {
         },
         ring: "hsl(var(--ring) / <alpha-value>)",
         neon: "hsl(var(--neon) / <alpha-value>)",
+        terra: "var(--terra)",
+        ink: "var(--ink)",
+        gold: "var(--gold)",
+        cream: "var(--cream)",
         chart: {
           "1": "hsl(var(--chart-1) / <alpha-value>)",
           "2": "hsl(var(--chart-2) / <alpha-value>)",

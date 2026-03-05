@@ -39,11 +39,11 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
           transition={{ duration: 0.5 }}
           className="mb-10"
         >
-          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase neon-text mb-3">
-            <span className="w-5 h-px bg-neon" />
+          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase mb-3" style={{ color: "var(--terra)" }}>
+            <span className="w-5 h-px" style={{ background: "var(--terra)" }} />
             Live Now
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-foreground leading-tight">
+          <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight leading-tight" style={{ color: "var(--ink)" }}>
             What's popping in Tirupati
           </h2>
         </motion.div>
@@ -61,11 +61,12 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
               <button
                 key={tab.id}
                 onClick={() => onCategoryChange(tab.id)}
-                className={`px-4 py-2 rounded-full border-[1.5px] text-[13px] font-medium flex items-center gap-1.5 transition-all ${
+                className="px-4 py-2 rounded-full border-[1.5px] text-[13px] font-medium flex items-center gap-1.5 transition-all"
+                style={
                   isActive
-                    ? "bg-neon text-background border-neon"
-                    : "glass-card text-muted-foreground"
-                }`}
+                    ? { background: "var(--ink)", color: "var(--cream)", borderColor: "var(--ink)" }
+                    : { background: "var(--warm-white)", borderColor: "var(--warm-border)", color: "var(--ink3, #3D3228)" }
+                }
                 data-testid={`button-filter-${tab.id.toLowerCase()}`}
               >
                 {tab.emoji} {tab.id}
@@ -77,7 +78,7 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl glass-card p-5 space-y-4">
+              <div key={i} className="rounded-2xl p-5 space-y-4" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "18px" }}>
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-[52px] h-[52px] rounded-[14px]" />
                   <Skeleton className="h-5 w-24" />
@@ -99,8 +100,8 @@ export function ClubsSection({ clubs, isLoading, activeCategory, onCategoryChang
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <p className="text-muted-foreground text-lg mb-2">No clubs found in this category yet.</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-lg mb-2" style={{ color: "var(--muted-warm)" }}>No clubs found in this category yet.</p>
+            <p className="text-sm" style={{ color: "var(--muted-warm)" }}>
               Want to start one?{" "}
               <Button
                 variant="ghost"

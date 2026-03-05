@@ -14,7 +14,7 @@ export default function Profile() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-neon border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -23,8 +23,8 @@ export default function Profile() {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center px-4">
         <div className="glass-card rounded-2xl p-8 text-center max-w-sm w-full space-y-4">
-          <div className="w-16 h-16 rounded-full bg-neon/10 flex items-center justify-center mx-auto neon-border border">
-            <UserIcon className="w-8 h-8 neon-text" />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto border-2" style={{ background: 'var(--terra-pale)', borderColor: 'var(--terra)' }}>
+            <UserIcon className="w-8 h-8" style={{ color: 'var(--terra)' }} />
           </div>
           <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-sign-in-heading">
             Your Profile
@@ -34,7 +34,8 @@ export default function Profile() {
           </p>
           <button
             onClick={() => { window.location.href = "/api/login"; }}
-            className="bg-neon text-background rounded-xl px-8 py-3 text-sm font-semibold inline-flex items-center gap-2"
+            className="rounded-xl px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 text-white"
+            style={{ background: 'var(--terra)' }}
             data-testid="button-sign-in-profile"
           >
             <LogIn className="w-4 h-4" />
@@ -133,16 +134,17 @@ function ProfileHeader({ user }: { user: User }) {
       <div className="flex items-start gap-4">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="relative w-16 h-16 rounded-full bg-neon/10 flex items-center justify-center shrink-0 overflow-hidden neon-border border group"
+          className="relative w-16 h-16 rounded-full flex items-center justify-center shrink-0 overflow-hidden border-2 group"
+          style={{ background: 'var(--terra-pale)', borderColor: 'var(--terra)' }}
           disabled={photoMutation.isPending}
           data-testid="button-upload-photo"
         >
           {photoMutation.isPending ? (
-            <Loader2 className="w-6 h-6 neon-text animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--terra)' }} />
           ) : user.profileImageUrl ? (
             <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover rounded-full" />
           ) : (
-            <UserIcon className="w-7 h-7 neon-text" />
+            <UserIcon className="w-7 h-7" style={{ color: 'var(--terra)' }} />
           )}
           {!photoMutation.isPending && (
             <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -168,7 +170,8 @@ function ProfileHeader({ user }: { user: User }) {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30"
+                  className="w-full px-3 py-2 rounded-md border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  style={{ borderColor: 'var(--warm-border)', background: 'var(--cream)' }}
                   data-testid="input-edit-name"
                   autoFocus
                 />
@@ -180,17 +183,19 @@ function ProfileHeader({ user }: { user: User }) {
                   onChange={(e) => setEditBio(e.target.value.slice(0, 200))}
                   placeholder="Tell the club about yourself"
                   rows={3}
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 resize-none"
+                  className="w-full px-3 py-2 rounded-md border text-sm text-foreground focus:outline-none focus:ring-2 resize-none"
+                  style={{ borderColor: 'var(--warm-border)', background: 'var(--cream)' }}
                   data-testid="input-edit-bio"
                 />
                 <p className="text-xs text-muted-foreground text-right mt-0.5">{editBio.length}/200</p>
               </div>
               {error && <p className="text-xs text-destructive" data-testid="text-edit-error">{error}</p>}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={handleSave}
                   disabled={updateMutation.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-50 text-white"
+                  style={{ background: 'var(--terra)' }}
                   data-testid="button-save-profile"
                 >
                   <Check className="w-3.5 h-3.5" />
@@ -208,8 +213,8 @@ function ProfileHeader({ user }: { user: User }) {
             </div>
           ) : (
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-display text-2xl font-bold neon-text" data-testid="text-profile-name">{displayName}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-display text-2xl font-bold" style={{ color: 'var(--terra)' }} data-testid="text-profile-name">{displayName}</h1>
                 <button
                   onClick={() => setEditing(true)}
                   className="w-7 h-7 rounded-full glass-card text-muted-foreground flex items-center justify-center transition-all"
@@ -219,7 +224,7 @@ function ProfileHeader({ user }: { user: User }) {
                 </button>
               </div>
               {user.email && <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-email">{user.email}</p>}
-              {user.city && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" /> {user.city}</p>}
+              {user.city && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap"><MapPin className="w-3 h-3" /> {user.city}</p>}
               {user.bio && <p className="text-sm text-foreground mt-2" data-testid="text-profile-bio">{user.bio}</p>}
             </div>
           )}
@@ -242,12 +247,12 @@ function ProfileActions({ user }: { user: User }) {
     <div className="space-y-3 mb-6">
       {isOrganiserOrAdmin && (
         <Link href="/organizer" data-testid="link-organiser-dashboard">
-          <div className="glass-card rounded-2xl p-4 neon-border border flex items-center gap-4 cursor-pointer group transition-all">
-            <div className="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center shrink-0">
-              <LayoutDashboard className="w-5 h-5 neon-text" />
+          <div className="glass-card rounded-2xl p-4 flex items-center gap-4 cursor-pointer group transition-all" style={{ borderColor: 'rgba(196,98,45,0.3)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
+              <LayoutDashboard className="w-5 h-5" style={{ color: 'var(--terra)' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-display text-sm font-bold neon-text" data-testid="text-organiser-dashboard-label">Organiser Dashboard</h3>
+              <h3 className="font-display text-sm font-bold" style={{ color: 'var(--terra)' }} data-testid="text-organiser-dashboard-label">Organiser Dashboard</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Manage your clubs, events & members</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -339,7 +344,7 @@ function UserEvents({ userId }: { userId: string }) {
                   </span>
                 </div>
               </div>
-              <span className="text-xs font-semibold neon-text shrink-0 flex items-center gap-1">
+              <span className="text-xs font-semibold shrink-0 flex items-center gap-1" style={{ color: 'var(--green-accent)' }}>
                 <Check className="w-3 h-3" /> Going
               </span>
             </div>
@@ -395,7 +400,7 @@ function JoinedClubs({ userId }: { userId: string }) {
             <Users className="w-6 h-6 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">You haven't joined any clubs yet.</p>
-          <Link href="/explore" className="text-sm neon-text hover:underline mt-2 inline-block" data-testid="link-explore-clubs">
+          <Link href="/explore" className="text-sm hover:underline mt-2 inline-block" style={{ color: 'var(--terra)' }} data-testid="link-explore-clubs">
             Explore clubs
           </Link>
         </div>
@@ -420,7 +425,7 @@ function JoinedClubs({ userId }: { userId: string }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`w-2 h-2 rounded-full ${club.healthStatus === "green" ? "bg-neon" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"}`} />
+                  <span className={`w-2 h-2 rounded-full ${club.healthStatus === "green" ? "bg-[var(--green-accent)]" : club.healthStatus === "yellow" ? "bg-chart-4" : "bg-destructive"}`} />
                   <span className="text-xs text-muted-foreground">{club.healthLabel}</span>
                 </div>
               </div>
@@ -448,9 +453,9 @@ function JoinedClubs({ userId }: { userId: string }) {
                   </span>
                 </div>
                 {req.markedDone ? (
-                  <span className="text-xs font-semibold neon-text flex items-center gap-1" data-testid={`text-status-${req.id}`}><Check className="w-3 h-3" /> Added</span>
+                  <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--green-accent)' }} data-testid={`text-status-${req.id}`}><Check className="w-3 h-3" /> Added</span>
                 ) : (
-                  <span className="text-xs font-semibold text-chart-4" data-testid={`text-status-${req.id}`}>Pending</span>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }} data-testid={`text-status-${req.id}`}>Pending</span>
                 )}
               </div>
             ))}

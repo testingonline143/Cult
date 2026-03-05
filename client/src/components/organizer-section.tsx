@@ -87,21 +87,21 @@ export function OrganizerSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <div className="glass-card rounded-3xl p-8 sm:p-12 text-center relative overflow-visible">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neon to-neon/30 rounded-t-3xl" />
+          <div className="rounded-3xl p-8 sm:p-12 text-center relative overflow-visible" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "24px" }}>
+            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: "linear-gradient(to right, var(--terra), rgba(196,98,45,0.3))" }} />
 
             <div className="text-[52px] mb-5">{"\u{1F3D5}\uFE0F"}</div>
-            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-foreground tracking-tight leading-[1.1] mb-3.5">
-              Got a cult? <span className="neon-text">Put it on the map.</span>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-[1.1] mb-3.5" style={{ color: "var(--ink)" }}>
+              Got a cult? <em style={{ color: "var(--terra)", fontStyle: "italic" }}>Put it on the map.</em>
             </h2>
-            <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[500px] mx-auto mb-8">
+            <p className="text-[15px] leading-relaxed max-w-[500px] mx-auto mb-8" style={{ color: "var(--muted-warm)" }}>
               List your club for free. Get discovered by hundreds of people looking for exactly what you're building. Goes live instantly.
             </p>
 
             <div className="flex gap-3 justify-center flex-wrap mb-8">
               {["Free forever", "Goes live instantly", "More members", "Get discovered"].map((perk) => (
-                <span key={perk} className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground px-3.5 py-1.5 rounded-full glass-card">
-                  <Check className="w-3.5 h-3.5 text-neon" />
+                <span key={perk} className="flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full" style={{ color: "var(--muted-warm)", background: "var(--cream)", border: "1px solid var(--warm-border)" }}>
+                  <Check className="w-3.5 h-3.5" style={{ color: "var(--terra)" }} />
                   {perk}
                 </span>
               ))}
@@ -112,10 +112,11 @@ export function OrganizerSection() {
                 <motion.div key="cta" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="bg-neon text-background rounded-full px-9 py-4 text-[15px] font-semibold transition-all neon-glow"
+                    className="rounded-full px-9 py-4 text-[15px] font-semibold transition-all"
+                    style={{ background: "var(--terra)", color: "white", boxShadow: "var(--warm-shadow)" }}
                     data-testid="button-list-club-cta"
                   >
-                    Create My Club for Free →
+                    Create My Club for Free &rarr;
                   </button>
                 </motion.div>
               )}
@@ -131,11 +132,12 @@ export function OrganizerSection() {
                 >
                   {!isAuthenticated ? (
                     <div className="text-center space-y-4 py-6">
-                      <LogIn className="w-10 h-10 text-neon mx-auto" />
-                      <p className="text-sm text-muted-foreground">Sign in first to create your club</p>
+                      <LogIn className="w-10 h-10 mx-auto" style={{ color: "var(--terra)" }} />
+                      <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Sign in first to create your club</p>
                       <button
                         onClick={() => { window.location.href = "/api/login"; }}
-                        className="bg-neon text-background rounded-xl px-8 py-3 text-sm font-semibold"
+                        className="rounded-xl px-8 py-3 text-sm font-semibold"
+                        style={{ background: "var(--terra)", color: "white" }}
                         data-testid="button-sign-in-to-create"
                       >
                         Sign In
@@ -144,7 +146,7 @@ export function OrganizerSection() {
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-3">
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Club Name *</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Club Name *</label>
                         <Input
                           placeholder="e.g. Tirupati Trekkers"
                           className="rounded-xl"
@@ -154,7 +156,7 @@ export function OrganizerSection() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Category *</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Category *</label>
                         <Select onValueChange={setCategory} value={category}>
                           <SelectTrigger className="rounded-xl" data-testid="select-category">
                             <SelectValue placeholder="Select Category" />
@@ -168,7 +170,7 @@ export function OrganizerSection() {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Your Name *</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Your Name *</label>
                         <Input
                           placeholder="Your full name"
                           className="rounded-xl"
@@ -178,7 +180,7 @@ export function OrganizerSection() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Short Description</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Short Description</label>
                         <Input
                           placeholder="One-liner about your club"
                           className="rounded-xl"
@@ -188,11 +190,12 @@ export function OrganizerSection() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Full Description</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Full Description</label>
                         <textarea
                           placeholder="Tell people what your club is about, what you do, who should join..."
                           rows={3}
-                          className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-neon/30 resize-none"
+                          className="w-full px-3 py-2 rounded-xl text-sm resize-none"
+                          style={{ border: "1.5px solid var(--warm-border)", background: "var(--cream)", color: "var(--ink)" }}
                           data-testid="input-full-desc"
                           value={fullDesc}
                           onChange={(e) => setFullDesc(e.target.value)}
@@ -200,7 +203,7 @@ export function OrganizerSection() {
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Schedule</label>
+                          <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Schedule</label>
                           <Input
                             placeholder="e.g. Every Sunday 6 AM"
                             className="rounded-xl"
@@ -210,7 +213,7 @@ export function OrganizerSection() {
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Location</label>
+                          <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>Location</label>
                           <Input
                             placeholder="e.g. SV University"
                             className="rounded-xl"
@@ -222,7 +225,7 @@ export function OrganizerSection() {
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">City</label>
+                          <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>City</label>
                           <Select onValueChange={setCity} value={city}>
                             <SelectTrigger className="rounded-xl" data-testid="select-city">
                               <SelectValue placeholder="Select City" />
@@ -235,7 +238,7 @@ export function OrganizerSection() {
                           </Select>
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">WhatsApp</label>
+                          <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: "var(--muted-warm)" }}>WhatsApp</label>
                           <Input
                             placeholder="For member coordination"
                             type="tel"
@@ -249,7 +252,8 @@ export function OrganizerSection() {
                       <button
                         type="submit"
                         disabled={createMutation.isPending}
-                        className="w-full bg-neon text-background rounded-xl py-3.5 text-[15px] font-semibold transition-all disabled:opacity-60 neon-glow"
+                        className="w-full rounded-xl py-3.5 text-[15px] font-semibold transition-all disabled:opacity-60"
+                        style={{ background: "var(--terra)", color: "white", boxShadow: "var(--warm-shadow)" }}
                         data-testid="button-submit-club"
                       >
                         {createMutation.isPending ? (
@@ -258,7 +262,7 @@ export function OrganizerSection() {
                             Creating...
                           </span>
                         ) : (
-                          "Create Club & Go Live →"
+                          "Create Club & Go Live \u2192"
                         )}
                       </button>
                     </form>
@@ -275,8 +279,8 @@ export function OrganizerSection() {
                   data-testid="text-creation-success"
                 >
                   <div className="text-5xl mb-3">{"\u{1F331}"}</div>
-                  <h3 className="font-display text-xl font-bold neon-text mb-2">Your Club is Live!</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-display text-xl font-bold mb-2" style={{ color: "var(--terra)" }}>Your Club is Live!</h3>
+                  <p className="text-sm" style={{ color: "var(--muted-warm)" }}>
                     Redirecting you to your organizer dashboard...
                   </p>
                 </motion.div>

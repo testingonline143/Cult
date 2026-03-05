@@ -55,8 +55,8 @@ export default function Events() {
   }, [events, activeFilter]);
 
   return (
-    <div className="min-h-screen bg-background pb-24 px-4 pt-6">
-      <h1 className="font-display italic text-3xl font-bold text-foreground mb-6" data-testid="text-page-title">
+    <div className="min-h-screen bg-background pb-24 px-6 pt-6">
+      <h1 className="font-display italic text-3xl font-bold mb-6" style={{ color: "var(--ink)" }} data-testid="text-page-title">
         Event Schedule
       </h1>
 
@@ -66,11 +66,12 @@ export default function Events() {
             key={filter}
             onClick={() => setActiveFilter(filter)}
             data-testid={`button-filter-${filter.toLowerCase().replace(/\s+/g, "-")}`}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+            className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+            style={
               activeFilter === filter
-                ? "bg-neon text-primary-foreground neon-glow"
-                : "glass-card text-muted-foreground"
-            }`}
+                ? { background: "var(--ink)", color: "var(--cream)", border: "1.5px solid var(--ink)" }
+                : { background: "var(--warm-white)", color: "var(--muted-warm)", border: "1.5px solid var(--warm-border)" }
+            }
           >
             {filter}
           </button>
@@ -80,20 +81,21 @@ export default function Events() {
       {eventsLoading ? (
         <div className="flex flex-col gap-4 mt-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="glass-card rounded-2xl p-4 h-32 animate-pulse" />
+            <div key={i} className="rounded-[18px] p-4 h-32 animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
           ))}
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center mt-20 text-muted-foreground" data-testid="text-empty-state">
-          <Calendar className="w-12 h-12 mb-3" />
-          <p className="text-lg font-semibold">No upcoming events</p>
-          <p className="text-sm mt-1">
+        <div className="flex flex-col items-center justify-center mt-20" data-testid="text-empty-state">
+          <Calendar className="w-12 h-12 mb-3" style={{ color: "var(--muted-warm)" }} />
+          <p className="text-lg font-semibold" style={{ color: "var(--ink)" }}>No upcoming events</p>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-warm)" }}>
             {activeFilter !== "All" ? "Try a different filter" : "Check back soon for new events"}
           </p>
           {isAuthenticated && (
             <Link
               href="/create"
-              className="mt-4 inline-flex items-center gap-1.5 bg-neon text-primary-foreground px-5 py-2.5 rounded-xl text-sm font-semibold neon-glow"
+              className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+              style={{ background: "var(--terra)" }}
               data-testid="link-create-event"
             >
               <Plus className="w-4 h-4" />
@@ -108,44 +110,46 @@ export default function Events() {
             return (
               <div
                 key={event.id}
-                className="glass-card rounded-2xl p-4 mb-4 flex gap-4 relative"
+                className="rounded-[18px] p-4 mb-4 flex gap-4 relative"
+                style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
                 data-testid={`card-event-${event.id}`}
               >
                 <div className="flex-shrink-0 text-center w-16">
-                  <div className="neon-text text-xs font-bold uppercase">
+                  <div className="text-xs font-bold uppercase" style={{ color: "var(--terra)" }}>
                     {format(date, "EEE")}
                   </div>
-                  <div className="text-2xl font-bold text-foreground">
+                  <div className="font-mono text-[28px] leading-none" style={{ color: "var(--ink)", letterSpacing: "1px" }}>
                     {format(date, "d")}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs" style={{ color: "var(--muted-warm)" }}>
                     {format(date, "MMM")}
                   </div>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-display font-bold text-lg text-foreground" data-testid={`text-event-title-${event.id}`}>
+                  <h3 className="font-display font-bold text-lg" style={{ color: "var(--ink)" }} data-testid={`text-event-title-${event.id}`}>
                     {event.title}
                   </h3>
-                  <p className="neon-text text-xs font-bold uppercase tracking-wider" data-testid={`text-club-name-${event.id}`}>
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--terra)" }} data-testid={`text-club-name-${event.id}`}>
                     {clubMap[event.clubId] || "Unknown Club"}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5 mt-2 text-sm" style={{ color: "var(--muted-warm)" }}>
                     <Calendar className="w-3.5 h-3.5" />
                     <span>{format(date, "h:mm a")}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5 mt-1 text-sm" style={{ color: "var(--muted-warm)" }}>
                     <MapPin className="w-3.5 h-3.5" />
                     <span>{event.locationText}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5 mt-1 text-sm" style={{ color: "var(--muted-warm)" }}>
                     <Users className="w-3.5 h-3.5" />
                     <span>{event.rsvps?.filter(r => r.status === "going").length ?? 0} / {event.maxCapacity} Joined</span>
                   </div>
                   <div className="flex justify-end mt-2">
                     <button
                       onClick={() => navigate(`/event/${event.id}`)}
-                      className="neon-text text-sm font-semibold"
+                      className="text-sm font-bold"
+                      style={{ color: "var(--terra)" }}
                       data-testid={`link-details-${event.id}`}
                     >
                       Details
@@ -153,9 +157,13 @@ export default function Events() {
                   </div>
                 </div>
 
-                {(!event.ticketPrice || event.ticketPrice === 0) && (
-                  <span className="absolute top-3 right-3 bg-neon/10 neon-text text-xs font-bold px-2 py-0.5 rounded-full" data-testid={`badge-free-${event.id}`}>
+                {(!event.ticketPrice || event.ticketPrice === 0) ? (
+                  <span className="absolute top-3 right-3 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1px solid rgba(196,98,45,0.2)" }} data-testid={`badge-free-${event.id}`}>
                     FREE
+                  </span>
+                ) : (
+                  <span className="absolute top-3 right-3 font-mono text-lg font-bold" style={{ color: "var(--terra-light)", letterSpacing: "1px" }} data-testid={`badge-price-${event.id}`}>
+                    {event.ticketPrice}
                   </span>
                 )}
               </div>

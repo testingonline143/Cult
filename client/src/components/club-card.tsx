@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import type { Club } from "@shared/schema";
 
 const HEALTH_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
-  green: { dot: "bg-emerald-500", bg: "bg-emerald-500/10", text: "text-emerald-400" },
-  yellow: { dot: "bg-yellow-500", bg: "bg-yellow-500/10", text: "text-yellow-400" },
-  red: { dot: "bg-red-400", bg: "bg-red-500/10", text: "text-red-400" },
+  green: { dot: "bg-[var(--green-accent)]", bg: "bg-[var(--green-accent)]/10", text: "text-[var(--green-accent)]" },
+  yellow: { dot: "bg-yellow-500", bg: "bg-yellow-500/10", text: "text-yellow-600" },
+  red: { dot: "bg-red-400", bg: "bg-red-500/10", text: "text-red-500" },
 };
 
 interface ClubCardProps {
@@ -41,7 +41,8 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
       transition={{ duration: 0.4, delay: index * 0.05 }}
     >
       <div
-        className="glass-card glass-card-hover rounded-2xl overflow-visible transition-all hover-elevate cursor-pointer"
+        className="overflow-visible transition-all hover-elevate cursor-pointer"
+        style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "18px" }}
         data-testid={`card-club-${club.id}`}
         onClick={() => onViewClub?.(club)}
       >
@@ -59,24 +60,26 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
         </div>
 
         <div className="p-5 pt-4">
-          <div className="text-[11px] font-semibold uppercase tracking-[1px] text-muted-foreground mb-1.5">
+          <div className="text-[11px] font-semibold uppercase tracking-[1px] mb-1.5" style={{ color: "var(--muted-warm)" }}>
             {club.category}
           </div>
           <h3
-            className="font-display text-xl font-bold neon-text tracking-tight leading-tight mb-2"
+            className="font-display text-xl font-bold tracking-tight leading-tight mb-2"
+            style={{ color: "var(--ink)" }}
             data-testid={`text-club-name-${club.id}`}
           >
             {club.name}
           </h3>
           <p
-            className="text-[13px] text-muted-foreground leading-relaxed mb-4 line-clamp-2"
+            className="text-[13px] leading-relaxed mb-4 line-clamp-2"
+            style={{ color: "var(--muted-warm)" }}
             data-testid={`text-club-desc-${club.id}`}
           >
             {club.shortDesc}
           </p>
 
           {foundingSpotsLeft > 0 && (
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-neon bg-neon/[0.08] border border-neon/20 px-2.5 py-1 rounded-full mb-4">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-4" style={{ color: "var(--gold)", background: "var(--gold-pale)", border: "1px solid rgba(201,168,76,0.3)" }}>
               <Star className="w-3 h-3" />
               {foundingSpotsLeft} Founding spots left
             </div>
@@ -84,7 +87,8 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
 
           {club.recentJoins != null && club.recentJoins > 0 && (
             <div
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full mb-4"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-4"
+              style={{ color: "var(--terra)", background: "var(--terra-pale)", border: "1px solid rgba(196,98,45,0.2)" }}
               data-testid={`badge-recent-joins-${club.id}`}
             >
               {club.recentJoins} joined this week
@@ -94,7 +98,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
           <div className="flex items-center flex-wrap gap-2 mb-4">
             <Badge variant="secondary" data-testid={`badge-members-${club.id}`}>
               <Users className="w-3 h-3 mr-1" />
-              {club.memberCount} members
+              <span style={{ color: "var(--terra)", fontWeight: 700 }}>{club.memberCount}</span> members
             </Badge>
             {club.lastActive && (
               <Badge variant="outline" data-testid={`badge-activity-${club.id}`}>
@@ -104,7 +108,7 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
             )}
           </div>
 
-          <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground pt-3.5 border-t border-border mb-4">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-xs pt-3.5 mb-4" style={{ borderTop: "1px solid var(--warm-border)", color: "var(--muted-warm)" }}>
             <span className="inline-flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
               {club.schedule}
@@ -117,7 +121,8 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
 
           <div className="flex items-center gap-2">
             <button
-              className="flex-1 bg-neon text-background rounded-[10px] py-2.5 text-[13px] font-semibold transition-all"
+              className="flex-1 rounded-[10px] py-2.5 text-[13px] font-semibold transition-all"
+              style={{ background: "var(--terra)", color: "white" }}
               data-testid={`button-view-club-${club.id}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -129,7 +134,8 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
             <Link
               href={`/club/${club.id}`}
               onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2"
+              className="inline-flex items-center gap-1 text-xs font-semibold transition-colors px-2"
+              style={{ color: "var(--muted-warm)" }}
               data-testid={`link-club-page-${club.id}`}
             >
               View
@@ -148,11 +154,12 @@ export function ClubCard({ club, index, onViewClub }: ClubCardProps) {
                 href={`https://wa.me/${club.whatsappNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-[42px] h-[42px] bg-emerald-600 text-foreground rounded-[10px] text-lg flex items-center justify-center shrink-0 transition-all"
+                className="w-[42px] h-[42px] rounded-[10px] text-lg flex items-center justify-center shrink-0 transition-all"
+                style={{ background: "var(--green-accent)", color: "white" }}
                 data-testid={`button-chat-club-${club.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
-                💬
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </a>
             )}
           </div>

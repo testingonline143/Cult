@@ -128,8 +128,8 @@ export default function Onboarding() {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <Loader2 className="w-10 h-10 neon-text animate-spin mx-auto mb-4" />
-          <h2 className="font-display text-xl font-bold neon-text" data-testid="text-loading-matches">
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: 'var(--terra)' }} />
+          <h2 className="font-display text-xl font-bold" style={{ color: 'var(--terra)' }} data-testid="text-loading-matches">
             Finding your tribe{user.city ? ` in ${user.city}` : ""}...
           </h2>
           <p className="text-sm text-muted-foreground mt-2">Matching you with the best clubs</p>
@@ -150,8 +150,8 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col">
       <div className="w-full max-w-lg mx-auto px-4 py-6 flex-1 flex flex-col">
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="font-display text-lg font-bold neon-text" data-testid="text-quiz-title">
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <h1 className="font-display text-lg font-bold" style={{ color: 'var(--terra)' }} data-testid="text-quiz-title">
               {stepTitles[step - 1]}
             </h1>
             <span className="text-xs text-muted-foreground" data-testid="text-quiz-step">
@@ -160,7 +160,8 @@ export default function Onboarding() {
           </div>
           <div className="w-full bg-muted rounded-full h-2.5" data-testid="progress-bar">
             <motion.div
-              className="bg-neon h-2.5 rounded-full neon-glow"
+              className="h-2.5 rounded-full"
+              style={{ background: 'var(--terra)', boxShadow: 'var(--warm-shadow2)' }}
               initial={{ width: 0 }}
               animate={{ width: `${(step / totalSteps) * 100}%` }}
               transition={{ duration: 0.3 }}
@@ -188,11 +189,12 @@ export default function Onboarding() {
                         <button
                           key={hobby.name}
                           onClick={() => toggleInterest(hobby.name)}
-                          className={`flex flex-col items-center p-3.5 rounded-xl border transition-all ${selected ? "border-neon bg-neon/10 neon-glow" : "glass-card glass-card-hover"}`}
+                          className={`flex flex-col items-center p-3.5 rounded-xl border transition-all ${selected ? "glass-card" : "glass-card glass-card-hover"}`}
+                          style={selected ? { borderColor: 'var(--terra)', background: 'var(--terra-pale)', boxShadow: 'var(--warm-shadow2)' } : undefined}
                           data-testid={`hobby-${hobby.name.toLowerCase()}`}
                         >
                           <span className="text-2xl mb-1">{hobby.emoji}</span>
-                          <span className={`text-xs font-medium ${selected ? "neon-text" : "text-foreground"}`}>{hobby.name}</span>
+                          <span className={`text-xs font-medium ${selected ? "" : "text-foreground"}`} style={selected ? { color: 'var(--terra)' } : undefined}>{hobby.name}</span>
                         </button>
                       );
                     })}
@@ -211,11 +213,12 @@ export default function Onboarding() {
                         <button
                           key={slot.value}
                           onClick={() => toggleAvailability(slot.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border transition-all text-left ${selected ? "border-neon bg-neon/10 neon-glow" : "glass-card glass-card-hover"}`}
+                          className={`w-full flex items-center p-5 rounded-xl border transition-all text-left ${selected ? "glass-card" : "glass-card glass-card-hover"}`}
+                          style={selected ? { borderColor: 'var(--terra)', background: 'var(--terra-pale)', boxShadow: 'var(--warm-shadow2)' } : undefined}
                           data-testid={`availability-${slot.value}`}
                         >
                           <span className="text-3xl mr-4">{slot.emoji}</span>
-                          <span className={`font-semibold text-lg ${selected ? "neon-text" : "text-foreground"}`}>{slot.label}</span>
+                          <span className={`font-semibold text-lg ${selected ? "" : "text-foreground"}`} style={selected ? { color: 'var(--terra)' } : undefined}>{slot.label}</span>
                         </button>
                       );
                     })}
@@ -233,12 +236,13 @@ export default function Onboarding() {
                         <button
                           key={vibe.value}
                           onClick={() => setVibePreference(vibe.value)}
-                          className={`flex flex-col items-center p-5 rounded-xl border transition-all text-center ${selected ? "border-neon bg-neon/10 neon-glow" : "glass-card glass-card-hover"}`}
+                          className={`flex flex-col items-center p-5 rounded-xl border transition-all text-center ${selected ? "glass-card" : "glass-card glass-card-hover"}`}
+                          style={selected ? { borderColor: 'var(--terra)', background: 'var(--terra-pale)', boxShadow: 'var(--warm-shadow2)' } : undefined}
                           data-testid={`vibe-${vibe.value}`}
                         >
                           <span className="text-4xl mb-2">{vibe.emoji}</span>
-                          <span className={`font-semibold text-sm ${selected ? "neon-text" : "text-foreground"}`}>{vibe.label}</span>
-                          <p className={`text-xs mt-1 ${selected ? "text-neon/70" : "text-muted-foreground"}`}>{vibe.desc}</p>
+                          <span className={`font-semibold text-sm ${selected ? "" : "text-foreground"}`} style={selected ? { color: 'var(--terra)' } : undefined}>{vibe.label}</span>
+                          <p className={`text-xs mt-1 ${selected ? "" : "text-muted-foreground"}`} style={selected ? { color: 'var(--terra)', opacity: 0.7 } : undefined}>{vibe.desc}</p>
                         </button>
                       );
                     })}
@@ -256,13 +260,14 @@ export default function Onboarding() {
                         <button
                           key={level.value}
                           onClick={() => setExperienceLevel(level.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border transition-all text-left ${selected ? "border-neon bg-neon/10 neon-glow" : "glass-card glass-card-hover"}`}
+                          className={`w-full flex items-center p-5 rounded-xl border transition-all text-left ${selected ? "glass-card" : "glass-card glass-card-hover"}`}
+                          style={selected ? { borderColor: 'var(--terra)', background: 'var(--terra-pale)', boxShadow: 'var(--warm-shadow2)' } : undefined}
                           data-testid={`experience-${level.value}`}
                         >
                           <span className="text-3xl mr-4">{level.emoji}</span>
                           <div>
-                            <span className={`font-semibold ${selected ? "neon-text" : "text-foreground"}`}>{level.label}</span>
-                            <p className={`text-xs ${selected ? "text-neon/70" : "text-muted-foreground"}`}>{level.desc}</p>
+                            <span className={`font-semibold ${selected ? "" : "text-foreground"}`} style={selected ? { color: 'var(--terra)' } : undefined}>{level.label}</span>
+                            <p className={`text-xs ${selected ? "" : "text-muted-foreground"}`} style={selected ? { color: 'var(--terra)', opacity: 0.7 } : undefined}>{level.desc}</p>
                           </div>
                         </button>
                       );
@@ -281,13 +286,14 @@ export default function Onboarding() {
                         <button
                           key={type.value}
                           onClick={() => setUserType(type.value)}
-                          className={`w-full flex items-center p-5 rounded-xl border transition-all text-left ${selected ? "border-neon bg-neon/10 neon-glow" : "glass-card glass-card-hover"}`}
+                          className={`w-full flex items-center p-5 rounded-xl border transition-all text-left ${selected ? "glass-card" : "glass-card glass-card-hover"}`}
+                          style={selected ? { borderColor: 'var(--terra)', background: 'var(--terra-pale)', boxShadow: 'var(--warm-shadow2)' } : undefined}
                           data-testid={`usertype-${type.value}`}
                         >
                           <span className="text-3xl mr-4">{type.emoji}</span>
                           <div>
-                            <span className={`font-semibold ${selected ? "neon-text" : "text-foreground"}`}>{type.label}</span>
-                            <p className={`text-xs ${selected ? "text-neon/70" : "text-muted-foreground"}`}>{type.desc}</p>
+                            <span className={`font-semibold ${selected ? "" : "text-foreground"}`} style={selected ? { color: 'var(--terra)' } : undefined}>{type.label}</span>
+                            <p className={`text-xs ${selected ? "" : "text-muted-foreground"}`} style={selected ? { color: 'var(--terra)', opacity: 0.7 } : undefined}>{type.desc}</p>
                           </div>
                         </button>
                       );
@@ -299,7 +305,7 @@ export default function Onboarding() {
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center justify-between pt-6 border-t border-border mt-6">
+        <div className="flex items-center justify-between gap-2 pt-6 border-t border-border mt-6">
           {step > 1 ? (
             <button
               onClick={handleBack}
@@ -315,7 +321,8 @@ export default function Onboarding() {
           <button
             onClick={handleNext}
             disabled={!canProceed() || saveMutation.isPending}
-            className="flex items-center gap-1 bg-neon text-primary-foreground px-6 py-3 rounded-xl text-sm font-semibold disabled:opacity-50 neon-glow"
+            className="flex items-center gap-1 text-white px-6 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: 'var(--terra)', boxShadow: 'var(--warm-shadow)' }}
             data-testid="button-quiz-next"
           >
             {step === totalSteps ? "Find My Clubs" : "Next"}

@@ -49,7 +49,7 @@ export default function MatchedClubs() {
 
         <div className="text-center mb-8">
           <div className="mb-3">
-            <Crosshair className="w-10 h-10 mx-auto neon-text" />
+            <Crosshair className="w-10 h-10 mx-auto" style={{ color: 'var(--terra)' }} />
           </div>
           <h1 className="font-display text-2xl font-bold text-foreground" data-testid="text-matches-title">
             Your Top Matches{user?.city ? ` in ${user.city}` : ""}
@@ -67,14 +67,15 @@ export default function MatchedClubs() {
           </div>
         ) : matchedClubs.length === 0 ? (
           <div className="text-center py-12 glass-card rounded-2xl">
-            <div className="w-14 h-14 rounded-2xl bg-neon/10 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-7 h-7 neon-text" />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--terra-pale)' }}>
+              <Search className="w-7 h-7" style={{ color: 'var(--terra)' }} />
             </div>
             <h3 className="font-display text-lg font-bold text-foreground mb-2">No matches yet</h3>
             <p className="text-sm text-muted-foreground mb-4 px-4">More clubs are being added to Tirupati. Browse what's available now!</p>
             <button
               onClick={() => navigate("/explore")}
-              className="bg-neon text-primary-foreground px-6 py-2.5 rounded-xl text-sm font-semibold neon-glow"
+              className="text-white px-6 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: 'var(--terra)', boxShadow: 'var(--warm-shadow)' }}
               data-testid="button-browse-all"
             >
               Browse All Clubs
@@ -93,23 +94,24 @@ export default function MatchedClubs() {
                 data-testid={`card-match-${club.id}`}
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-neon/10 flex items-center justify-center text-3xl flex-shrink-0">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl flex-shrink-0" style={{ background: 'var(--terra-pale)' }}>
                     {club.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-display font-bold text-foreground truncate" data-testid={`text-match-name-${club.id}`}>
                         {club.name}
                       </h3>
                       <span
-                        className="flex-shrink-0 bg-neon/10 neon-text text-xs font-bold px-2 py-0.5 rounded-full neon-border"
+                        className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.3)' }}
                         data-testid={`badge-match-score-${club.id}`}
                       >
                         {club.matchScore}% match
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{club.shortDesc}</p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
                         {club.memberCount} members
@@ -130,7 +132,8 @@ export default function MatchedClubs() {
         <div className="text-center mt-8">
           <button
             onClick={() => navigate("/explore")}
-            className="text-sm neon-text hover:underline font-medium"
+            className="text-sm hover:underline font-medium"
+            style={{ color: 'var(--terra)' }}
             data-testid="link-explore-all"
           >
             Explore All Clubs →

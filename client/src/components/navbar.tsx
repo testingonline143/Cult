@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, Compass } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { Menu, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 
 export function Navbar() {
-  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
 
@@ -18,7 +16,7 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ background: "rgba(245,240,232,0.95)", backdropFilter: "blur(16px)", borderColor: "var(--warm-border)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
@@ -27,12 +25,13 @@ export function Navbar() {
               className="flex items-center gap-2"
               data-testid="link-home"
             >
-              <span className="w-2.5 h-2.5 rounded-full bg-neon neon-glow" />
-              <span className="text-xl font-display font-black neon-text tracking-tight">CultFam</span>
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--terra)" }} />
+              <span className="text-xl font-display font-black tracking-tight" style={{ color: "var(--ink)" }}>CultFam</span>
             </a>
             <a
               href="/explore"
-              className="hidden sm:flex items-center gap-1 text-sm text-muted-foreground hover:text-neon transition-colors"
+              className="hidden sm:flex items-center gap-1 text-sm transition-colors"
+              style={{ color: "var(--muted-warm)" }}
               data-testid="link-explore"
             >
               <Compass className="w-4 h-4" />
@@ -41,22 +40,15 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase text-muted-foreground px-3 py-1 bg-neon/10 rounded-full">
+            <span className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase px-3 py-1 rounded-full" style={{ color: "var(--muted-warm)", background: "var(--terra-pale)" }}>
               {user?.city || "Tirupati"}
             </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={toggleTheme}
-              data-testid="button-theme-toggle"
-            >
-              {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </Button>
             {isAuthenticated ? (
               <div className="hidden sm:flex items-center gap-2">
                 <a
                   href="/profile"
-                  className="text-sm font-medium text-foreground hover:text-neon transition-colors"
+                  className="text-sm font-medium transition-colors"
+                  style={{ color: "var(--ink)" }}
                   data-testid="link-profile"
                 >
                   {displayName}
@@ -109,10 +101,11 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl"
+            className="md:hidden border-t"
+            style={{ background: "rgba(245,240,232,0.95)", backdropFilter: "blur(16px)", borderColor: "var(--warm-border)" }}
           >
             <div className="px-4 py-3 flex flex-col gap-1">
-              <a href="/explore" className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-neon px-3 py-1.5" onClick={() => setMobileOpen(false)} data-testid="link-explore-mobile">
+              <a href="/explore" className="flex items-center gap-2 text-sm font-medium px-3 py-1.5" style={{ color: "var(--ink)" }} onClick={() => setMobileOpen(false)} data-testid="link-explore-mobile">
                 <Compass className="w-4 h-4" />
                 Explore Clubs
               </a>
@@ -121,11 +114,11 @@ export function Navbar() {
               </Button>
               {isAuthenticated ? (
                 <div className="flex flex-col gap-1 mt-2">
-                  <a href="/profile" className="text-sm font-medium text-foreground hover:text-neon transition-colors px-3 py-1.5" data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>
+                  <a href="/profile" className="text-sm font-medium transition-colors px-3 py-1.5" style={{ color: "var(--ink)" }} data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>
                     My Profile ({displayName})
                   </a>
                   {user && !user.quizCompleted && (
-                    <a href="/onboarding" className="text-sm font-medium neon-text px-3 py-1.5" data-testid="link-quiz-mobile" onClick={() => setMobileOpen(false)}>
+                    <a href="/onboarding" className="text-sm font-medium px-3 py-1.5" style={{ color: "var(--terra)" }} data-testid="link-quiz-mobile" onClick={() => setMobileOpen(false)}>
                       Take Quiz
                     </a>
                   )}

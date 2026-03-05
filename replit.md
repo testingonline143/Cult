@@ -9,15 +9,15 @@ The project follows a full-stack TypeScript monorepo pattern with a React fronte
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-display`) for bold headings, Inter (`font-sans`) for body text. Neon green primary (#00FF94, `155 100% 50%`) on near-black background (#0A0A0A). Glassmorphism: semi-transparent cards with `backdrop-blur-lg` (use `glass-card` / `glass-card-hover` CSS classes). Neon accent text via `neon-text` class, glow effects via `neon-glow` / `neon-text-glow`. Custom Tailwind color `neon` available. Gen-Z copy style throughout. Emojis used for category icons.
+Design preference: Warm editorial design with cream background (#F5F0E8) and terra cotta accent (#C4622D). Playfair Display (`font-display`) for serif headings, Outfit (`font-sans`) for body text, Bebas Neue (`font-mono`) for display numbers/stats. Ink (#1A1410) for dark text, gold (#C9A84C) for ratings/highlights. Cards use warm-white (#FDFAF5) with subtle warm borders (rgba(26,20,16,0.1)). Custom Tailwind colors: `terra`, `ink`, `gold`, `cream`. CSS utility classes: `glass-card` (warm white card with border), `neon-text` (terra text), `neon-glow` (warm shadow), `neon-border` (terra-tinted border). Single light theme (no dark mode). Emojis used for category icons.
 
 ## System Architecture
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Scan Event (/scan/:eventId), 404
-- **Navigation**: Landing page (/) uses top Navbar only (no bottom tab bar). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`) with 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), CREATE (/create), PROFILE (/profile). Bottom nav visible on these 5 routes. HOME tab (/home) shows a clean mobile feed with "Find Your Tribe in Tirupati", "Happening Today", and "Trending Clubs". Admin/organizer/onboarding/club-detail/event-detail pages use top Navbar only.
-- **Styling**: Tailwind CSS with CSS variables for theming (dark-mode-first, glassmorphic design)
+- **Navigation**: Landing page (/) uses top Navbar only (no bottom tab bar). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`) with 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), CREATE (/create), PROFILE (/profile). Bottom nav also visible on /organizer. HOME tab (/home) shows a clean mobile feed with "Find Your Tribe" masthead, "Happening Today", and "Trending Clubs". Admin/onboarding/club-detail/event-detail pages use top Navbar only.
+- **Styling**: Tailwind CSS with CSS variables for theming (warm cream editorial design, single light theme)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
 - **State Management**: TanStack React Query for server state; React useState for local state
@@ -105,10 +105,11 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 - **Old auth removed**: No more OTP, phone-based auth, localStorage sessions, or x-user-id headers
 
 ### Theme System
-- Custom ThemeProvider in `client/src/components/theme-provider.tsx`
-- Supports light/dark mode toggle with localStorage persistence
-- CSS variables defined in `client/src/index.css` with separate light/dark values
-- Uses Tailwind's `darkMode: ["class"]` strategy
+- Single warm light theme — no dark mode toggle
+- ThemeProvider in `client/src/components/theme-provider.tsx` enforces light mode
+- CSS variables defined in `client/src/index.css` with warm cream/terra palette
+- Custom CSS vars: `--terra`, `--terra-light`, `--terra-pale`, `--ink`, `--cream`, `--gold`, `--warm-white`, `--warm-border`, `--warm-shadow`
+- Google Fonts: Playfair Display (serif headings), Outfit (body), Bebas Neue (display numbers)
 
 ### Key Features
 - **Instant club creation**: Authenticated users fill a rich form (name, category, description, schedule, location, organizer name, WhatsApp, city) → club goes live immediately → redirected to organizer dashboard
@@ -131,12 +132,12 @@ Design preference: Dark-mode-first, glassmorphic design. Space Grotesk (`font-di
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
 - **Social proof / Activity signals**: "X joined this week" badge on club cards, Recent Activity section on club detail page/modal, Club Highlights editable by organizers
-- **Mobile-first app layout**: Bottom tab bar navigation (Home/Explore/Events/Create/Profile), pages designed as focused views — Home is a feed with "Happening Today" + "Trending Clubs", Explore has full-width image-style club cards, Events has calendar-style cards with filters, Create has tabbed New Club / New Event forms
+- **Mobile-first app layout**: Bottom tab bar navigation (Home/Explore/Events/Create/Profile), pages designed as focused views — Home is a feed with "Find Your Tribe" masthead and "Trending Clubs", Explore has full-width image-style club cards, Events has calendar-style cards with filters, Create has tabbed New Club / New Event forms
 
 ## External Dependencies
 
 - **PostgreSQL**: Primary database, connected via `DATABASE_URL` env var using `pg` (node-postgres) driver
-- **Google Fonts**: Space Grotesk, Inter loaded via CDN in index.html
+- **Google Fonts**: Playfair Display, Outfit, Bebas Neue loaded via CDN in index.html
 - **Replit Plugins**: `@replit/vite-plugin-runtime-error-modal`, `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner` (dev-only)
 - **Auth**: Replit Auth (OpenID Connect) — no external SMS service needed
 - **No external APIs**: All data is self-contained in the PostgreSQL database

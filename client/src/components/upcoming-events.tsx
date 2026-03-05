@@ -74,10 +74,13 @@ export function UpcomingEvents() {
 
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-10" data-testid="section-upcoming-events">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-xl font-bold text-foreground" data-testid="text-events-title">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h2 className="font-display text-xl font-bold" style={{ color: "var(--ink)" }} data-testid="text-events-title">
           Happening Soon
         </h2>
+        <a href="/events" className="text-[11px] font-bold tracking-[1px] uppercase" style={{ color: "var(--terra)" }} data-testid="link-view-all-events">
+          View All &rarr;
+        </a>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
         {events.map((event, index) => {
@@ -89,50 +92,56 @@ export function UpcomingEvents() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="flex-shrink-0 w-72 glass-card glass-card-hover rounded-2xl p-4 transition-all cursor-pointer"
+              className="flex-shrink-0 w-72 rounded-2xl overflow-hidden transition-all cursor-pointer"
+              style={{ background: "var(--ink)", borderRadius: "20px" }}
               onClick={() => navigate(`/event/${event.id}`)}
               data-testid={`card-event-${event.id}`}
             >
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">{event.clubEmoji}</span>
-                <span className="text-xs text-muted-foreground font-medium truncate">{event.clubName}</span>
+              <div className="relative h-[140px] flex items-center justify-center text-[52px]" style={{ background: "linear-gradient(135deg, #2D1A0A, #4A2A12)" }}>
+                <span className="relative z-10">{event.clubEmoji}</span>
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 50%, var(--ink) 100%)" }} />
               </div>
-              <h3 className="font-display font-bold text-foreground text-sm mb-2 line-clamp-2">{event.title}</h3>
-              <div className="space-y-1.5 mb-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="w-3 h-3" />
-                  {formatDate(event.startsAt)} · {formatTime(event.startsAt)}
+              <div className="p-4 pt-0">
+                <div className="text-[10px] font-semibold tracking-[1.5px] uppercase mb-1.5" style={{ color: "var(--terra-light)" }}>{event.clubName}</div>
+                <h3 className="font-display font-bold text-sm mb-2 line-clamp-2" style={{ color: "var(--cream)" }}>{event.title}</h3>
+                <div className="space-y-1.5 mb-3">
+                  <div className="flex items-center gap-2 text-xs" style={{ color: "var(--muted-warm2)" }}>
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(event.startsAt)} {"\u00B7"} {formatTime(event.startsAt)}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs" style={{ color: "var(--muted-warm2)" }}>
+                    <MapPin className="w-3 h-3" />
+                    {event.locationText}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs" style={{ color: "var(--muted-warm2)" }}>
+                    <Users className="w-3 h-3" />
+                    {event.rsvpCount} going {"\u00B7"} {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="w-3 h-3" />
-                  {event.locationText}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Users className="w-3 h-3" />
-                  {event.rsvpCount} going · {spotsLeft > 0 ? `${spotsLeft} spots left` : "Full"}
-                </div>
+                {isJustRsvpd ? (
+                  <button
+                    onClick={(e) => handleShareEvent(event, e)}
+                    className="w-full rounded-[10px] py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
+                    style={{ background: "var(--terra-pale)", color: "var(--terra-light)", border: "1px solid rgba(196,98,45,0.3)" }}
+                    data-testid={`button-share-rsvp-${event.id}`}
+                  >
+                    <Share2 className="w-3 h-3" />
+                    You're in! Share with friends
+                  </button>
+                ) : isAuthenticated && spotsLeft > 0 ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); rsvpMutation.mutate(event.id); }}
+                    disabled={rsvpMutation.isPending}
+                    className="w-full rounded-[10px] py-2 text-xs font-semibold disabled:opacity-50"
+                    style={{ background: "var(--terra)", color: "white" }}
+                    data-testid={`button-rsvp-${event.id}`}
+                  >
+                    Count Me In
+                  </button>
+                ) : !isAuthenticated ? (
+                  <p className="text-[10px] text-center italic" style={{ color: "var(--muted-warm2)" }}>Sign in to RSVP</p>
+                ) : null}
               </div>
-              {isJustRsvpd ? (
-                <button
-                  onClick={(e) => handleShareEvent(event, e)}
-                  className="w-full bg-neon/20 neon-text neon-border border rounded-md py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
-                  data-testid={`button-share-rsvp-${event.id}`}
-                >
-                  <Share2 className="w-3 h-3" />
-                  You're in! Share with friends
-                </button>
-              ) : isAuthenticated && spotsLeft > 0 ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); rsvpMutation.mutate(event.id); }}
-                  disabled={rsvpMutation.isPending}
-                  className="w-full bg-neon text-background rounded-xl py-2 text-xs font-semibold disabled:opacity-50"
-                  data-testid={`button-rsvp-${event.id}`}
-                >
-                  Count Me In
-                </button>
-              ) : !isAuthenticated ? (
-                <p className="text-[10px] text-muted-foreground text-center italic">Sign in to RSVP</p>
-              ) : null}
             </motion.div>
           );
         })}

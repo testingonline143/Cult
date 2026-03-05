@@ -134,7 +134,7 @@ export default function ScanEvent() {
 
   if (authLoading || eventLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--cream)] flex items-center justify-center">
         <div className="text-sm text-muted-foreground">Loading...</div>
       </div>
     );
@@ -142,14 +142,14 @@ export default function ScanEvent() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[var(--cream)] flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <Camera className="w-12 h-12 text-muted-foreground mx-auto" />
           <h1 className="font-display text-xl font-bold text-foreground">Scanner Access Required</h1>
           <p className="text-sm text-muted-foreground">Sign in as the event organizer to scan tickets</p>
           <button
             onClick={() => { window.location.href = "/api/login"; }}
-            className="w-full bg-primary text-primary-foreground rounded-2xl py-3 text-sm font-semibold"
+            className="w-full bg-[var(--terra)] text-white rounded-2xl py-3 text-sm font-semibold"
             data-testid="button-scanner-sign-in"
           >
             Sign In
@@ -160,7 +160,7 @@ export default function ScanEvent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--cream)]">
       <div className="max-w-lg mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-2 mb-4">
           <button
@@ -171,19 +171,19 @@ export default function ScanEvent() {
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-          <h1 className="font-display text-lg font-bold neon-text" data-testid="text-scanner-title">
+          <h1 className="font-display text-lg font-bold text-[var(--terra)]" data-testid="text-scanner-title">
             Scan Attendees
           </h1>
           <div className="w-12" />
         </div>
 
         {event && (
-          <div className="glass-card rounded-2xl p-3 mb-4 text-center">
+          <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-3 mb-4 text-center" style={{ borderRadius: 18 }}>
             <div className="text-sm font-semibold text-foreground" data-testid="text-scanner-event-name">{event.title}</div>
           </div>
         )}
 
-        <div className="relative rounded-2xl overflow-hidden mb-4 bg-black/50 min-h-[300px]">
+        <div className="relative rounded-2xl overflow-hidden mb-4 bg-[var(--ink)]/50 min-h-[300px]">
           <div id="qr-scanner" ref={scannerDivRef} className="w-full" data-testid="div-qr-scanner" />
 
           {!scanning && (
@@ -191,7 +191,7 @@ export default function ScanEvent() {
               <Camera className="w-16 h-16 text-muted-foreground" />
               <button
                 onClick={startScanner}
-                className="bg-primary text-primary-foreground rounded-2xl px-8 py-4 text-sm font-semibold"
+                className="bg-[var(--terra)] text-white rounded-2xl px-8 py-4 text-sm font-semibold"
                 data-testid="button-start-scanner"
               >
                 Start Camera Scanner
@@ -200,10 +200,10 @@ export default function ScanEvent() {
           )}
 
           {scanResult && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-[var(--ink)]/70 z-10">
               {scanResult.type === "success" && (
-                <div className="glass-card rounded-2xl p-6 text-center mx-4 neon-border border" data-testid="card-scan-success">
-                  <CheckCircle2 className="w-14 h-14 neon-text mx-auto mb-3 neon-text-glow" />
+                <div className="bg-[var(--warm-white)] border-[1.5px] border-[rgba(196,98,45,0.3)] rounded-2xl p-6 text-center mx-4" style={{ borderRadius: 18 }} data-testid="card-scan-success">
+                  <CheckCircle2 className="w-14 h-14 text-[var(--terra)] mx-auto mb-3" />
                   <div className="font-display text-lg font-bold text-foreground mb-1">
                     {scanResult.name || "Attendee"} checked in
                   </div>
@@ -211,7 +211,7 @@ export default function ScanEvent() {
                 </div>
               )}
               {scanResult.type === "already" && (
-                <div className="glass-card rounded-2xl p-6 text-center mx-4" data-testid="card-scan-already">
+                <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-6 text-center mx-4" style={{ borderRadius: 18 }} data-testid="card-scan-already">
                   <AlertTriangle className="w-14 h-14 text-chart-4 mx-auto mb-3" />
                   <div className="font-display text-lg font-bold text-foreground mb-1">
                     Already Checked In
@@ -220,7 +220,7 @@ export default function ScanEvent() {
                 </div>
               )}
               {scanResult.type === "error" && (
-                <div className="glass-card rounded-2xl p-6 text-center mx-4" data-testid="card-scan-error">
+                <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-6 text-center mx-4" style={{ borderRadius: 18 }} data-testid="card-scan-error">
                   <XCircle className="w-14 h-14 text-destructive mx-auto mb-3" />
                   <div className="font-display text-lg font-bold text-foreground mb-1">
                     Scan Failed
@@ -235,7 +235,8 @@ export default function ScanEvent() {
         {scanning && (
           <button
             onClick={stopScanner}
-            className="w-full glass-card rounded-2xl py-3 text-sm font-semibold text-muted-foreground mb-4"
+            className="w-full bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl py-3 text-sm font-semibold text-muted-foreground mb-4"
+            style={{ borderRadius: 18 }}
             data-testid="button-stop-scanner"
           >
             Stop Scanner
@@ -244,29 +245,29 @@ export default function ScanEvent() {
 
         {attendance && (
           <>
-            <div className="glass-card neon-border border rounded-2xl p-4 mb-4 text-center" data-testid="card-live-count">
-              <div className="text-3xl font-bold neon-text neon-text-glow mb-1" data-testid="text-checked-in-count">
+            <div className="bg-[var(--warm-white)] border-[1.5px] border-[rgba(196,98,45,0.3)] rounded-2xl p-4 mb-4 text-center" style={{ borderRadius: 18 }} data-testid="card-live-count">
+              <div className="text-3xl font-bold text-[var(--terra)] font-mono mb-1" data-testid="text-checked-in-count">
                 {attendance.checkedIn}
               </div>
               <div className="text-xs text-muted-foreground">checked in so far</div>
             </div>
 
             <div className="flex gap-2 mb-4">
-              <div className="flex-1 glass-card rounded-2xl p-3 text-center">
-                <div className="text-lg font-bold text-foreground" data-testid="text-total-rsvps">{attendance.totalRsvps}</div>
+              <div className="flex-1 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-3 text-center" style={{ borderRadius: 18 }}>
+                <div className="text-lg font-bold text-foreground font-mono" data-testid="text-total-rsvps">{attendance.totalRsvps}</div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">RSVPs</div>
               </div>
-              <div className="flex-1 glass-card rounded-2xl p-3 text-center">
-                <div className="text-lg font-bold neon-text" data-testid="text-arrived">{attendance.checkedIn}</div>
+              <div className="flex-1 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-3 text-center" style={{ borderRadius: 18 }}>
+                <div className="text-lg font-bold text-[var(--terra)] font-mono" data-testid="text-arrived">{attendance.checkedIn}</div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Arrived</div>
               </div>
-              <div className="flex-1 glass-card rounded-2xl p-3 text-center">
-                <div className="text-lg font-bold text-chart-4" data-testid="text-not-arrived">{attendance.notYetArrived}</div>
+              <div className="flex-1 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-3 text-center" style={{ borderRadius: 18 }}>
+                <div className="text-lg font-bold text-chart-4 font-mono" data-testid="text-not-arrived">{attendance.notYetArrived}</div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Not Yet</div>
               </div>
             </div>
 
-            <div className="glass-card rounded-2xl p-4" data-testid="card-attendee-list">
+            <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-2xl p-4" style={{ borderRadius: 18 }} data-testid="card-attendee-list">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Attendees</span>
@@ -278,12 +279,12 @@ export default function ScanEvent() {
                   {attendance.attendees.map((a, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between py-2 px-3 rounded-xl bg-background/50"
+                      className="flex items-center justify-between py-2 px-3 rounded-xl bg-[var(--cream)]/50"
                       data-testid={`attendee-row-${i}`}
                     >
                       <span className="text-sm text-foreground">{a.name || "Unknown"}</span>
                       {a.checkedIn ? (
-                        <span className="flex items-center gap-1 text-xs neon-text font-medium">
+                        <span className="flex items-center gap-1 text-xs text-[var(--terra)] font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           In
                         </span>

@@ -44,14 +44,14 @@ export default function Create() {
     return (
       <div className="min-h-screen bg-background pb-24 px-4 pt-6">
         <div className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-          <div className="w-20 h-20 rounded-full bg-neon/20 flex items-center justify-center">
-            <PartyPopper className="w-10 h-10 neon-text" />
+          <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'var(--terra-pale)' }}>
+            <PartyPopper className="w-10 h-10" style={{ color: 'var(--terra)' }} />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground" data-testid="text-club-created-title">
             Your tribe is live!
           </h1>
           <p className="text-muted-foreground text-sm max-w-sm" data-testid="text-club-created-name">
-            <span className="font-semibold neon-text">{createdClub.name}</span> is now on the map. What would you like to do next?
+            <span className="font-semibold" style={{ color: 'var(--terra)' }}>{createdClub.name}</span> is now on the map. What would you like to do next?
           </p>
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
             <button
@@ -60,7 +60,8 @@ export default function Create() {
                 setCreatedClub(null);
                 setActiveTab("event");
               }}
-              className="flex-1 flex items-center justify-center gap-2 bg-neon text-background rounded-xl py-4 font-bold text-sm neon-glow"
+              className="flex-1 flex items-center justify-center gap-2 text-white rounded-xl py-4 font-bold text-sm"
+              style={{ background: 'var(--terra)', boxShadow: 'var(--warm-shadow)' }}
               data-testid="button-create-first-event"
             >
               <CalendarPlus className="w-5 h-5" />
@@ -87,14 +88,15 @@ export default function Create() {
           Create
         </h1>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setActiveTab("club")}
             className={`rounded-full px-6 py-2 font-semibold transition-colors ${
               activeTab === "club"
-                ? "bg-neon text-primary-foreground"
+                ? "text-white"
                 : "glass-card text-muted-foreground"
             }`}
+            style={activeTab === "club" ? { background: 'var(--terra)' } : undefined}
             data-testid="tab-new-club"
           >
             New Club
@@ -104,9 +106,10 @@ export default function Create() {
             onClick={() => setActiveTab("event")}
             className={`rounded-full px-6 py-2 font-semibold transition-colors ${
               activeTab === "event"
-                ? "bg-neon text-primary-foreground"
+                ? "text-white"
                 : "glass-card text-muted-foreground"
             }`}
+            style={activeTab === "event" ? { background: 'var(--terra)' } : undefined}
             data-testid="tab-new-event"
           >
             New Event
@@ -139,11 +142,12 @@ export default function Create() {
 function SignInPrompt({ message }: { message: string }) {
   return (
     <div className="glass-card rounded-xl p-8 text-center space-y-4">
-      <LogIn className="w-10 h-10 text-neon mx-auto" />
+      <LogIn className="w-10 h-10 mx-auto" style={{ color: 'var(--terra)' }} />
       <p className="text-sm text-muted-foreground" data-testid="text-sign-in-prompt">{message}</p>
       <button
         onClick={() => { window.location.href = "/api/login"; }}
-        className="bg-neon text-primary-foreground rounded-xl px-8 py-3 text-sm font-semibold"
+        className="text-white rounded-xl px-8 py-3 text-sm font-semibold"
+        style={{ background: 'var(--terra)' }}
         data-testid="button-sign-in-create"
       >
         Sign In
@@ -238,7 +242,7 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
         <textarea
           placeholder="What is this tribe about?"
           rows={4}
-          className="w-full px-3 py-2 glass-card rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 resize-none"
+          className="w-full px-3 py-2 glass-card rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
           value={fullDesc}
           onChange={(e) => setFullDesc(e.target.value)}
           data-testid="input-full-desc"
@@ -351,7 +355,8 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
       <button
         type="submit"
         disabled={createMutation.isPending}
-        className="w-full bg-neon text-background rounded-xl py-4 font-bold text-lg transition-all disabled:opacity-60"
+        className="w-full text-white rounded-xl py-4 font-bold text-lg transition-all disabled:opacity-60"
+        style={{ background: 'var(--terra)' }}
         data-testid="button-launch-club"
       >
         {createMutation.isPending ? (
@@ -439,7 +444,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
   if (clubsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-neon" />
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--terra)' }} />
       </div>
     );
   }
@@ -455,7 +460,8 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
             const tabBtn = document.querySelector('[data-testid="tab-new-club"]') as HTMLButtonElement;
             tabBtn?.click();
           }}
-          className="text-neon text-sm font-semibold"
+          className="text-sm font-semibold"
+          style={{ color: 'var(--terra)' }}
           data-testid="button-switch-to-club"
         >
           Go to New Club
@@ -513,7 +519,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
         <textarea
           placeholder="Describe the event..."
           rows={4}
-          className="w-full px-3 py-2 glass-card rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-neon/30 resize-none"
+          className="w-full px-3 py-2 glass-card rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 resize-none"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           data-testid="input-event-description"
@@ -563,7 +569,8 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
       <button
         type="submit"
         disabled={createEventMutation.isPending}
-        className="w-full bg-neon text-background rounded-xl py-4 font-bold text-lg transition-all disabled:opacity-60"
+        className="w-full text-white rounded-xl py-4 font-bold text-lg transition-all disabled:opacity-60"
+        style={{ background: 'var(--terra)' }}
         data-testid="button-create-event"
       >
         {createEventMutation.isPending ? (

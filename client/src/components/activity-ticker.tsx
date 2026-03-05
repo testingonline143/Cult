@@ -39,18 +39,21 @@ export function ActivityTicker() {
   return (
     <div
       data-testid="section-activity-ticker"
-      className="glass-card border-x-0 py-2.5 overflow-hidden"
+      className="py-2.5 overflow-hidden"
+      style={{ background: "var(--warm-white)", borderTop: "1.5px solid var(--ink)", borderBottom: "1px solid var(--warm-border)" }}
     >
       <div className="flex animate-marquee whitespace-nowrap">
         {items.map((item, i) => (
           <span
             key={i}
             data-testid="text-activity-item"
-            className="text-sm font-medium text-muted-foreground mx-8 inline-flex items-center gap-1.5 shrink-0"
+            className="text-sm font-medium mx-8 inline-flex items-center gap-1.5 shrink-0"
+            style={{ color: "var(--muted-warm)" }}
           >
+            <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: "var(--terra)", animation: "blink 2s infinite" }} />
             <span className="text-base">{item.clubEmoji}</span>
-            <span className="text-foreground font-semibold">{item.name}</span> joined {item.clubName}
-            <span className="text-muted-foreground/50 text-xs">· {getRelativeTime(item.createdAt)}</span>
+            <span className="font-semibold" style={{ color: "var(--ink)" }}>{item.name}</span> joined {item.clubName}
+            <span className="text-xs" style={{ color: "var(--muted-warm2)" }}>{"\u00B7"} {getRelativeTime(item.createdAt)}</span>
           </span>
         ))}
       </div>
@@ -61,6 +64,10 @@ export function ActivityTicker() {
         }
         .animate-marquee {
           animation: marquee 25s linear infinite;
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
       `}</style>
     </div>
