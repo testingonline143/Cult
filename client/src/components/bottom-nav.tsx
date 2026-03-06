@@ -21,23 +21,18 @@ export function BottomNav() {
 
   if (!TAB_PATHS.includes(location)) return null;
 
-  const isCreator = user?.role === "organiser" || user?.role === "admin";
+  const isCreator = !!user;
+  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
 
-  const tabs = isCreator
-    ? [
-        { path: "/explore", label: "EXPLORE", icon: Compass },
-        { path: "/home", label: "CLUBS", icon: Users },
-        null,
-        { path: "/events", label: "EVENTS", icon: Calendar },
-        { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard },
-      ]
-    : [
-        { path: "/explore", label: "EXPLORE", icon: Compass },
-        { path: "/home", label: "CLUBS", icon: Users },
-        null,
-        { path: "/events", label: "EVENTS", icon: Calendar },
-        { path: "/profile", label: "PROFILE", icon: User },
-      ];
+  const tabs = [
+    { path: "/explore", label: "EXPLORE", icon: Compass },
+    { path: "/home", label: "CLUBS", icon: Users },
+    null,
+    { path: "/events", label: "EVENTS", icon: Calendar },
+    isOrganiser
+      ? { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard }
+      : { path: "/profile", label: "PROFILE", icon: User },
+  ];
 
   return (
     <>
