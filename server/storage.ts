@@ -71,7 +71,7 @@ export interface IStorage {
   updateScheduleEntry(id: string, data: { dayOfWeek?: string; startTime?: string; endTime?: string; activity?: string; location?: string }): Promise<ClubScheduleEntry | undefined>;
   deleteScheduleEntry(id: string): Promise<void>;
   getClubMoments(clubId: string): Promise<ClubMoment[]>;
-  createMoment(clubId: string, caption: string, emoji?: string): Promise<ClubMoment>;
+  createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string): Promise<ClubMoment>;
   updateMoment(id: string, data: { caption?: string; emoji?: string }): Promise<ClubMoment | undefined>;
   deleteMoment(id: string): Promise<void>;
   getJoinRequestCountByClub(clubId: string): Promise<number>;
@@ -605,8 +605,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(clubMoments).where(eq(clubMoments.clubId, clubId)).orderBy(desc(clubMoments.createdAt));
   }
 
-  async createMoment(clubId: string, caption: string, emoji?: string): Promise<ClubMoment> {
-    const [created] = await db.insert(clubMoments).values({ clubId, caption, emoji: emoji || null }).returning();
+  async createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string): Promise<ClubMoment> {
+    const [created] = await db.insert(clubMoments).values({ clubId, caption, emoji: emoji || null, imageUrl: imageUrl || null }).returning();
     return created;
   }
 
@@ -841,6 +841,7 @@ export class DatabaseStorage implements IStorage {
         id: clubMoments.id,
         clubId: clubMoments.clubId,
         caption: clubMoments.caption,
+        imageUrl: clubMoments.imageUrl,
         emoji: clubMoments.emoji,
         createdAt: clubMoments.createdAt,
         clubName: clubs.name,

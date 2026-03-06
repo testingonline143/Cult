@@ -173,7 +173,7 @@ export function BottomNav() {
 
                 {isOrganiser && (
                   <Link
-                    href="/organizer"
+                    href="/organizer?tab=content"
                     onClick={() => setDrawerOpen(false)}
                     className="flex items-center gap-4 p-4 rounded-[16px] transition-colors active:scale-[0.98]"
                     style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}

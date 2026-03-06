@@ -120,6 +120,7 @@ export const clubMoments = pgTable("club_moments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   clubId: varchar("club_id").notNull(),
   caption: text("caption").notNull(),
+  imageUrl: text("image_url"),
   emoji: text("emoji"),
   createdAt: timestamp("created_at").defaultNow(),
 });

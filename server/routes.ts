@@ -1203,7 +1203,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clubs/:id/moments", isAuthenticated, async (req: any, res) => {
+  app.post("/api/clubs/:id/moments", isAuthenticated, upload.single("photo"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
@@ -1214,7 +1214,8 @@ export async function registerRoutes(
       if (!caption) {
         return res.status(400).json({ message: "Caption is required" });
       }
-      const moment = await storage.createMoment(req.params.id, caption, emoji);
+      const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+      const moment = await storage.createMoment(req.params.id, caption, emoji, imageUrl);
       res.status(201).json(moment);
     } catch (err) {
       console.error("Error creating moment:", err);

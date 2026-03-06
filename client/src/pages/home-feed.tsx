@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, Heart, MessageCircle, Share2, Plus, ChevronRight } from "lucide-react";
+import { Bell, Heart, Share2, Plus, ChevronRight } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
@@ -385,18 +385,20 @@ export default function HomeFeed() {
                   </div>
                 </div>
 
-                {/* Post Image Placeholder */}
-                <div
-                  className="mx-4 rounded-[12px] overflow-hidden mb-3"
-                  style={{
-                    height: 180,
-                    background: "linear-gradient(135deg, #E8D5B8 0%, #C4A882 50%, #A88A6A 100%)",
-                  }}
-                >
-                  <div className="w-full h-full flex items-center justify-center text-5xl opacity-30">
-                    {moment.emoji || moment.clubEmoji}
+                {moment.imageUrl ? (
+                  <div className="mx-4 rounded-[12px] overflow-hidden mb-3">
+                    <img
+                      src={moment.imageUrl}
+                      alt={moment.caption}
+                      className="w-full object-cover"
+                      style={{ maxHeight: 240 }}
+                    />
                   </div>
-                </div>
+                ) : moment.emoji ? (
+                  <div className="mx-4 mb-3 flex items-center gap-2 px-1">
+                    <span className="text-2xl">{moment.emoji}</span>
+                  </div>
+                ) : null}
 
                 <div className="px-4 pb-3">
                   <p className="text-[13px] leading-relaxed mb-3" style={{ color: "var(--ink)" }}>
@@ -415,13 +417,6 @@ export default function HomeFeed() {
                           fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
                         }}
                       />
-                      <span className="text-[12px] font-semibold" style={{ color: "var(--muted-warm)" }}>
-                        {likedPosts.has(moment.id) ? 125 : 124}
-                      </span>
-                    </button>
-                    <button className="flex items-center gap-1.5" data-testid={`button-comment-${moment.id}`}>
-                      <MessageCircle className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
-                      <span className="text-[12px] font-semibold" style={{ color: "var(--muted-warm)" }}>18</span>
                     </button>
                     <button className="flex items-center gap-1.5 ml-auto" data-testid={`button-share-${moment.id}`}>
                       <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />

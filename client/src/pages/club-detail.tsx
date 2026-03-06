@@ -587,7 +587,7 @@ function ClubDetailContent({ club }: { club: Club }) {
       )}
 
       {activeTab === "moments" && (
-        <MomentsTab clubId={club.id} />
+        <MomentsTab clubId={club.id} isOwner={isOwner} />
       )}
 
       {activeTab === "faqs" && (
@@ -1015,7 +1015,8 @@ function getMomentIcon(caption: string) {
   return Activity;
 }
 
-function MomentsTab({ clubId }: { clubId: string }) {
+function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boolean }) {
+  const [, navigate] = useLocation();
   const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
     queryFn: async () => {
@@ -1037,6 +1038,17 @@ function MomentsTab({ clubId }: { clubId: string }) {
   if (moments.length === 0) {
     return (
       <div className="px-6 py-6 text-center">
+        {isOwner && (
+          <button
+            onClick={() => navigate("/organizer?tab=content")}
+            className="flex items-center gap-2 mx-auto mb-4 px-4 py-2 rounded-full text-xs font-bold text-white"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-add-moment-shortcut"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add First Moment
+          </button>
+        )}
         <Activity className="w-8 h-8 mx-auto text-[var(--muted-warm2)] mb-2" />
         <p className="text-sm font-semibold text-[var(--ink3)]">No moments yet</p>
         <p className="text-xs text-[var(--muted-warm)] mt-1">Highlights and updates will appear here</p>
@@ -1046,29 +1058,59 @@ function MomentsTab({ clubId }: { clubId: string }) {
 
   return (
     <div className="px-6 py-4 space-y-3" data-testid="section-moments">
-      <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-3">Recent Moments</h2>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Recent Moments</h2>
+        {isOwner && (
+          <button
+            onClick={() => navigate("/organizer?tab=content")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-add-moment-shortcut"
+          >
+            <Plus className="w-3 h-3" />
+            Add Moment
+          </button>
+        )}
+      </div>
       {moments.map((moment) => {
         const timeAgo = getRelativeTime(moment.createdAt);
         const MomentIcon = getMomentIcon(moment.caption);
         return (
           <div
             key={moment.id}
-            className="rounded-xl p-3.5 flex items-start gap-3"
+            className="rounded-xl overflow-hidden"
             style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
             data-testid={`moment-${moment.id}`}
           >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
-              {moment.emoji ? (
-                <span className="text-xl">{moment.emoji}</span>
-              ) : (
-                <MomentIcon className="w-5 h-5 text-[var(--terra)]" />
+            {(moment as any).imageUrl && (
+              <img
+                src={(moment as any).imageUrl}
+                alt={moment.caption}
+                className="w-full object-cover"
+                style={{ maxHeight: 200 }}
+              />
+            )}
+            <div className="p-3.5 flex items-start gap-3">
+              {!(moment as any).imageUrl && (
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
+                  {moment.emoji ? (
+                    <span className="text-xl">{moment.emoji}</span>
+                  ) : (
+                    <MomentIcon className="w-5 h-5 text-[var(--terra)]" />
+                  )}
+                </div>
               )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-[var(--ink)] leading-relaxed">{moment.caption}</p>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <Clock className="w-3 h-3 text-[var(--muted-warm)]" />
-                <span className="text-[10px] text-[var(--muted-warm)] font-medium">{timeAgo}</span>
+              <div className="flex-1 min-w-0">
+                {moment.emoji && (moment as any).imageUrl && (
+                  <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-md mb-1.5 bg-[var(--terra-pale)] text-[var(--terra)]">
+                    {moment.emoji}
+                  </span>
+                )}
+                <p className="text-sm text-[var(--ink)] leading-relaxed">{moment.caption}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Clock className="w-3 h-3 text-[var(--muted-warm)]" />
+                  <span className="text-[10px] text-[var(--muted-warm)] font-medium">{timeAgo}</span>
+                </div>
               </div>
             </div>
           </div>
