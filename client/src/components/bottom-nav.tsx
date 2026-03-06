@@ -24,15 +24,22 @@ export function BottomNav() {
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
   const isCreator = !!user && (user.wantsToCreate === true || isOrganiser);
 
-  const tabs = [
-    { path: "/home", label: "HOME", icon: Home },
-    { path: "/explore", label: "CLUBS", icon: Users },
-    null,
-    { path: "/events", label: "EVENTS", icon: Calendar },
-    isOrganiser
-      ? { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard }
-      : { path: "/profile", label: "PROFILE", icon: User },
-  ];
+  const tabs = isCreator
+    ? [
+        { path: "/home", label: "HOME", icon: Home },
+        { path: "/explore", label: "CLUBS", icon: Users },
+        null,
+        { path: "/events", label: "EVENTS", icon: Calendar },
+        isOrganiser
+          ? { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard }
+          : { path: "/profile", label: "PROFILE", icon: User },
+      ]
+    : [
+        { path: "/home", label: "HOME", icon: Home },
+        { path: "/explore", label: "CLUBS", icon: Users },
+        { path: "/events", label: "EVENTS", icon: Calendar },
+        { path: "/profile", label: "PROFILE", icon: User },
+      ];
 
   return (
     <>
