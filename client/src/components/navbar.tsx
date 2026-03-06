@@ -31,6 +31,7 @@ export function Navbar() {
     if (isAuthenticated) {
       becomeCreatorMutation.mutate();
     } else {
+      localStorage.setItem("cultfam_pending_action", "start_club");
       window.location.href = "/api/login";
     }
   }

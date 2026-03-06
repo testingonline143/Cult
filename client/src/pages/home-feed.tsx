@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Bell, Heart, Share2, Plus, ChevronRight } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 interface EventWithClub extends Event {
   clubName?: string;
@@ -64,7 +65,30 @@ function ClubAvatar({ emoji, color, size = 52 }: { emoji: string; color?: string
 export default function HomeFeed() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+
+  const becomeCreatorMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
+        old ? { ...old, wantsToCreate: true } : old
+      );
+      navigate("/create");
+    },
+    onError: () => {
+      navigate("/create");
+    },
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    const pending = localStorage.getItem("cultfam_pending_action");
+    if (pending === "start_club") {
+      localStorage.removeItem("cultfam_pending_action");
+      becomeCreatorMutation.mutate();
+    }
+  }, [user?.id]);
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],

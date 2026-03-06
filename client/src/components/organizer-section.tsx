@@ -12,7 +12,9 @@ export function OrganizerSection() {
   const becomeCreatorMutation = useMutation({
     mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
+        old ? { ...old, wantsToCreate: true } : old
+      );
       navigate("/create");
     },
     onError: () => {
@@ -24,7 +26,8 @@ export function OrganizerSection() {
     if (user) {
       becomeCreatorMutation.mutate();
     } else {
-      navigate("/create");
+      localStorage.setItem("cultfam_pending_action", "start_club");
+      window.location.href = "/api/login";
     }
   }
 
