@@ -39,25 +39,40 @@ function QuizGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
+  }
+
+  if (!isAuthenticated) {
+    window.location.href = "/api/login";
+    return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
+  }
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <QuizGate>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/home" component={HomeFeed} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/organizer" component={OrganizerDashboard} />
-        <Route path="/profile" component={Profile} />
         <Route path="/onboarding" component={Onboarding} />
-        <Route path="/matched-clubs" component={MatchedClubs} />
-        <Route path="/explore" component={Explore} />
-        <Route path="/events" component={Events} />
-        <Route path="/create" component={Create} />
-        <Route path="/notifications" component={Notifications} />
-        <Route path="/scan/:eventId" component={ScanEvent} />
-        <Route path="/event/:id" component={EventDetail} />
-        <Route path="/club/:id" component={ClubDetail} />
-        <Route path="/member/:id" component={MemberProfile} />
+        <Route path="/admin" component={Admin} />
+        <Route path="/home" component={() => <ProtectedRoute component={HomeFeed} />} />
+        <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
+        <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+        <Route path="/matched-clubs" component={() => <ProtectedRoute component={MatchedClubs} />} />
+        <Route path="/explore" component={() => <ProtectedRoute component={Explore} />} />
+        <Route path="/events" component={() => <ProtectedRoute component={Events} />} />
+        <Route path="/create" component={() => <ProtectedRoute component={Create} />} />
+        <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
+        <Route path="/scan/:eventId" component={() => <ProtectedRoute component={ScanEvent} />} />
+        <Route path="/event/:id" component={() => <ProtectedRoute component={EventDetail} />} />
+        <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
+        <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
         <Route component={NotFound} />
       </Switch>
       <BottomNav />
