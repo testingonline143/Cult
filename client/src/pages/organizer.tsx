@@ -339,7 +339,7 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId, isCreator }: { active
 
   const pendingCount = requests.filter(r => r.status === "pending").length;
 
-  const allTabs = ["overview", "requests", "insights", "events", "content", "announcements", ...(isCreator ? ["edit"] : [])] as const;
+  const allTabs = ["overview", "requests", "insights", "events", "content", "announcements", ...(isCreator ? ["edit"] : [])] as ("overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements")[];
   const tabLabels: Record<string, string> = {
     overview: "Overview",
     requests: "Requests",

@@ -1739,7 +1739,7 @@ export async function registerRoutes(
       const ids = club.coOrganiserUserIds ?? [];
       const members = await Promise.all(ids.map(id => storage.getUser(id)));
       res.json(members.filter(Boolean).map(u => ({
-        id: u!.id,
+        userId: u!.id,
         name: [u!.firstName, u!.lastName].filter(Boolean).join(" ") || "Member",
         profileImageUrl: u!.profileImageUrl,
       })));
