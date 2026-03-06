@@ -88,39 +88,33 @@ export default function Create() {
           Create
         </h1>
 
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <button
-            onClick={() => setActiveTab("club")}
-            className={`rounded-full px-6 py-2 font-semibold transition-colors ${
-              activeTab === "club"
-                ? "text-white"
-                : "glass-card text-muted-foreground"
-            }`}
-            style={activeTab === "club" ? { background: 'var(--terra)' } : undefined}
-            data-testid="tab-new-club"
-          >
-            New Club
-          </button>
-          {isOrganiser && (
-          <button
-            onClick={() => setActiveTab("event")}
-            className={`rounded-full px-6 py-2 font-semibold transition-colors ${
-              activeTab === "event"
-                ? "text-white"
-                : "glass-card text-muted-foreground"
-            }`}
-            style={activeTab === "event" ? { background: 'var(--terra)' } : undefined}
-            data-testid="tab-new-event"
-          >
-            New Event
-          </button>
-          )}
-        </div>
-
-        {!isOrganiser && (
-          <p className="text-xs text-muted-foreground mb-4 -mt-2" data-testid="text-unlock-hint">
-            Create a club to unlock event creation
-          </p>
+        {isOrganiser && (
+          <div className="flex gap-2 mb-6 flex-wrap">
+            <button
+              onClick={() => setActiveTab("club")}
+              className={`rounded-full px-6 py-2 font-semibold transition-colors ${
+                activeTab === "club"
+                  ? "text-white"
+                  : "glass-card text-muted-foreground"
+              }`}
+              style={activeTab === "club" ? { background: 'var(--terra)' } : undefined}
+              data-testid="tab-new-club"
+            >
+              New Club
+            </button>
+            <button
+              onClick={() => setActiveTab("event")}
+              className={`rounded-full px-6 py-2 font-semibold transition-colors ${
+                activeTab === "event"
+                  ? "text-white"
+                  : "glass-card text-muted-foreground"
+              }`}
+              style={activeTab === "event" ? { background: 'var(--terra)' } : undefined}
+              data-testid="tab-new-event"
+            >
+              New Event
+            </button>
+          </div>
         )}
 
         {activeTab === "club" ? (
