@@ -100,6 +100,8 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `PATCH /api/admin/users/:id/role` — change user role to user/organiser/admin (admin only)
   - `GET /api/admin/events` — list all events with club info, rsvp/checkin counts (admin only)
   - `GET /api/organizer/clubs/:clubId/insights` — organizer insights (member/event stats, attendance rate, top event, recent activity)
+  - `DELETE /api/admin/events/:eventId` — cancel any event (admin only)
+  - `PATCH /api/clubs/:id/moments/:momentId` — edit moment caption/emoji (organizer only)
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`
@@ -132,7 +134,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 ### Storage Layer
 - `server/storage.ts` defines an `IStorage` interface and `DatabaseStorage` class implementing it
 - All database access goes through this storage abstraction
-- Key methods: getClubs, getClubsByCreator, incrementMemberCount, decrementMemberCount, createJoinRequest, approveJoinRequest, rejectJoinRequest, deleteJoinRequest, getJoinRequest, getJoinRequestsByUser, getPendingJoinRequestCount, getApprovedMembersByClub, hasExistingJoinRequest, getUserJoinStatus, hasUserJoinedClub (only counts approved), markJoinRequestDone, updateClub, createClub, createEvent, createRsvp, checkInRsvp, getClubAverageRating, getUserRating, upsertRating, getClubFaqs, createFaq, updateFaq, deleteFaq, getClubSchedule, createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getClubMoments, createMoment, deleteMoment, getJoinRequestCountByClub (only counts approved)
+- Key methods: getClubs, getClubsByCreator, incrementMemberCount, decrementMemberCount, createJoinRequest, approveJoinRequest, rejectJoinRequest, deleteJoinRequest, getJoinRequest, getJoinRequestsByUser, getPendingJoinRequestCount, getApprovedMembersByClub, hasExistingJoinRequest, getUserJoinStatus, hasUserJoinedClub (only counts approved), markJoinRequestDone, updateClub, createClub, createEvent, createRsvp, checkInRsvp, getClubAverageRating, getUserRating, upsertRating, getClubFaqs, createFaq, updateFaq, deleteFaq, getClubSchedule, createScheduleEntry, updateScheduleEntry, deleteScheduleEntry, getClubMoments, createMoment, updateMoment, deleteMoment, getJoinRequestCountByClub (only counts approved), getAdminAnalytics, getAllUsers, getAllEventsAdmin, getOrganizerInsights
 
 ### Auth System
 - **Replit Auth**: Uses OpenID Connect via `server/replit_integrations/auth/` (auto-generated integration)

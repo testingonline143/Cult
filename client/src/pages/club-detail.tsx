@@ -236,8 +236,9 @@ function ClubDetailContent({ club }: { club: Club }) {
       setJoinError("Name is required (minimum 2 characters)");
       return;
     }
-    if (!joinPhone || joinPhone.replace(/\D/g, "").length < 10) {
-      setJoinError("Phone is required (minimum 10 digits)");
+    const digitsOnly = joinPhone.replace(/\D/g, "");
+    if (!digitsOnly || digitsOnly.length < 10 || digitsOnly.length > 15) {
+      setJoinError("Enter a valid mobile number (10\u201315 digits)");
       return;
     }
     joinMutation.mutate({
@@ -694,7 +695,7 @@ function ClubDetailContent({ club }: { club: Club }) {
             />
             <input
               type="tel"
-              placeholder="Phone Number (for WhatsApp group)"
+              placeholder="10-digit mobile number (for WhatsApp group)"
               value={joinPhone}
               onChange={(e) => setJoinPhone(e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 placeholder:text-[var(--muted-warm)]"

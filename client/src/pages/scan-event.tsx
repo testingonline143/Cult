@@ -62,14 +62,25 @@ export default function ScanEvent() {
           if (processingRef.current) return;
           processingRef.current = true;
 
+          let parsed: any;
           try {
-            const parsed = JSON.parse(decodedText);
+            parsed = JSON.parse(decodedText);
+          } catch {
+            setScanResult({ type: "error", message: "Not a valid CultFam ticket \u2014 please scan the attendee's event QR code" });
+            setTimeout(() => {
+              setScanResult(null);
+              processingRef.current = false;
+            }, 3000);
+            return;
+          }
+
+          try {
             if (!parsed.token) {
-              setScanResult({ type: "error", message: "Invalid QR code format" });
+              setScanResult({ type: "error", message: "Not a valid CultFam ticket \u2014 please scan the attendee's event QR code" });
               setTimeout(() => {
                 setScanResult(null);
                 processingRef.current = false;
-              }, 2000);
+              }, 3000);
               return;
             }
 
@@ -91,7 +102,7 @@ export default function ScanEvent() {
               refetchAttendance();
             }
           } catch {
-            setScanResult({ type: "error", message: "Could not read QR code" });
+            setScanResult({ type: "error", message: "Check-in failed \u2014 please try scanning again" });
           }
 
           setTimeout(() => {

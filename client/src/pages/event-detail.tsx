@@ -57,6 +57,20 @@ export default function EventDetail() {
     queryKey: ["/api/events", id],
   });
 
+  const clubId = eventData?.club?.id;
+  const { data: joinStatusData } = useQuery<{ status: string | null }>({
+    queryKey: ["/api/clubs", clubId, "join-status"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/join-status`, { credentials: "include" });
+      if (!res.ok) return { status: null };
+      return res.json();
+    },
+    enabled: !!clubId && isAuthenticated && !isLoading,
+  });
+
+  const isClubCreator = eventData?.club?.creatorUserId === user?.id;
+  const isClubMemberFromStatus = isClubCreator || joinStatusData?.status === "approved";
+
   const rsvpMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/events/${id}/rsvp`, {
@@ -460,6 +474,15 @@ export default function EventDetail() {
                   {cancelRsvpMutation.isPending ? "..." : "Cancel"}
                 </button>
               </div>
+            ) : isAuthenticated && !isClubMemberFromStatus && !hasRsvp ? (
+              <Link
+                href={`/club/${clubId}`}
+                className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all no-underline"
+                style={{ background: 'var(--terra)', color: 'white', letterSpacing: '-0.3px' }}
+                data-testid="button-join-club-to-rsvp"
+              >
+                Join Club to RSVP
+              </Link>
             ) : spotsLeft > 0 ? (
               <button
                 onClick={() => rsvpMutation.mutate()}

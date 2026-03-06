@@ -468,6 +468,8 @@ function JoinedClubs({ userId }: { userId: string }) {
     },
   });
 
+  const [confirmingLeaveId, setConfirmingLeaveId] = useState<string | null>(null);
+
   const approvedRequests = joinRequests.filter((r) => (r as any).status === "approved");
   const pendingRequests = joinRequests.filter((r) => (r as any).status === "pending");
   const rejectedRequests = joinRequests.filter((r) => (r as any).status === "rejected");
@@ -525,18 +527,37 @@ function JoinedClubs({ userId }: { userId: string }) {
                         <CheckCircle2 className="w-3 h-3" /> Member
                       </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Leave ${club.name}?`)) {
-                          leaveMutation.mutate(club.id);
-                        }
-                      }}
-                      disabled={leaveMutation.isPending}
-                      className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
-                      data-testid={`button-leave-club-${club.id}`}
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
+                    {confirmingLeaveId === club.id ? (
+                      <div className="shrink-0 flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            leaveMutation.mutate(club.id);
+                            setConfirmingLeaveId(null);
+                          }}
+                          disabled={leaveMutation.isPending}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-destructive/10 text-destructive transition-colors"
+                          data-testid={`button-confirm-leave-${club.id}`}
+                        >
+                          {leaveMutation.isPending ? "..." : "Leave"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmingLeaveId(null)}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground transition-colors"
+                          style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                          data-testid={`button-cancel-leave-${club.id}`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingLeaveId(club.id)}
+                        className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                        data-testid={`button-leave-club-${club.id}`}
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 );
               })}

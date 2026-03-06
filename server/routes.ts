@@ -559,6 +559,13 @@ export async function registerRoutes(
 
   app.patch("/api/organizer/join-requests/:id/contacted", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
+      const request = await storage.getJoinRequest(req.params.id);
+      if (!request) return res.status(404).json({ message: "Not found" });
+      const userId = req.user.claims.sub;
+      const clubs = await storage.getClubsByCreator(userId);
+      if (!clubs.some(c => c.id === request.clubId)) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
       const updated = await storage.markJoinRequestDone(req.params.id);
       if (!updated) return res.status(404).json({ message: "Not found" });
       res.json(updated);
@@ -1183,6 +1190,29 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/clubs/:id/moments/:momentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const moments = await storage.getClubMoments(req.params.id);
+      if (!moments.some(m => m.id === req.params.momentId)) {
+        return res.status(404).json({ message: "Moment not found in this club" });
+      }
+      const { caption, emoji } = req.body;
+      if (!caption || !caption.trim()) {
+        return res.status(400).json({ message: "Caption is required" });
+      }
+      const updated = await storage.updateMoment(req.params.momentId, { caption: caption.trim(), emoji: emoji || null });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error updating moment:", err);
+      res.status(500).json({ message: "Failed to update moment" });
+    }
+  });
+
   app.delete("/api/clubs/:id/moments/:momentId", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1226,6 +1256,12 @@ export async function registerRoutes(
 
   app.patch("/api/notifications/:id/read", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const notifications = await storage.getNotificationsByUser(userId);
+      const notification = notifications.find(n => n.id === req.params.id);
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
       const updated = await storage.markNotificationRead(req.params.id);
       if (!updated) return res.status(404).json({ message: "Notification not found" });
       res.json(updated);
@@ -1291,6 +1327,23 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (err) {
       console.error("Error cancelling event:", err);
+      res.status(500).json({ message: "Failed to cancel event" });
+    }
+  });
+
+  app.delete("/api/admin/events/:eventId", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      if (event.isCancelled) {
+        return res.status(400).json({ message: "Event is already cancelled" });
+      }
+      await storage.cancelEvent(req.params.eventId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error admin cancelling event:", err);
       res.status(500).json({ message: "Failed to cancel event" });
     }
   });

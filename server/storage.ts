@@ -72,6 +72,7 @@ export interface IStorage {
   deleteScheduleEntry(id: string): Promise<void>;
   getClubMoments(clubId: string): Promise<ClubMoment[]>;
   createMoment(clubId: string, caption: string, emoji?: string): Promise<ClubMoment>;
+  updateMoment(id: string, data: { caption?: string; emoji?: string }): Promise<ClubMoment | undefined>;
   deleteMoment(id: string): Promise<void>;
   getJoinRequestCountByClub(clubId: string): Promise<number>;
   hasUserJoinedClub(clubId: string, userId: string): Promise<boolean>;
@@ -86,7 +87,7 @@ export interface IStorage {
   getMembersPreview(clubId: string, limit?: number): Promise<{ name: string; profileImageUrl: string | null }[]>;
   getAdminAnalytics(): Promise<{ totalUsers: number; totalClubs: number; activeClubs: number; totalEvents: number; totalRsvps: number; totalCheckins: number; cityCounts: { city: string; count: number }[] }>;
   getAllUsers(): Promise<{ id: string; email: string | null; firstName: string | null; city: string | null; role: string | null; createdAt: Date | null; clubCount: number }[]>;
-  getAllEventsAdmin(): Promise<{ id: string; title: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
+  getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
 }
 
@@ -606,6 +607,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async updateMoment(id: string, data: { caption?: string; emoji?: string }): Promise<ClubMoment | undefined> {
+    const [updated] = await db.update(clubMoments).set(data).where(eq(clubMoments.id, id)).returning();
+    return updated;
+  }
+
   async deleteMoment(id: string): Promise<void> {
     await db.delete(clubMoments).where(eq(clubMoments.id, id));
   }
@@ -732,6 +738,7 @@ export class DatabaseStorage implements IStorage {
     const results = await db.select({
       id: events.id,
       title: events.title,
+      clubId: events.clubId,
       clubName: clubs.name,
       clubEmoji: clubs.emoji,
       startsAt: events.startsAt,
@@ -755,20 +762,29 @@ export class DatabaseStorage implements IStorage {
     let topEvent: { title: string; attended: number; total: number } | null = null;
 
     if (clubEvents.length > 0) {
+      const eventIds = clubEvents.map(e => e.id);
+      const attendanceStats = await db.select({
+        eventId: eventRsvps.eventId,
+        rsvpCount: sql<number>`count(*)::int`,
+        checkinCount: sql<number>`sum(case when ${eventRsvps.checkedIn} then 1 else 0 end)::int`,
+      })
+        .from(eventRsvps)
+        .where(sql`${eventRsvps.eventId} in ${eventIds}`)
+        .groupBy(eventRsvps.eventId);
+
       let totalRate = 0;
       let ratedEvents = 0;
       let bestAttendance = -1;
 
-      for (const ev of clubEvents) {
-        const [rsvpC] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps).where(eq(eventRsvps.eventId, ev.id));
-        const [checkinC] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps).where(and(eq(eventRsvps.eventId, ev.id), eq(eventRsvps.checkedIn, true)));
-        if (rsvpC.count > 0) {
-          const rate = checkinC.count / rsvpC.count;
+      for (const stat of attendanceStats) {
+        if (stat.rsvpCount > 0) {
+          const rate = (stat.checkinCount || 0) / stat.rsvpCount;
           totalRate += rate;
           ratedEvents++;
-          if (checkinC.count > bestAttendance) {
-            bestAttendance = checkinC.count;
-            topEvent = { title: ev.title, attended: checkinC.count, total: rsvpC.count };
+          if ((stat.checkinCount || 0) > bestAttendance) {
+            bestAttendance = stat.checkinCount || 0;
+            const ev = clubEvents.find(e => e.id === stat.eventId);
+            topEvent = { title: ev?.title || "Unknown", attended: stat.checkinCount || 0, total: stat.rsvpCount };
           }
         }
       }

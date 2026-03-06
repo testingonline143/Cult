@@ -973,6 +973,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
       if (!res.ok) return { attendees: [], checkedInCount: 0, totalRsvps: 0 };
       return res.json();
     },
+    enabled: showAttendees,
   });
 
   const editMutation = useMutation({
@@ -1752,6 +1753,7 @@ const MOMENT_ICONS = [
 
 function MomentsManager({ clubId }: { clubId: string }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("");
 
@@ -1775,6 +1777,17 @@ function MomentsManager({ clubId }: { clubId: string }) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { caption: string; emoji?: string } }) => {
+      const res = await apiRequest("PATCH", `/api/clubs/${clubId}/moments/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "moments"] });
+      resetForm();
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/clubs/${clubId}/moments/${id}`);
@@ -1787,12 +1800,24 @@ function MomentsManager({ clubId }: { clubId: string }) {
   const resetForm = () => {
     setCaption("");
     setSelectedIcon("");
+    setEditingId(null);
     setShowForm(false);
+  };
+
+  const startEdit = (moment: ClubMoment) => {
+    setCaption(moment.caption);
+    setSelectedIcon(moment.emoji || "");
+    setEditingId(moment.id);
+    setShowForm(true);
   };
 
   const handleSubmit = () => {
     if (!caption.trim()) return;
-    createMutation.mutate({ caption: caption.trim(), emoji: selectedIcon || undefined });
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data: { caption: caption.trim(), emoji: selectedIcon || undefined } });
+    } else {
+      createMutation.mutate({ caption: caption.trim(), emoji: selectedIcon || undefined });
+    }
   };
 
   const formatRelativeTime = (dateStr: string | Date | null) => {
@@ -1866,11 +1891,11 @@ function MomentsManager({ clubId }: { clubId: string }) {
           </div>
           <button
             onClick={handleSubmit}
-            disabled={createMutation.isPending || !caption.trim()}
+            disabled={createMutation.isPending || updateMutation.isPending || !caption.trim()}
             className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold disabled:opacity-50"
             data-testid="button-submit-moment"
           >
-            {createMutation.isPending ? "Posting..." : "Post Moment"}
+            {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingId ? "Update Moment" : "Post Moment"}
           </button>
         </div>
       )}
@@ -1902,14 +1927,23 @@ function MomentsManager({ clubId }: { clubId: string }) {
                   </div>
                   <p className="text-sm text-foreground mt-1.5" data-testid={`text-moment-caption-${moment.id}`}>{moment.caption}</p>
                 </div>
-                <button
-                  onClick={() => deleteMutation.mutate(moment.id)}
-                  disabled={deleteMutation.isPending}
-                  className="p-1.5 rounded-md text-destructive shrink-0"
-                  data-testid={`button-delete-moment-${moment.id}`}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => startEdit(moment)}
+                    className="p-1.5 rounded-md text-muted-foreground"
+                    data-testid={`button-edit-moment-${moment.id}`}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => deleteMutation.mutate(moment.id)}
+                    disabled={deleteMutation.isPending}
+                    className="p-1.5 rounded-md text-destructive"
+                    data-testid={`button-delete-moment-${moment.id}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

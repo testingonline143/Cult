@@ -30,6 +30,7 @@ interface AdminUser {
 interface AdminEvent {
   id: string;
   title: string;
+  clubId: string;
   clubName: string;
   clubEmoji: string;
   startsAt: string;
@@ -461,9 +462,27 @@ function UsersTab() {
 }
 
 function EventsTab() {
+  const { toast } = useToast();
+  const [confirmingCancel, setConfirmingCancel] = useState<string | null>(null);
+
   const { data: allEvents = [], isLoading, error } = useQuery<AdminEvent[]>({
     queryKey: ["/api/admin/events"],
     retry: false,
+  });
+
+  const cancelEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await apiRequest("DELETE", `/api/admin/events/${eventId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+      setConfirmingCancel(null);
+      toast({ title: "Event cancelled" });
+    },
+    onError: () => {
+      toast({ title: "Failed to cancel event", variant: "destructive" });
+    },
   });
 
   if (isLoading) {
@@ -546,7 +565,7 @@ function EventsTab() {
                     </span>
                   </div>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="shrink-0 text-right flex items-center gap-2">
                   {isPast && event.rsvpCount > 0 && (
                     <div>
                       <div className="text-sm font-bold text-[var(--terra)] font-mono">{attendanceRate}%</div>
@@ -555,6 +574,35 @@ function EventsTab() {
                   )}
                   {!isPast && !event.isCancelled && (
                     <div className="text-sm font-bold text-[var(--terra)] font-mono">{event.rsvpCount}</div>
+                  )}
+                  {!isPast && !event.isCancelled && (
+                    confirmingCancel === event.id ? (
+                      <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+                        <button
+                          onClick={(e) => { e.preventDefault(); cancelEventMutation.mutate(event.id); }}
+                          disabled={cancelEventMutation.isPending}
+                          className="text-[10px] font-semibold px-2 py-1 rounded-md bg-destructive/10 text-destructive transition-all whitespace-nowrap"
+                          data-testid={`button-confirm-cancel-event-${event.id}`}
+                        >
+                          {cancelEventMutation.isPending ? "..." : "Confirm"}
+                        </button>
+                        <button
+                          onClick={(e) => { e.preventDefault(); setConfirmingCancel(null); }}
+                          className="text-[10px] font-semibold px-2 py-1 rounded-md bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground transition-all whitespace-nowrap"
+                          data-testid={`button-undo-cancel-event-${event.id}`}
+                        >
+                          Back
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.preventDefault(); setConfirmingCancel(event.id); }}
+                        className="text-[10px] font-semibold px-2 py-1 rounded-md bg-destructive/10 text-destructive transition-all whitespace-nowrap"
+                        data-testid={`button-cancel-event-${event.id}`}
+                      >
+                        Cancel
+                      </button>
+                    )
                   )}
                 </div>
               </div>

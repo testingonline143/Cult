@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CATEGORY_EMOJI } from "@shared/schema";
 import type { Club } from "@shared/schema";
+import { CATEGORY_GRADIENTS, DEFAULT_GRADIENT } from "@/lib/constants";
 
 type ClubWithActivity = Club & { recentJoins?: number };
 
@@ -14,28 +15,11 @@ interface ClubsSectionProps {
   isLoading: boolean;
 }
 
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  Trekking: "linear-gradient(135deg, #4a7c59 0%, #2d5a3f 100%)",
-  Books: "linear-gradient(135deg, #8b6914 0%, #6b4f10 100%)",
-  Cycling: "linear-gradient(135deg, #c4622d 0%, #a84e22 100%)",
-  Photography: "linear-gradient(135deg, #5a4a8a 0%, #3d3266 100%)",
-  Fitness: "linear-gradient(135deg, #c44a2d 0%, #a83622 100%)",
-  Art: "linear-gradient(135deg, #8a4a7c 0%, #663256 100%)",
-  Football: "linear-gradient(135deg, #2d8a4a 0%, #1a6633 100%)",
-  Cricket: "linear-gradient(135deg, #2d6bc4 0%, #1a4a8a 100%)",
-  Chess: "linear-gradient(135deg, #3d3228 0%, #1a1410 100%)",
-  Music: "linear-gradient(135deg, #8a2d6b 0%, #661a4a 100%)",
-  Gaming: "linear-gradient(135deg, #2d4ac4 0%, #1a338a 100%)",
-  Dance: "linear-gradient(135deg, #c42d6b 0%, #8a1a4a 100%)",
-  Cooking: "linear-gradient(135deg, #c49a2d 0%, #8a6b1a 100%)",
-  Yoga: "linear-gradient(135deg, #2d8a8a 0%, #1a6666 100%)",
-};
-
 function ScrollClubCard({ club, index }: { club: ClubWithActivity; index: number }) {
   const [, navigate] = useLocation();
   const foundingSpotsLeft = (club.foundingTotal ?? 20) - (club.foundingTaken ?? 0);
   const emoji = CATEGORY_EMOJI[club.category] || club.emoji;
-  const gradient = CATEGORY_GRADIENTS[club.category] || "linear-gradient(135deg, var(--ink2) 0%, var(--ink) 100%)";
+  const gradient = CATEGORY_GRADIENTS[club.category] || DEFAULT_GRADIENT;
 
   return (
     <motion.div
