@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Users, MapPin, Calendar, PlusCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 import { CATEGORIES, CITIES, CATEGORY_EMOJI } from "@shared/schema";
 import type { Club } from "@shared/schema";
 import { CATEGORY_GRADIENTS, DEFAULT_GRADIENT } from "@/lib/constants";
@@ -11,12 +12,27 @@ const ALL_CATEGORIES = ["All", ...CATEGORIES];
 
 export default function Explore() {
   const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCity, setActiveCity] = useState("All Cities");
   const [activeVibe, setActiveVibe] = useState("all");
   const [activeTimeOfDay, setActiveTimeOfDay] = useState("all");
+
+  const becomeCreatorMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
+        old ? { ...old, wantsToCreate: true } : old
+      );
+      navigate("/create");
+    },
+    onError: () => {
+      navigate("/create");
+    },
+  });
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -229,7 +245,12 @@ export default function Explore() {
             })}
 
             {isAuthenticated && !isOrganiser && (
-              <Link href="/create" data-testid="card-start-club">
+              <button
+                onClick={() => becomeCreatorMutation.mutate()}
+                disabled={becomeCreatorMutation.isPending}
+                className="w-full text-left"
+                data-testid="card-start-club"
+              >
                 <div className="rounded-[18px] p-6 text-center space-y-3" style={{ background: "var(--terra-pale)", border: "1.5px dashed rgba(196,98,45,0.4)" }}>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: "rgba(196,98,45,0.15)" }}>
                     <PlusCircle className="w-6 h-6" style={{ color: "var(--terra)" }} />
@@ -241,10 +262,10 @@ export default function Explore() {
                     Start your own club and build a community around what you love.
                   </p>
                   <span className="inline-block text-sm font-semibold" style={{ color: "var(--terra)" }}>
-                    Start a Club &rarr;
+                    {becomeCreatorMutation.isPending ? "Setting up..." : "Start a Club →"}
                   </span>
                 </div>
-              </Link>
+              </button>
             )}
           </div>
         )}
