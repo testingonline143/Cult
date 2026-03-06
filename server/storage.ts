@@ -4,11 +4,12 @@ import {
   type QuizAnswers, type InsertQuizAnswers, type Event, type InsertEvent,
   type EventRsvp, type InsertEventRsvp,
   type ClubRating, type ClubFaq, type ClubScheduleEntry, type ClubMoment,
+  type Notification, type InsertNotification,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
-  clubRatings, clubFaqs, clubScheduleEntries, clubMoments
+  clubRatings, clubFaqs, clubScheduleEntries, clubMoments, notifications
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, and, gte, ilike, or } from "drizzle-orm";
+import { eq, sql, desc, and, gte, ilike, or, ne } from "drizzle-orm";
 
 export interface IStorage {
   getClubs(): Promise<Club[]>;
@@ -75,6 +76,14 @@ export interface IStorage {
   getJoinRequestCountByClub(clubId: string): Promise<number>;
   hasUserJoinedClub(clubId: string, userId: string): Promise<boolean>;
   getUserJoinStatus(clubId: string, userId: string): Promise<{ status: string | null; requestId: string | null }>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotificationsByUser(userId: string): Promise<Notification[]>;
+  markNotificationRead(id: string): Promise<Notification | undefined>;
+  markAllNotificationsRead(userId: string): Promise<void>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  updateEvent(id: string, data: Partial<InsertEvent>): Promise<Event | undefined>;
+  cancelEvent(id: string): Promise<Event | undefined>;
+  getMembersPreview(clubId: string, limit?: number): Promise<{ name: string; profileImageUrl: string | null }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -269,6 +278,7 @@ export class DatabaseStorage implements IStorage {
       maxCapacity: events.maxCapacity,
       coverImageUrl: events.coverImageUrl,
       isPublic: events.isPublic,
+      isCancelled: events.isCancelled,
       createdAt: events.createdAt,
       clubName: clubs.name,
       clubEmoji: clubs.emoji,
@@ -278,8 +288,8 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(clubs, eq(events.clubId, clubs.id))
       .where(
         city && city !== "All Cities"
-          ? and(gte(events.startsAt, now), eq(clubs.city, city))
-          : gte(events.startsAt, now)
+          ? and(gte(events.startsAt, now), eq(clubs.city, city), ne(events.isCancelled, true))
+          : and(gte(events.startsAt, now), ne(events.isCancelled, true))
       )
       .orderBy(events.startsAt)
       .limit(limit);
@@ -617,6 +627,64 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(joinRequests.createdAt))
       .limit(1);
     return { status: result?.status ?? null, requestId: result?.id ?? null };
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(notification).returning();
+    return created;
+  }
+
+  async getNotificationsByUser(userId: string): Promise<Notification[]> {
+    return db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async markNotificationRead(id: string): Promise<Notification | undefined> {
+    const [updated] = await db.update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return result?.count ?? 0;
+  }
+
+  async updateEvent(id: string, data: Partial<InsertEvent>): Promise<Event | undefined> {
+    const [updated] = await db.update(events).set(data).where(eq(events.id, id)).returning();
+    return updated;
+  }
+
+  async cancelEvent(id: string): Promise<Event | undefined> {
+    const [updated] = await db.update(events)
+      .set({ isCancelled: true })
+      .where(eq(events.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getMembersPreview(clubId: string, limit = 10): Promise<{ name: string; profileImageUrl: string | null }[]> {
+    const results = await db.select({
+      name: joinRequests.name,
+      profileImageUrl: users.profileImageUrl,
+    })
+      .from(joinRequests)
+      .leftJoin(users, eq(joinRequests.userId, users.id))
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")))
+      .orderBy(desc(joinRequests.createdAt))
+      .limit(limit);
+    return results;
   }
 }
 

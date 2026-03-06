@@ -3,7 +3,9 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -120,6 +122,15 @@ function ClubDetailContent({ club }: { club: Club }) {
     queryFn: async () => {
       const res = await fetch(`/api/clubs/${club.id}/join-count`);
       if (!res.ok) return { count: 0 };
+      return res.json();
+    },
+  });
+
+  const { data: membersPreview = [] } = useQuery<{ name: string; profileImageUrl: string | null }[]>({
+    queryKey: ["/api/clubs", club.id, "members-preview"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/members-preview`);
+      if (!res.ok) return [];
       return res.json();
     },
   });
@@ -347,6 +358,60 @@ function ClubDetailContent({ club }: { club: Club }) {
           </div>
         </div>
       </div>
+
+      {ratingCount > 0 && (
+        <div className="mx-6 mt-3 rounded-2xl p-4 flex items-center gap-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="card-reviews-highlight">
+          <div className="flex flex-col items-center justify-center shrink-0">
+            <div className="font-mono text-[32px] leading-none tracking-wide text-[var(--gold)]" data-testid="text-avg-rating-highlight">
+              {avgRating.toFixed(1)}
+            </div>
+            <div className="flex items-center gap-0.5 mt-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(avgRating) ? "text-[var(--gold)] fill-[var(--gold)]" : "text-[var(--warm-border)]"}`} />
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-sm font-bold text-[var(--ink)]">Community Rating</div>
+            <div className="text-xs text-[var(--muted-warm)] mt-0.5">
+              Based on {ratingCount} {ratingCount === 1 ? "review" : "reviews"} from members
+            </div>
+          </div>
+          <Heart className="w-5 h-5 text-[var(--terra)] shrink-0" />
+        </div>
+      )}
+
+      {membersPreview.length > 0 && (
+        <div className="px-6 mt-4" data-testid="section-members-preview">
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Members</h2>
+            <Badge variant="secondary" className="text-[10px] no-default-active-elevate" data-testid="badge-total-members">
+              {club.memberCount} total
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {membersPreview.map((member, i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5 w-16" data-testid={`member-preview-${i}`}>
+                <Avatar className="w-11 h-11">
+                  <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
+                  <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium">{member.name.split(' ')[0]}</span>
+              </div>
+            ))}
+            {club.memberCount > membersPreview.length && (
+              <div className="flex flex-col items-center gap-1.5 w-16" data-testid="member-preview-more">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+                  <span className="text-xs font-bold text-[var(--muted-warm)]">+{club.memberCount - membersPreview.length}</span>
+                </div>
+                <span className="text-[10px] text-[var(--muted-warm)] text-center font-medium">more</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex mt-5 overflow-x-auto scrollbar-none" style={{ borderBottom: '1.5px solid var(--warm-border)', scrollbarWidth: 'none' }} data-testid="section-tabs">
         {tabs.map((tab) => (
@@ -939,6 +1004,16 @@ function ScheduleTab({ clubId, fallbackSchedule }: { clubId: string; fallbackSch
   );
 }
 
+function getMomentIcon(caption: string) {
+  const lower = caption.toLowerCase();
+  if (lower.includes("photo") || lower.includes("pic") || lower.includes("snap")) return Camera;
+  if (lower.includes("event") || lower.includes("meet") || lower.includes("session")) return Calendar;
+  if (lower.includes("member") || lower.includes("join") || lower.includes("welcome")) return Users;
+  if (lower.includes("announce") || lower.includes("update") || lower.includes("news")) return Megaphone;
+  if (lower.includes("achieve") || lower.includes("milestone") || lower.includes("record")) return Sparkles;
+  return Activity;
+}
+
 function MomentsTab({ clubId }: { clubId: string }) {
   const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
@@ -973,6 +1048,7 @@ function MomentsTab({ clubId }: { clubId: string }) {
       <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider mb-3">Recent Moments</h2>
       {moments.map((moment) => {
         const timeAgo = getRelativeTime(moment.createdAt);
+        const MomentIcon = getMomentIcon(moment.caption);
         return (
           <div
             key={moment.id}
@@ -980,14 +1056,19 @@ function MomentsTab({ clubId }: { clubId: string }) {
             style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
             data-testid={`moment-${moment.id}`}
           >
-            {moment.emoji && (
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-xl" style={{ background: 'var(--terra-pale)' }}>
-                {moment.emoji}
-              </div>
-            )}
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
+              {moment.emoji ? (
+                <span className="text-xl">{moment.emoji}</span>
+              ) : (
+                <MomentIcon className="w-5 h-5 text-[var(--terra)]" />
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-[var(--ink)] leading-relaxed">{moment.caption}</p>
-              <span className="text-[10px] text-[var(--muted-warm)] mt-1 block">{timeAgo}</span>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Clock className="w-3 h-3 text-[var(--muted-warm)]" />
+                <span className="text-[10px] text-[var(--muted-warm)] font-medium">{timeAgo}</span>
+              </div>
             </div>
           </div>
         );

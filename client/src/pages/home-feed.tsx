@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -5,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, MapPin, Users } from "lucide-react";
 import { format, isToday } from "date-fns";
 import type { Club, Event } from "@shared/schema";
+import { CITIES } from "@shared/schema";
 import { Link, useLocation } from "wouter";
+
+const CITY_STORAGE_KEY = "cultfam_city";
+const ALL_CITIES = "All Cities";
 
 interface EventWithClub extends Event {
   clubName?: string;
@@ -15,13 +20,34 @@ interface EventWithClub extends Event {
 export default function HomeFeed() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const cityScrollRef = useRef<HTMLDivElement>(null);
+
+  const [selectedCity, setSelectedCity] = useState<string>(() => {
+    return localStorage.getItem(CITY_STORAGE_KEY) || ALL_CITIES;
+  });
+
+  useEffect(() => {
+    if (selectedCity === ALL_CITIES) {
+      localStorage.removeItem(CITY_STORAGE_KEY);
+    } else {
+      localStorage.setItem(CITY_STORAGE_KEY, selectedCity);
+    }
+  }, [selectedCity]);
+
+  const clubsQueryKey = selectedCity === ALL_CITIES
+    ? ["/api/clubs-with-activity"]
+    : [`/api/clubs-with-activity?city=${encodeURIComponent(selectedCity)}`];
+
+  const eventsQueryKey = selectedCity === ALL_CITIES
+    ? ["/api/events"]
+    : [`/api/events?city=${encodeURIComponent(selectedCity)}`];
 
   const { data: clubs = [], isLoading: clubsLoading } = useQuery<(Club & { recentJoins?: number })[]>({
-    queryKey: ["/api/clubs-with-activity"],
+    queryKey: clubsQueryKey,
   });
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<EventWithClub[]>({
-    queryKey: ["/api/events"],
+    queryKey: eventsQueryKey,
   });
 
   const todayEvents = events
@@ -33,12 +59,47 @@ export default function HomeFeed() {
     <div className="min-h-screen bg-background pb-24">
       <div className="px-6 pt-10 pb-2">
         <p className="text-[10px] font-semibold tracking-[3px] uppercase mb-1" style={{ color: "var(--terra)" }} data-testid="text-hero-eyebrow">
-          Tirupati Edition
+          {selectedCity === ALL_CITIES ? "All Cities" : `${selectedCity} Edition`}
         </p>
         <h1 className="font-display text-[34px] font-black leading-[0.95] tracking-tight" style={{ color: "var(--ink)" }} data-testid="text-hero-heading">
           Find Your <em className="italic" style={{ color: "var(--terra)" }}>Tribe</em>
         </h1>
         <p className="text-muted-foreground mt-1 text-sm" data-testid="text-hero-subtitle">Real life starts here.</p>
+      </div>
+
+      <div
+        ref={cityScrollRef}
+        className="px-6 mb-4 flex gap-2 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+        data-testid="city-selector"
+      >
+        <button
+          onClick={() => setSelectedCity(ALL_CITIES)}
+          className="shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors"
+          style={{
+            background: selectedCity === ALL_CITIES ? "var(--terra)" : "var(--warm-white)",
+            color: selectedCity === ALL_CITIES ? "white" : "var(--muted-warm)",
+            border: selectedCity === ALL_CITIES ? "1.5px solid var(--terra)" : "1.5px solid var(--warm-border)",
+          }}
+          data-testid="city-pill-all"
+        >
+          All Cities
+        </button>
+        {CITIES.map((city) => (
+          <button
+            key={city}
+            onClick={() => setSelectedCity(city)}
+            className="shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors"
+            style={{
+              background: selectedCity === city ? "var(--terra)" : "var(--warm-white)",
+              color: selectedCity === city ? "white" : "var(--muted-warm)",
+              border: selectedCity === city ? "1.5px solid var(--terra)" : "1.5px solid var(--warm-border)",
+            }}
+            data-testid={`city-pill-${city.toLowerCase()}`}
+          >
+            {city}
+          </button>
+        ))}
       </div>
 
       <div className="mx-6 flex items-center gap-2.5 py-2.5 mb-5" style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1px solid var(--warm-border)" }}>

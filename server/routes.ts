@@ -434,6 +434,19 @@ export async function registerRoutes(
         maxCapacity: parseInt(req.body.maxCapacity) || 20,
       };
       const event = await storage.createEvent(eventData);
+      const approvedMembers = await storage.getApprovedMembersByClub(req.params.id);
+      for (const member of approvedMembers) {
+        if (member.userId && member.userId !== userId) {
+          await storage.createNotification({
+            userId: member.userId,
+            type: "new_event",
+            title: "New Event!",
+            message: `${club.name} just posted a new event: ${event.title}`,
+            linkUrl: `/event/${event.id}`,
+            isRead: false,
+          });
+        }
+      }
       res.status(201).json({ success: true, event });
     } catch (err) {
       console.error("Error creating event:", err);
@@ -523,6 +536,17 @@ export async function registerRoutes(
       const updated = await storage.approveJoinRequest(req.params.id);
       if (updated) {
         await storage.incrementMemberCount(updated.clubId);
+        if (updated.userId) {
+          const club = await storage.getClub(updated.clubId);
+          await storage.createNotification({
+            userId: updated.userId,
+            type: "join_approved",
+            title: "Membership Approved!",
+            message: `You've been approved to join ${club?.name || updated.clubName}. Welcome aboard!`,
+            linkUrl: `/club/${updated.clubId}`,
+            isRead: false,
+          });
+        }
       }
       res.json(updated);
     } catch (err) {
@@ -541,6 +565,17 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Not authorized" });
       }
       const updated = await storage.rejectJoinRequest(req.params.id);
+      if (updated && updated.userId) {
+        const club = await storage.getClub(updated.clubId);
+        await storage.createNotification({
+          userId: updated.userId,
+          type: "join_rejected",
+          title: "Membership Update",
+          message: `Your request to join ${club?.name || updated.clubName} was not approved at this time.`,
+          linkUrl: `/club/${updated.clubId}`,
+          isRead: false,
+        });
+      }
       res.json(updated);
     } catch (err) {
       console.error("Error rejecting join request:", err);
@@ -629,11 +664,17 @@ export async function registerRoutes(
       if (!club || club.creatorUserId !== userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const { shortDesc, schedule, location, healthStatus, highlights } = req.body;
-      const updated = await storage.updateClub(req.params.id, {
-        shortDesc, schedule, location, healthStatus,
-        ...(highlights !== undefined ? { highlights } : {}),
-      });
+      const { shortDesc, fullDesc, schedule, location, healthStatus, highlights, organizerName, whatsappNumber } = req.body;
+      const updateData: Record<string, any> = {};
+      if (shortDesc !== undefined) updateData.shortDesc = shortDesc;
+      if (fullDesc !== undefined) updateData.fullDesc = fullDesc;
+      if (schedule !== undefined) updateData.schedule = schedule;
+      if (location !== undefined) updateData.location = location;
+      if (healthStatus !== undefined) updateData.healthStatus = healthStatus;
+      if (highlights !== undefined) updateData.highlights = highlights;
+      if (organizerName !== undefined) updateData.organizerName = organizerName;
+      if (whatsappNumber !== undefined) updateData.whatsappNumber = whatsappNumber;
+      const updated = await storage.updateClub(req.params.id, updateData);
       if (!updated) return res.status(404).json({ message: "Club not found" });
       res.json(updated);
     } catch (err) {
@@ -1103,6 +1144,109 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error deleting moment:", err);
       res.status(500).json({ message: "Failed to delete moment" });
+    }
+  });
+
+  app.get("/api/notifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notifs = await storage.getNotificationsByUser(userId);
+      res.json(notifs);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/notifications/unread-count", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (err) {
+      console.error("Error fetching unread count:", err);
+      res.status(500).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", isAuthenticated, async (req: any, res) => {
+    try {
+      const updated = await storage.markNotificationRead(req.params.id);
+      if (!updated) return res.status(404).json({ message: "Notification not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error marking notification read:", err);
+      res.status(500).json({ message: "Failed to update notification" });
+    }
+  });
+
+  app.patch("/api/notifications/read-all", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.markAllNotificationsRead(userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error marking all notifications read:", err);
+      res.status(500).json({ message: "Failed to update notifications" });
+    }
+  });
+
+  app.patch("/api/clubs/:clubId/events/:eventId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.clubId);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event || event.clubId !== req.params.clubId) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      if (event.isCancelled) {
+        return res.status(400).json({ message: "Cannot edit a cancelled event" });
+      }
+      const updateData: any = {};
+      if (req.body.title) updateData.title = req.body.title;
+      if (req.body.description !== undefined) updateData.description = req.body.description;
+      if (req.body.locationText) updateData.locationText = req.body.locationText;
+      if (req.body.locationUrl !== undefined) updateData.locationUrl = req.body.locationUrl;
+      if (req.body.startsAt) updateData.startsAt = new Date(req.body.startsAt);
+      if (req.body.endsAt !== undefined) updateData.endsAt = req.body.endsAt ? new Date(req.body.endsAt) : null;
+      if (req.body.maxCapacity) updateData.maxCapacity = parseInt(req.body.maxCapacity);
+      const updated = await storage.updateEvent(req.params.eventId, updateData);
+      res.json({ success: true, event: updated });
+    } catch (err) {
+      console.error("Error updating event:", err);
+      res.status(500).json({ message: "Failed to update event" });
+    }
+  });
+
+  app.delete("/api/clubs/:clubId/events/:eventId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.clubId);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event || event.clubId !== req.params.clubId) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      await storage.cancelEvent(req.params.eventId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error cancelling event:", err);
+      res.status(500).json({ message: "Failed to cancel event" });
+    }
+  });
+
+  app.get("/api/clubs/:id/members-preview", async (req, res) => {
+    try {
+      const members = await storage.getMembersPreview(req.params.id, 10);
+      res.json(members);
+    } catch (err) {
+      console.error("Error fetching members preview:", err);
+      res.status(500).json({ message: "Failed to fetch members preview" });
     }
   });
 

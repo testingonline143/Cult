@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
 
 export default function Organizer() {
@@ -609,7 +609,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
       ) : (
         <div className="space-y-2">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} onDuplicate={handleDuplicate} />
+            <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate} />
           ))}
         </div>
       )}
@@ -619,10 +619,24 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
 
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 
-function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number }; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
+function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount: number }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
   const [showAttendees, setShowAttendees] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [editTitle, setEditTitle] = useState(event.title);
+  const [editDescription, setEditDescription] = useState(event.description || "");
+  const [editStartsAt, setEditStartsAt] = useState(() => {
+    const d = new Date(event.startsAt);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const [editLocationText, setEditLocationText] = useState(event.locationText);
+  const [editMaxCapacity, setEditMaxCapacity] = useState(String(event.maxCapacity));
+  const [editError, setEditError] = useState("");
+
   const d = new Date(event.startsAt);
   const isPast = d < new Date();
+  const isCancelled = event.isCancelled;
 
   const { data: attendeeData } = useQuery<{ attendees: AttendeeData[]; checkedInCount: number; totalRsvps: number }>({
     queryKey: ["/api/events", event.id, "attendees"],
@@ -635,20 +649,86 @@ function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number 
     },
   });
 
+  const editMutation = useMutation({
+    mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number }) => {
+      const res = await apiRequest("PATCH", `/api/clubs/${clubId}/events/${event.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setShowEditForm(false);
+      setEditError("");
+    },
+    onError: (err: Error) => {
+      setEditError(err.message || "Failed to update event");
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/clubs/${clubId}/events/${event.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setShowCancelConfirm(false);
+    },
+  });
+
+  const handleEditSubmit = () => {
+    if (!editTitle.trim() || !editStartsAt || !editLocationText.trim()) return;
+    editMutation.mutate({
+      title: editTitle.trim(),
+      description: editDescription.trim(),
+      startsAt: editStartsAt,
+      locationText: editLocationText.trim(),
+      maxCapacity: parseInt(editMaxCapacity) || 20,
+    });
+  };
+
   const checkedInCount = attendeeData?.checkedInCount ?? 0;
   const totalRsvps = attendeeData?.totalRsvps ?? event.rsvpCount;
   const attendees = attendeeData?.attendees ?? [];
 
   return (
     <div
-      className={`bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 ${isPast ? "opacity-50" : ""}`}
+      className={`bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 ${isCancelled ? "opacity-50" : isPast ? "opacity-50" : ""}`}
       style={{ borderRadius: 18 }}
       data-testid={`event-card-${event.id}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="font-semibold text-sm text-foreground">{event.title}</div>
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md text-muted-foreground">Past</span>}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-sm text-foreground">{event.title}</span>
+          {isCancelled && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-destructive/15 text-destructive" data-testid={`badge-cancelled-${event.id}`}>
+              <Ban className="w-2.5 h-2.5" />
+              Cancelled
+            </span>
+          )}
+          {!isCancelled && isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md text-muted-foreground">Past</span>}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          {!isCancelled && (
+            <>
+              <button
+                onClick={() => setShowEditForm(!showEditForm)}
+                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
+                data-testid={`button-edit-event-${event.id}`}
+              >
+                <Pencil className="w-3 h-3" />
+                Edit
+              </button>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-destructive/10 text-destructive"
+                data-testid={`button-cancel-event-${event.id}`}
+              >
+                <Ban className="w-3 h-3" />
+                Cancel
+              </button>
+            </>
+          )}
           <button
             onClick={() => onDuplicate(event)}
             className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
@@ -657,16 +737,123 @@ function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number 
             <Copy className="w-3 h-3" />
             Duplicate
           </button>
-          <Link
-            href={`/scan/${event.id}`}
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
-            data-testid={`button-scan-attendees-${event.id}`}
-          >
-            <QrCode className="w-3 h-3" />
-            Scan Attendees
-          </Link>
+          {!isCancelled && (
+            <Link
+              href={`/scan/${event.id}`}
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
+              data-testid={`button-scan-attendees-${event.id}`}
+            >
+              <QrCode className="w-3 h-3" />
+              Scan
+            </Link>
+          )}
         </div>
       </div>
+
+      {showCancelConfirm && (
+        <div className="mb-3 p-3 rounded-md bg-destructive/10 border border-destructive/30" data-testid={`confirm-cancel-event-${event.id}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+            <span className="text-sm font-semibold text-destructive">Cancel this event?</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">This will mark the event as cancelled. Attendees will see it as cancelled.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}
+              className="flex-1 py-2 rounded-md text-xs font-semibold bg-destructive text-white disabled:opacity-50"
+              data-testid={`button-confirm-cancel-${event.id}`}
+            >
+              {cancelMutation.isPending ? "Cancelling..." : "Yes, Cancel Event"}
+            </button>
+            <button
+              onClick={() => setShowCancelConfirm(false)}
+              className="flex-1 py-2 rounded-md text-xs font-semibold bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground"
+              data-testid={`button-dismiss-cancel-${event.id}`}
+            >
+              Keep Event
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showEditForm && (
+        <div className="mb-3 p-3 rounded-md bg-[var(--cream)] border-[1.5px] border-[var(--warm-border)] space-y-3" data-testid={`form-edit-event-${event.id}`}>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Event Title</label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+              data-testid={`input-edit-event-title-${event.id}`}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Description</label>
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={2}
+              className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none"
+              data-testid={`input-edit-event-desc-${event.id}`}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date & Time</label>
+              <input
+                type="datetime-local"
+                value={editStartsAt}
+                onChange={(e) => setEditStartsAt(e.target.value)}
+                className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+                data-testid={`input-edit-event-datetime-${event.id}`}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Max Capacity</label>
+              <input
+                type="number"
+                value={editMaxCapacity}
+                onChange={(e) => setEditMaxCapacity(e.target.value)}
+                min="2"
+                max="500"
+                className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+                data-testid={`input-edit-event-capacity-${event.id}`}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
+            <input
+              type="text"
+              value={editLocationText}
+              onChange={(e) => setEditLocationText(e.target.value)}
+              className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+              data-testid={`input-edit-event-location-${event.id}`}
+            />
+          </div>
+          {editError && <p className="text-xs text-destructive font-medium text-center" data-testid={`text-edit-event-error-${event.id}`}>{editError}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleEditSubmit}
+              disabled={editMutation.isPending || !editTitle.trim() || !editStartsAt || !editLocationText.trim()}
+              className="flex-1 bg-[var(--terra)] text-white rounded-md py-2.5 text-sm font-semibold disabled:opacity-50"
+              data-testid={`button-submit-edit-event-${event.id}`}
+            >
+              {editMutation.isPending ? "Saving..." : "Save Changes"}
+            </button>
+            <button
+              onClick={() => { setShowEditForm(false); setEditError(""); }}
+              className="px-4 py-2.5 rounded-md text-sm font-semibold bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground"
+              data-testid={`button-cancel-edit-event-${event.id}`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {event.description && (
         <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
       )}
@@ -684,47 +871,49 @@ function EventCard({ event, onDuplicate }: { event: Event & { rsvpCount: number 
           {event.rsvpCount}/{event.maxCapacity}
         </span>
       </div>
-      <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
-        <button
-          onClick={() => setShowAttendees(!showAttendees)}
-          className="flex items-center gap-2 text-xs font-semibold text-foreground"
-          data-testid={`button-toggle-attendees-${event.id}`}
-        >
-          <span data-testid={`text-attendance-stats-${event.id}`}>
-            {checkedInCount}/{totalRsvps} checked in
-          </span>
-          <span className="text-muted-foreground">{showAttendees ? "Hide" : "Show"} attendees</span>
-        </button>
-        {showAttendees && (
-          <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>
-            {attendees.length === 0 ? (
-              <div className="text-xs text-muted-foreground py-2" data-testid={`text-no-attendees-${event.id}`}>No attendees yet</div>
-            ) : (
-              attendees.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center gap-2 py-1.5 px-2 rounded-md"
-                  data-testid={`attendee-row-${a.id}`}
-                >
-                  {a.checkedIn ? (
-                    <Check className="w-3.5 h-3.5 text-[var(--terra)]" data-testid={`icon-checked-in-${a.id}`} />
-                  ) : (
-                    <Check className="w-3.5 h-3.5 text-muted-foreground/30" data-testid={`icon-not-checked-in-${a.id}`} />
-                  )}
-                  <span className="text-xs text-foreground" data-testid={`text-attendee-name-${a.id}`}>
-                    {a.userName || "Anonymous"}
-                  </span>
-                  {a.checkedIn && (
-                    <span className="text-[10px] text-[var(--terra)] ml-auto" data-testid={`text-checkin-status-${a.id}`}>
-                      Checked in
+      {!isCancelled && (
+        <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
+          <button
+            onClick={() => setShowAttendees(!showAttendees)}
+            className="flex items-center gap-2 text-xs font-semibold text-foreground"
+            data-testid={`button-toggle-attendees-${event.id}`}
+          >
+            <span data-testid={`text-attendance-stats-${event.id}`}>
+              {checkedInCount}/{totalRsvps} checked in
+            </span>
+            <span className="text-muted-foreground">{showAttendees ? "Hide" : "Show"} attendees</span>
+          </button>
+          {showAttendees && (
+            <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>
+              {attendees.length === 0 ? (
+                <div className="text-xs text-muted-foreground py-2" data-testid={`text-no-attendees-${event.id}`}>No attendees yet</div>
+              ) : (
+                attendees.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-md"
+                    data-testid={`attendee-row-${a.id}`}
+                  >
+                    {a.checkedIn ? (
+                      <Check className="w-3.5 h-3.5 text-[var(--terra)]" data-testid={`icon-checked-in-${a.id}`} />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 text-muted-foreground/30" data-testid={`icon-not-checked-in-${a.id}`} />
+                    )}
+                    <span className="text-xs text-foreground" data-testid={`text-attendee-name-${a.id}`}>
+                      {a.userName || "Anonymous"}
                     </span>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
+                    {a.checkedIn && (
+                      <span className="text-[10px] text-[var(--terra)] ml-auto" data-testid={`text-checkin-status-${a.id}`}>
+                        Checked in
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1345,6 +1534,9 @@ function MomentsManager({ clubId }: { clubId: string }) {
 
 function EditClub({ club }: { club: Club }) {
   const [shortDesc, setShortDesc] = useState(club.shortDesc);
+  const [fullDesc, setFullDesc] = useState(club.fullDesc || "");
+  const [organizerName, setOrganizerName] = useState(club.organizerName || "");
+  const [whatsappNumber, setWhatsappNumber] = useState(club.whatsappNumber || "");
   const [schedule, setSchedule] = useState(club.schedule);
   const [location, setLocation] = useState(club.location);
   const [healthStatus, setHealthStatus] = useState(club.healthStatus);
@@ -1352,7 +1544,7 @@ function EditClub({ club }: { club: Club }) {
   const [saved, setSaved] = useState(false);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { shortDesc: string; schedule: string; location: string; healthStatus: string; highlights: string[] }) => {
+    mutationFn: async (data: { shortDesc: string; fullDesc: string; organizerName: string; whatsappNumber: string; schedule: string; location: string; healthStatus: string; highlights: string[] }) => {
       const res = await apiRequest("PATCH", `/api/organizer/club/${club.id}`, data);
       return res.json();
     },
@@ -1366,7 +1558,7 @@ function EditClub({ club }: { club: Club }) {
 
   const handleSave = () => {
     const highlights = highlightsText.split("\n").map(h => h.trim()).filter(Boolean);
-    updateMutation.mutate({ shortDesc, schedule, location, healthStatus, highlights });
+    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, healthStatus, highlights });
   };
 
   return (
@@ -1381,6 +1573,41 @@ function EditClub({ club }: { club: Club }) {
             className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none"
             data-testid="input-edit-shortdesc"
           />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Description</label>
+          <textarea
+            value={fullDesc}
+            onChange={(e) => setFullDesc(e.target.value)}
+            rows={5}
+            placeholder="Write a detailed description of your club..."
+            className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none"
+            data-testid="input-edit-fulldesc"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">Shown on your club's detail page.</p>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Organizer Name</label>
+          <input
+            type="text"
+            value={organizerName}
+            onChange={(e) => setOrganizerName(e.target.value)}
+            placeholder="Your name as the organizer"
+            className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+            data-testid="input-edit-organizer-name"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">WhatsApp Number</label>
+          <input
+            type="tel"
+            value={whatsappNumber}
+            onChange={(e) => setWhatsappNumber(e.target.value)}
+            placeholder="e.g. +91 98765 43210"
+            className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+            data-testid="input-edit-whatsapp"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">Members can reach you on WhatsApp.</p>
         </div>
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Schedule</label>

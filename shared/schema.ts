@@ -72,6 +72,7 @@ export const events = pgTable("events", {
   maxCapacity: integer("max_capacity").notNull(),
   coverImageUrl: text("cover_image_url"),
   isPublic: boolean("is_public").default(true),
+  isCancelled: boolean("is_cancelled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -123,6 +124,17 @@ export const clubMoments = pgTable("club_moments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  linkUrl: text("link_url"),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
@@ -132,6 +144,7 @@ export const insertClubRatingSchema = createInsertSchema(clubRatings).omit({ id:
 export const insertClubFaqSchema = createInsertSchema(clubFaqs).omit({ id: true, createdAt: true });
 export const insertClubScheduleEntrySchema = createInsertSchema(clubScheduleEntries).omit({ id: true, createdAt: true });
 export const insertClubMomentSchema = createInsertSchema(clubMoments).omit({ id: true, createdAt: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -151,6 +164,8 @@ export type ClubScheduleEntry = typeof clubScheduleEntries.$inferSelect;
 export type InsertClubScheduleEntry = z.infer<typeof insertClubScheduleEntrySchema>;
 export type ClubMoment = typeof clubMoments.$inferSelect;
 export type InsertClubMoment = z.infer<typeof insertClubMomentSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export const CATEGORIES = [
   "Trekking",
@@ -194,6 +209,12 @@ export const CITIES = [
   "Bengaluru",
   "Hyderabad",
   "Kochi",
+  "Vizag",
+  "Vijayawada",
+  "Nellore",
+  "Guntur",
+  "Warangal",
+  "Coimbatore",
 ] as const;
 
 export type City = (typeof CITIES)[number];

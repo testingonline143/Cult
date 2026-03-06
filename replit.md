@@ -16,7 +16,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Scan Event (/scan/:eventId), 404
-- **Navigation**: Landing page (/) uses top Navbar only (no bottom tab bar). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`). **Regular users** see 4 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), PROFILE (/profile). **Organizers/admins** see 5 tabs: HOME, EXPLORE, EVENTS, DASHBOARD (/organizer), PROFILE. Bottom nav visible on /organizer and /create. HOME tab (/home) shows a clean mobile feed with "Find Your Tribe" masthead, "Happening Today", and "Trending Clubs". Admin/onboarding/club-detail/event-detail pages use top Navbar only. Regular users access club creation via "Start a Club" CTA on Explore page (links to /create).
+- **Navigation**: Landing page (/) uses top Navbar only (no bottom tab bar). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`). **Regular users** see 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), ALERTS (/notifications), PROFILE (/profile). **Organizers/admins** see 6 tabs: HOME, EXPLORE, EVENTS, ALERTS, DASHBOARD (/organizer), PROFILE. Bell icon shows unread notification count badge. Bottom nav visible on /organizer, /create, /notifications. HOME tab (/home) shows a clean mobile feed with city selector pills, "Find Your Tribe" masthead, "Happening Today", and "Trending Clubs". Admin/onboarding/club-detail/event-detail pages use top Navbar only. Regular users access club creation via "Start a Club" CTA on Explore page (links to /create).
 - **Styling**: Tailwind CSS with CSS variables for theming (warm cream editorial design, single light theme)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions
@@ -88,6 +88,13 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `POST /api/clubs/:id/moments` — add moment with caption + optional emoji (organizer only)
   - `DELETE /api/clubs/:id/moments/:momentId` — delete moment (organizer only, verifies record belongs to club)
   - `GET /api/clubs/:id/join-count` — get count of join requests for a club
+  - `GET /api/notifications` — get authenticated user's notifications (newest first)
+  - `GET /api/notifications/unread-count` — get unread notification count for authenticated user
+  - `PATCH /api/notifications/:id/read` — mark a single notification as read
+  - `PATCH /api/notifications/read-all` — mark all notifications as read for authenticated user
+  - `PATCH /api/clubs/:clubId/events/:eventId` — edit event details (organizer only, cannot edit cancelled events)
+  - `DELETE /api/clubs/:clubId/events/:eventId` — cancel event (sets isCancelled=true, organizer only)
+  - `GET /api/clubs/:id/members-preview` — get first 10 approved members (name, profileImageUrl) for social proof
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`
@@ -102,7 +109,8 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, **status** (text, default 'pending', values: 'pending'|'approved'|'rejected'), createdAt
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
-  - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, createdAt
+  - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, isCancelled (boolean, default false), createdAt
+  - `notifications` — id (UUID), userId, type (text: "join_approved"|"join_rejected"|"new_event"), title, message, linkUrl, isRead (boolean, default false), createdAt
   - `event_rsvps` — id (UUID), eventId, userId, status, checkinToken (UUID, auto-generated), checkedIn, checkedInAt, createdAt
   - `club_ratings` — id (UUID), clubId, userId, rating (integer 1-5), review (text, optional), createdAt. Unique constraint on clubId+userId (one rating per user per club, upsert on conflict).
   - `club_faqs` — id (UUID), clubId, question (text), answer (text), sortOrder (integer, default 0), createdAt
@@ -156,8 +164,11 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **Open Graph meta tags**: Server-side OG tags for club pages and event pages (bot detection) for rich previews on WhatsApp/social media. Event OG tags include date, time, location, and club name.
 - **Profile page** (/profile): Editable name + bio (200 char), profile photo upload (tap avatar to change, multer + /uploads/ static serving, max 5MB, jpeg/png/webp/gif), joined clubs list, RSVP'd events, request history, redo quiz button
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
-- **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi
-- **Social proof / Activity signals**: "X joined this week" badge on club cards, Recent Activity section on club detail page/modal, Club Highlights editable by organizers
+- **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi, Vizag, Vijayawada, Nellore, Guntur, Warangal, Coimbatore. Home feed has city selector pills with localStorage persistence.
+- **In-app notifications**: Bell icon (ALERTS tab) in bottom nav with unread count badge. Notifications created when: join request approved/rejected, new event created for club members. Notifications page shows all notifications with read/unread styling, mark-as-read on click, "Mark All Read" button.
+- **Event management**: Organizers can edit event details (title, description, location, date, capacity) and cancel events from dashboard. Cancelled events shown greyed out with "Cancelled" badge and hidden from public listings.
+- **Enhanced club editing**: Organizers can edit full description, organizer name, and WhatsApp number from dashboard in addition to existing fields.
+- **Social proof / Activity signals**: "X joined this week" badge on club cards, member preview section on club detail (avatars + names of first 10 members), reviews highlight card (average rating + count), enhanced moments feed with timestamps and context icons, Club Highlights editable by organizers
 - **Mobile-first app layout**: Bottom tab bar navigation (Home/Explore/Events/Create/Profile), pages designed as focused views — Home is a feed with "Find Your Tribe" masthead and "Trending Clubs", Explore has full-width image-style club cards, Events has calendar-style cards with filters, Create has tabbed New Club / New Event forms
 
 ## External Dependencies
