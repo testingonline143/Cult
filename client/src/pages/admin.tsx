@@ -11,8 +11,21 @@ export default function Admin() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[var(--cream)] flex items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+      <div className="min-h-screen bg-[var(--cream)]">
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
+          <div className="h-8 w-48 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+          <div className="h-4 w-64 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+            ))}
+          </div>
+          <div className="space-y-2 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -118,7 +131,20 @@ function ClubsMonitorTab() {
   });
 
   if (isLoading) {
-    return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -224,7 +250,13 @@ function JoinRequestsTab() {
   });
 
   if (isLoading) {
-    return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+        ))}
+      </div>
+    );
   }
 
   if (error) {

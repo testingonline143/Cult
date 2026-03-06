@@ -1111,6 +1111,7 @@ export async function registerRoutes(
       const count = await storage.getJoinRequestCountByClub(req.params.id);
       res.json({ count });
     } catch (err) {
+      console.error("Error fetching join count:", err);
       res.status(500).json({ message: "Failed to get join count" });
     }
   });

@@ -176,7 +176,6 @@ export class DatabaseStorage implements IStorage {
   async decrementMemberCount(clubId: string): Promise<Club | undefined> {
     const [updated] = await db.update(clubs).set({
       memberCount: sql`GREATEST(${clubs.memberCount} - 1, 0)`,
-      foundingTaken: sql`GREATEST(${clubs.foundingTaken} - 1, 0)`,
     }).where(eq(clubs.id, clubId)).returning();
     return updated;
   }

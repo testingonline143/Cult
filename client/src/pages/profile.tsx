@@ -13,8 +13,23 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-background pb-24">
+        <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-full animate-pulse" style={{ background: "var(--warm-border)" }} />
+              <div className="flex-1 space-y-2">
+                <div className="h-6 w-32 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+                <div className="h-4 w-48 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="glass-card rounded-2xl p-4 h-20 animate-pulse" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -70,11 +85,7 @@ function ProfileHeader({ user }: { user: User }) {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("photo", file);
-      const res = await fetch("/api/user/photo", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const res = await fetch("/api/user/photo", { method: "POST", credentials: "include", body: formData });
       if (!res.ok) throw new Error("Failed to upload");
       return res.json();
     },
@@ -100,13 +111,7 @@ function ProfileHeader({ user }: { user: User }) {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { name: string; bio: string }) => {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update");
+      const res = await apiRequest("PATCH", "/api/user/profile", data);
       return res.json();
     },
     onSuccess: () => {
@@ -376,8 +381,7 @@ function JoinedClubs({ userId }: { userId: string }) {
 
   const leaveMutation = useMutation({
     mutationFn: async (clubId: string) => {
-      const res = await fetch(`/api/clubs/${clubId}/leave`, { method: "DELETE", credentials: "include" });
-      if (!res.ok) throw new Error("Failed to leave");
+      const res = await apiRequest("DELETE", `/api/clubs/${clubId}/leave`);
       return res.json();
     },
     onSuccess: () => {

@@ -51,12 +51,20 @@ export default function Organizer() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--cream)] flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] flex items-center justify-center mx-auto mb-3" style={{ borderRadius: 18 }}>
-            <LayoutDashboard className="w-6 h-6 text-[var(--terra)]" />
+      <div className="min-h-screen bg-[var(--cream)] pb-24">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          <div className="h-7 w-48 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+          <div className="h-4 w-32 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+          <div className="flex gap-2 mt-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-9 w-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+            ))}
           </div>
-          <p className="text-sm text-muted-foreground">Loading your clubs...</p>
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -271,7 +279,13 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
     },
   });
 
-  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      ))}
+    </div>
+  );
 
   const pending = requests.filter(r => r.status === "pending");
   const approved = requests.filter(r => r.status === "approved");
@@ -422,16 +436,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number }) => {
-      const res = await fetch(`/api/clubs/${clubId}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: "Failed" }));
-        throw new Error(err.message || "Failed to create event");
-      }
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/events`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -484,7 +489,14 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
     });
   };
 
-  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      <div className="h-12 rounded-md animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      {[1, 2].map((i) => (
+        <div key={i} className="h-32 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-4" data-testid="section-organizer-events">
@@ -764,13 +776,7 @@ function FaqsManager({ clubId }: { clubId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: { question: string; answer: string }) => {
-      const res = await fetch(`/api/clubs/${clubId}/faqs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create FAQ");
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/faqs`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -781,13 +787,7 @@ function FaqsManager({ clubId }: { clubId: string }) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { question: string; answer: string } }) => {
-      const res = await fetch(`/api/clubs/${clubId}/faqs/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update FAQ");
+      const res = await apiRequest("PATCH", `/api/clubs/${clubId}/faqs/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -798,11 +798,7 @@ function FaqsManager({ clubId }: { clubId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/clubs/${clubId}/faqs/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to delete FAQ");
+      await apiRequest("DELETE", `/api/clubs/${clubId}/faqs/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "faqs"] });
@@ -832,7 +828,13 @@ function FaqsManager({ clubId }: { clubId: string }) {
     }
   };
 
-  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Loading FAQs...</div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-3" data-testid="section-faqs-manager">
@@ -949,13 +951,7 @@ function ScheduleManager({ clubId }: { clubId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: { dayOfWeek: string; startTime: string; endTime: string; activity: string; location: string }) => {
-      const res = await fetch(`/api/clubs/${clubId}/schedule`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create schedule entry");
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/schedule`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -966,13 +962,7 @@ function ScheduleManager({ clubId }: { clubId: string }) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { dayOfWeek: string; startTime: string; endTime: string; activity: string; location: string } }) => {
-      const res = await fetch(`/api/clubs/${clubId}/schedule/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update schedule entry");
+      const res = await apiRequest("PATCH", `/api/clubs/${clubId}/schedule/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -983,11 +973,7 @@ function ScheduleManager({ clubId }: { clubId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/clubs/${clubId}/schedule/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to delete schedule entry");
+      await apiRequest("DELETE", `/api/clubs/${clubId}/schedule/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "schedule"] });
@@ -1024,7 +1010,13 @@ function ScheduleManager({ clubId }: { clubId: string }) {
     }
   };
 
-  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Loading schedule...</div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-3" data-testid="section-schedule-manager">
@@ -1198,13 +1190,7 @@ function MomentsManager({ clubId }: { clubId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: { caption: string; emoji?: string }) => {
-      const res = await fetch(`/api/clubs/${clubId}/moments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create moment");
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/moments`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -1215,11 +1201,7 @@ function MomentsManager({ clubId }: { clubId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/clubs/${clubId}/moments/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to delete moment");
+      await apiRequest("DELETE", `/api/clubs/${clubId}/moments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "moments"] });
@@ -1252,7 +1234,13 @@ function MomentsManager({ clubId }: { clubId: string }) {
     return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
-  if (isLoading) return <div className="text-center py-8 text-muted-foreground">Loading moments...</div>;
+  if (isLoading) return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div key={i} className="h-20 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-3" data-testid="section-moments-manager">
@@ -1365,13 +1353,7 @@ function EditClub({ club }: { club: Club }) {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { shortDesc: string; schedule: string; location: string; healthStatus: string; highlights: string[] }) => {
-      const res = await fetch(`/api/organizer/club/${club.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update");
+      const res = await apiRequest("PATCH", `/api/organizer/club/${club.id}`, data);
       return res.json();
     },
     onSuccess: () => {
