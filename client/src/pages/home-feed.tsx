@@ -10,6 +10,7 @@ interface EventWithClub extends Event {
   clubName?: string;
   clubEmoji?: string;
   rsvpCount?: number;
+  rsvps?: { status: string }[];
 }
 
 interface FeedMoment extends ClubMoment {
@@ -369,7 +370,7 @@ export default function HomeFeed() {
               <div className="flex items-center justify-between mt-4 gap-3">
                 <div className="flex items-center gap-1">
                   <span className="text-[12px] font-semibold" style={{ color: "var(--muted-warm2)" }}>
-                    {upcomingEvent.rsvpCount ?? 0} going
+                    {upcomingEvent.rsvps?.filter(r => r.status === "going").length ?? upcomingEvent.rsvpCount ?? 0} going
                   </span>
                 </div>
                 <Link

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -78,6 +78,7 @@ function ProfileHeader({ user }: { user: User }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(user.firstName || "");
   const [editBio, setEditBio] = useState(user.bio || "");
+  const [editCity, setEditCity] = useState(user.city || "");
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -111,7 +112,7 @@ function ProfileHeader({ user }: { user: User }) {
   };
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { name: string; bio: string }) => {
+    mutationFn: async (data: { name: string; bio: string; city: string }) => {
       const res = await apiRequest("PATCH", "/api/user/profile", data);
       return res.json();
     },
@@ -130,7 +131,7 @@ function ProfileHeader({ user }: { user: User }) {
       setError("Name must be at least 2 characters");
       return;
     }
-    updateMutation.mutate({ name: editName, bio: editBio });
+    updateMutation.mutate({ name: editName, bio: editBio, city: editCity });
   };
 
   const displayName = user.firstName || user.email || "User";
@@ -183,6 +184,18 @@ function ProfileHeader({ user }: { user: User }) {
                 />
               </div>
               <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">City</label>
+                <input
+                  type="text"
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                  placeholder="e.g. Tirupati"
+                  className="w-full px-3 py-2 rounded-md border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  style={{ borderColor: 'var(--warm-border)', background: 'var(--cream)' }}
+                  data-testid="input-edit-city"
+                />
+              </div>
+              <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
                 <textarea
                   value={editBio}
@@ -208,7 +221,7 @@ function ProfileHeader({ user }: { user: User }) {
                   {updateMutation.isPending ? "Saving..." : "Save"}
                 </button>
                 <button
-                  onClick={() => { setEditing(false); setEditName(user.firstName || ""); setEditBio(user.bio || ""); setError(""); }}
+                  onClick={() => { setEditing(false); setEditName(user.firstName || ""); setEditBio(user.bio || ""); setEditCity(user.city || ""); setError(""); }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-md glass-card text-muted-foreground text-xs font-semibold"
                   data-testid="button-cancel-edit"
                 >
@@ -248,9 +261,24 @@ function ProfileActions({ user }: { user: User }) {
   };
 
   const isOrganiserOrAdmin = user.role === "organiser" || user.role === "admin";
+  const isAdmin = user.role === "admin";
 
   return (
     <div className="space-y-3 mb-6">
+      {isAdmin && (
+        <Link href="/admin" data-testid="link-admin-dashboard">
+          <div className="glass-card rounded-2xl p-4 flex items-center gap-4 cursor-pointer group transition-all" style={{ borderColor: 'rgba(196,98,45,0.4)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
+              <ShieldCheck className="w-5 h-5" style={{ color: 'var(--terra)' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-display text-sm font-bold" style={{ color: 'var(--terra)' }} data-testid="text-admin-dashboard-label">Admin Dashboard</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Manage users, clubs & platform settings</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </div>
+        </Link>
+      )}
       {isOrganiserOrAdmin && (
         <Link href="/organizer" data-testid="link-organiser-dashboard">
           <div className="glass-card rounded-2xl p-4 flex items-center gap-4 cursor-pointer group transition-all" style={{ borderColor: 'rgba(196,98,45,0.3)' }}>

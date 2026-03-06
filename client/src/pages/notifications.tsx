@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Bell, CheckCheck, Calendar, Users, Star, Info } from "lucide-react";
+import { Bell, CheckCheck, Calendar, Users, Star, Info, CheckCircle, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -11,6 +11,8 @@ const TYPE_ICONS: Record<string, typeof Bell> = {
   join_rejected: Users,
   new_event: Calendar,
   club_update: Star,
+  rsvp_confirmed: CheckCircle,
+  waitlist_promoted: ArrowUpCircle,
 };
 
 function getIcon(type: string) {

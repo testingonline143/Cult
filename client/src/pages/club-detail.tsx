@@ -606,7 +606,7 @@ function ClubDetailContent({ club }: { club: Club }) {
       )}
 
       {activeTab === "moments" && (
-        <MomentsTab clubId={club.id} isOwner={isOwner} />
+        <MomentsTab clubId={club.id} isOwner={isOwner || isApprovedMember} />
       )}
 
       {activeTab === "faqs" && (

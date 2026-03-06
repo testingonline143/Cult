@@ -16,7 +16,8 @@ interface EventWithRsvps extends Event {
 export default function Events() {
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [, navigate] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<EventWithRsvps[]>({
     queryKey: ["/api/events"],
@@ -56,9 +57,22 @@ export default function Events() {
 
   return (
     <div className="min-h-screen bg-background pb-24 px-6 pt-6">
-      <h1 className="font-display italic text-3xl font-bold mb-6" style={{ color: "var(--ink)" }} data-testid="text-page-title">
-        Event Schedule
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="font-display italic text-3xl font-bold" style={{ color: "var(--ink)" }} data-testid="text-page-title">
+          Event Schedule
+        </h1>
+        {isOrganiser && (
+          <Link
+            href="/create?tab=event"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white shrink-0"
+            style={{ background: "var(--terra)" }}
+            data-testid="link-create-event-header"
+          >
+            <Plus className="w-4 h-4" />
+            Create
+          </Link>
+        )}
+      </div>
 
       <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar" data-testid="filter-pills">
         {FILTERS.map((filter) => (
@@ -163,7 +177,7 @@ export default function Events() {
                   </span>
                 ) : (
                   <span className="absolute top-3 right-3 font-mono text-lg font-bold" style={{ color: "var(--terra-light)", letterSpacing: "1px" }} data-testid={`badge-price-${event.id}`}>
-                    {event.ticketPrice}
+                    ₹{event.ticketPrice}
                   </span>
                 )}
               </div>

@@ -356,13 +356,16 @@ export async function registerRoutes(
   app.patch("/api/user/profile", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { name, bio } = req.body;
+      const { name, bio, city } = req.body;
       if (!name || name.length < 2) {
         return res.status(400).json({ success: false, message: "Name is required (minimum 2 characters)" });
       }
       const updates: Record<string, any> = { firstName: name };
       if (bio !== undefined) {
         updates.bio = bio.slice(0, 200);
+      }
+      if (city !== undefined && city.trim().length > 0) {
+        updates.city = city.trim();
       }
 
       const user = await storage.updateUser(userId, updates);
