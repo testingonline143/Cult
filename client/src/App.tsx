@@ -23,7 +23,7 @@ import HomeFeed from "@/pages/home-feed";
 import ScanEvent from "@/pages/scan-event";
 import Notifications from "@/pages/notifications";
 
-const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/scan", "/club", "/event", "/events", "/create", "/notifications"];
+const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/scan", "/club", "/event", "/events", "/create", "/notifications", "/explore", "/profile"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();

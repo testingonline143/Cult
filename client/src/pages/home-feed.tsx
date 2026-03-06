@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Bell, Heart, MessageCircle, Share2, Plus, ChevronRight } from "lucide-react";
-import { formatDistanceToNow, addDays, format } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 
@@ -18,13 +18,6 @@ interface FeedMoment extends ClubMoment {
   clubLocation: string;
 }
 
-const STREAK_DAYS = 12;
-const STREAK_GOAL = 80;
-const MOCK_ATTENDEES = [
-  { color: "#C4622D", initial: "R" },
-  { color: "#3D6B45", initial: "P" },
-  { color: "#C9A84C", initial: "S" },
-];
 
 function CircularProgress({ percent }: { percent: number }) {
   const r = 34;
@@ -172,34 +165,73 @@ export default function HomeFeed() {
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-6">
 
-        {/* Streak Card */}
-        <div
-          className="rounded-[20px] p-5 flex items-center gap-4"
-          style={{ background: "var(--ink)" }}
-          data-testid="card-streak"
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>
-                ⚡ Consistency is Key
-              </span>
+        {/* Streak / Welcome Card */}
+        {userClubs.length > 0 ? (
+          <div
+            className="rounded-[20px] p-5 flex items-center gap-4"
+            style={{ background: "var(--ink)" }}
+            data-testid="card-streak"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>
+                  ⚡ Keep Showing Up
+                </span>
+              </div>
+              <h2 className="font-display font-bold text-2xl text-white mb-1 leading-tight">
+                Stay Consistent!
+              </h2>
+              <p className="text-[12px] mb-4" style={{ color: "var(--muted-warm2)" }}>
+                Check your upcoming events and keep the momentum going.
+              </p>
+              <Link
+                href="/events"
+                className="inline-block rounded-full px-4 py-2 text-[12px] font-bold text-white"
+                style={{ background: "var(--terra)" }}
+                data-testid="button-view-events"
+              >
+                View Events
+              </Link>
             </div>
-            <h2 className="font-display font-bold text-2xl text-white mb-1 leading-tight">
-              {STREAK_DAYS} Day Streak!
+            <CircularProgress percent={userClubs.length * 20 > 100 ? 100 : userClubs.length * 20} />
+          </div>
+        ) : (
+          <div
+            className="rounded-[20px] p-5"
+            style={{ background: "var(--ink)" }}
+            data-testid="card-welcome"
+          >
+            <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>
+              🎉 Welcome to CultFam
+            </span>
+            <h2 className="font-display font-bold text-2xl text-white mt-1 mb-1 leading-tight">
+              Find Your Tribe
             </h2>
             <p className="text-[12px] mb-4" style={{ color: "var(--muted-warm2)" }}>
-              You're in the top 5% of the Tirupati community.
+              Discover hobby clubs in Tirupati and start showing up.
             </p>
-            <button
-              className="rounded-full px-4 py-2 text-[12px] font-bold text-white"
-              style={{ background: "var(--terra)" }}
-              data-testid="button-view-stats"
-            >
-              View Stats
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              <Link
+                href="/explore"
+                className="inline-block rounded-full px-4 py-2 text-[12px] font-bold text-white"
+                style={{ background: "var(--terra)" }}
+                data-testid="button-explore-clubs"
+              >
+                Explore Clubs
+              </Link>
+              {user && !user.quizCompleted && (
+                <Link
+                  href="/onboarding"
+                  className="inline-block rounded-full px-4 py-2 text-[12px] font-bold"
+                  style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
+                  data-testid="button-take-quiz"
+                >
+                  Take Quiz →
+                </Link>
+              )}
+            </div>
           </div>
-          <CircularProgress percent={STREAK_GOAL} />
-        </div>
+        )}
 
         {/* My Clubs */}
         <div data-testid="section-my-clubs">
@@ -286,23 +318,8 @@ export default function HomeFeed() {
               </div>
               <div className="flex items-center justify-between mt-4 gap-3">
                 <div className="flex items-center gap-1">
-                  {MOCK_ATTENDEES.map((a, i) => (
-                    <div
-                      key={i}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold border-2"
-                      style={{
-                        background: a.color,
-                        borderColor: "var(--ink)",
-                        marginLeft: i > 0 ? -8 : 0,
-                        zIndex: MOCK_ATTENDEES.length - i,
-                        position: "relative",
-                      }}
-                    >
-                      {a.initial}
-                    </div>
-                  ))}
-                  <span className="ml-2 text-[12px] font-semibold" style={{ color: "var(--muted-warm2)" }}>
-                    +{Math.max(0, (upcomingEvent.rsvpCount ?? 0) + 39)} going
+                  <span className="text-[12px] font-semibold" style={{ color: "var(--muted-warm2)" }}>
+                    {upcomingEvent.rsvpCount ?? 0} going
                   </span>
                 </div>
                 <Link
