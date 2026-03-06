@@ -21,8 +21,8 @@ export function BottomNav() {
 
   if (!TAB_PATHS.includes(location)) return null;
 
-  const isCreator = !!user;
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
+  const isCreator = !!user && (user.wantsToCreate === true || isOrganiser);
 
   const tabs = [
     { path: "/explore", label: "EXPLORE", icon: Compass },

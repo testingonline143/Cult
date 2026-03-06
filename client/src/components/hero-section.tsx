@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Mountain, BookOpen, Bike, Camera, Dumbbell, Palette, Music, Gamepad2, ChefHat, MapPin } from "lucide-react";
 import { CITIES } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 
 const FLOATING_ICONS = [
   { Icon: Mountain, label: "Trekking" },
@@ -31,6 +34,8 @@ const ICON_POSITIONS = [
 export function HeroSection() {
   const [, navigate] = useLocation();
   const [cityIndex, setCityIndex] = useState(0);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -38,6 +43,25 @@ export function HeroSection() {
     }, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  const becomeCreatorMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      navigate("/create");
+    },
+    onError: () => {
+      navigate("/create");
+    },
+  });
+
+  function handleStartClub() {
+    if (user) {
+      becomeCreatorMutation.mutate();
+    } else {
+      navigate("/create");
+    }
+  }
 
   return (
     <section
@@ -130,16 +154,18 @@ export function HeroSection() {
             Explore Clubs &rarr;
           </button>
           <button
-            onClick={() => navigate("/create")}
+            onClick={handleStartClub}
+            disabled={becomeCreatorMutation.isPending}
             className="rounded-full px-8 py-4 text-sm font-medium transition-all"
             style={{
               background: "transparent",
               border: "1.5px solid rgba(255,255,255,0.25)",
               color: "rgba(255,255,255,0.85)",
+              opacity: becomeCreatorMutation.isPending ? 0.7 : 1,
             }}
             data-testid="button-start-club"
           >
-            Start a Club
+            {becomeCreatorMutation.isPending ? "Setting up..." : "Start a Club"}
           </button>
         </motion.div>
 

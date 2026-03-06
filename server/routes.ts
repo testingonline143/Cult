@@ -332,6 +332,17 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/user/become-creator", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.becomeCreator(userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error setting creator intent:", err);
+      res.status(500).json({ message: "Failed to update creator status" });
+    }
+  });
+
   app.get("/api/feed", async (_req, res) => {
     try {
       const moments = await storage.getFeedMoments(10);

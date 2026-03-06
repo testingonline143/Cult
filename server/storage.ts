@@ -91,6 +91,7 @@ export interface IStorage {
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
   getUserApprovedClubs(userId: string): Promise<Club[]>;
   getFeedMoments(limit?: number): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string })[]>;
+  becomeCreator(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -851,6 +852,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(clubMoments.createdAt))
       .limit(limit);
     return result;
+  }
+
+  async becomeCreator(userId: string): Promise<void> {
+    await db.update(users).set({ wantsToCreate: true }).where(eq(users.id, userId));
   }
 }
 

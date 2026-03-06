@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   city: text("city"),
   role: text("role").default("user").notNull(),
   quizCompleted: boolean("quiz_completed").default(false),
+  wantsToCreate: boolean("wants_to_create").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

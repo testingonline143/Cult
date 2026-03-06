@@ -1,7 +1,33 @@
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 
 export function OrganizerSection() {
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const becomeCreatorMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      navigate("/create");
+    },
+    onError: () => {
+      navigate("/create");
+    },
+  });
+
+  function handleCreateClub() {
+    if (user) {
+      becomeCreatorMutation.mutate();
+    } else {
+      navigate("/create");
+    }
+  }
+
   return (
     <section id="organizer" className="py-16 sm:py-20">
       <div className="max-w-[900px] mx-auto px-4 sm:px-6">
@@ -20,14 +46,20 @@ export function OrganizerSection() {
           <p className="text-[15px] sm:text-base leading-relaxed max-w-[520px] mx-auto mb-10" style={{ color: "rgba(255,255,255,0.6)" }}>
             Create your club page, manage members, host events — all free.
           </p>
-          <Link
-            href="/create"
+          <button
+            onClick={handleCreateClub}
+            disabled={becomeCreatorMutation.isPending}
             className="inline-block rounded-full px-9 py-4 text-[15px] font-semibold transition-all"
-            style={{ background: "var(--terra)", color: "white", boxShadow: "0 4px 24px rgba(196,98,45,0.3)" }}
+            style={{
+              background: "var(--terra)",
+              color: "white",
+              boxShadow: "0 4px 24px rgba(196,98,45,0.3)",
+              opacity: becomeCreatorMutation.isPending ? 0.7 : 1,
+            }}
             data-testid="button-create-club-cta"
           >
-            Create My Club &rarr;
-          </Link>
+            {becomeCreatorMutation.isPending ? "Setting up..." : "Create My Club →"}
+          </button>
         </motion.div>
       </div>
     </section>
