@@ -4,9 +4,10 @@ import {
   type QuizAnswers, type InsertQuizAnswers, type Event, type InsertEvent,
   type EventRsvp, type InsertEventRsvp,
   type ClubRating, type ClubFaq, type ClubScheduleEntry, type ClubMoment,
+  type MomentComment,
   type Notification, type InsertNotification,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
-  clubRatings, clubFaqs, clubScheduleEntries, clubMoments, notifications
+  clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and, gte, ilike, or, ne } from "drizzle-orm";
@@ -75,10 +76,14 @@ export interface IStorage {
   createScheduleEntry(clubId: string, data: { dayOfWeek: string; startTime: string; endTime?: string; activity: string; location?: string }): Promise<ClubScheduleEntry>;
   updateScheduleEntry(id: string, data: { dayOfWeek?: string; startTime?: string; endTime?: string; activity?: string; location?: string }): Promise<ClubScheduleEntry | undefined>;
   deleteScheduleEntry(id: string): Promise<void>;
-  getClubMoments(clubId: string): Promise<ClubMoment[]>;
+  getClubMoments(clubId: string): Promise<(ClubMoment & { commentCount: number })[]>;
   createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string): Promise<ClubMoment>;
   updateMoment(id: string, data: { caption?: string; emoji?: string }): Promise<ClubMoment | undefined>;
   deleteMoment(id: string): Promise<void>;
+  getCommentsByMoment(momentId: string): Promise<MomentComment[]>;
+  createComment(data: { momentId: string; userId: string; userName: string; userImageUrl?: string | null; content: string }): Promise<MomentComment>;
+  deleteComment(commentId: string, userId: string, isOrganiser?: boolean): Promise<void>;
+  getMomentById(momentId: string): Promise<ClubMoment | undefined>;
   getJoinRequestCountByClub(clubId: string): Promise<number>;
   hasUserJoinedClub(clubId: string, userId: string): Promise<boolean>;
   getUserJoinStatus(clubId: string, userId: string): Promise<{ status: string | null; requestId: string | null }>;
@@ -95,7 +100,7 @@ export interface IStorage {
   getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
   getUserApprovedClubs(userId: string): Promise<Club[]>;
-  getFeedMoments(limit?: number): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string })[]>;
+  getFeedMoments(limit?: number): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number })[]>;
   becomeCreator(userId: string): Promise<void>;
   getClubAnalytics(clubId: string): Promise<{
     memberGrowth: { week: string; count: number }[];
@@ -679,8 +684,18 @@ export class DatabaseStorage implements IStorage {
     await db.delete(clubScheduleEntries).where(eq(clubScheduleEntries.id, id));
   }
 
-  async getClubMoments(clubId: string): Promise<ClubMoment[]> {
-    return db.select().from(clubMoments).where(eq(clubMoments.clubId, clubId)).orderBy(desc(clubMoments.createdAt));
+  async getClubMoments(clubId: string): Promise<(ClubMoment & { commentCount: number })[]> {
+    const rows = await db.select().from(clubMoments).where(eq(clubMoments.clubId, clubId)).orderBy(desc(clubMoments.createdAt));
+    if (rows.length === 0) return [];
+    const ids = rows.map(r => r.id);
+    const counts = await db
+      .select({ momentId: momentComments.momentId, count: sql<number>`count(*)::int` })
+      .from(momentComments)
+      .where(sql`${momentComments.momentId} = ANY(${sql.raw(`ARRAY[${ids.map(id => `'${id}'`).join(",")}]`)})`)
+      .groupBy(momentComments.momentId);
+    const countMap: Record<string, number> = {};
+    for (const c of counts) countMap[c.momentId] = c.count;
+    return rows.map(r => ({ ...r, commentCount: countMap[r.id] ?? 0 }));
   }
 
   async createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string): Promise<ClubMoment> {
@@ -694,7 +709,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteMoment(id: string): Promise<void> {
+    await db.delete(momentComments).where(eq(momentComments.momentId, id));
     await db.delete(clubMoments).where(eq(clubMoments.id, id));
+  }
+
+  async getMomentById(momentId: string): Promise<ClubMoment | undefined> {
+    const [row] = await db.select().from(clubMoments).where(eq(clubMoments.id, momentId));
+    return row;
+  }
+
+  async getCommentsByMoment(momentId: string): Promise<MomentComment[]> {
+    return db.select().from(momentComments)
+      .where(eq(momentComments.momentId, momentId))
+      .orderBy(momentComments.createdAt);
+  }
+
+  async createComment(data: { momentId: string; userId: string; userName: string; userImageUrl?: string | null; content: string }): Promise<MomentComment> {
+    const [created] = await db.insert(momentComments).values({
+      momentId: data.momentId,
+      userId: data.userId,
+      userName: data.userName,
+      userImageUrl: data.userImageUrl ?? null,
+      content: data.content,
+    }).returning();
+    return created;
+  }
+
+  async deleteComment(commentId: string, userId: string, isOrganiser = false): Promise<void> {
+    if (isOrganiser) {
+      await db.delete(momentComments).where(eq(momentComments.id, commentId));
+    } else {
+      await db.delete(momentComments).where(and(eq(momentComments.id, commentId), eq(momentComments.userId, userId)));
+    }
   }
 
   async getJoinRequestCountByClub(clubId: string): Promise<number> {
@@ -914,8 +960,8 @@ export class DatabaseStorage implements IStorage {
     return result.map(r => r.club);
   }
 
-  async getFeedMoments(limit = 10): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string })[]> {
-    const result = await db
+  async getFeedMoments(limit = 10): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number })[]> {
+    const rows = await db
       .select({
         id: clubMoments.id,
         clubId: clubMoments.clubId,
@@ -931,7 +977,16 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(clubs, eq(clubMoments.clubId, clubs.id))
       .orderBy(desc(clubMoments.createdAt))
       .limit(limit);
-    return result;
+    if (rows.length === 0) return [];
+    const ids = rows.map(r => r.id);
+    const counts = await db
+      .select({ momentId: momentComments.momentId, count: sql<number>`count(*)::int` })
+      .from(momentComments)
+      .where(sql`${momentComments.momentId} = ANY(${sql.raw(`ARRAY[${ids.map(id => `'${id}'`).join(",")}]`)})`)
+      .groupBy(momentComments.momentId);
+    const countMap: Record<string, number> = {};
+    for (const c of counts) countMap[c.momentId] = c.count;
+    return rows.map(r => ({ ...r, commentCount: countMap[r.id] ?? 0 }));
   }
 
   async getClubAnalytics(clubId: string) {

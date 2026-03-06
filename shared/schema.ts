@@ -126,6 +126,16 @@ export const clubMoments = pgTable("club_moments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const momentComments = pgTable("moment_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  momentId: varchar("moment_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  userImageUrl: text("user_image_url"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -146,6 +156,7 @@ export const insertClubRatingSchema = createInsertSchema(clubRatings).omit({ id:
 export const insertClubFaqSchema = createInsertSchema(clubFaqs).omit({ id: true, createdAt: true });
 export const insertClubScheduleEntrySchema = createInsertSchema(clubScheduleEntries).omit({ id: true, createdAt: true });
 export const insertClubMomentSchema = createInsertSchema(clubMoments).omit({ id: true, createdAt: true });
+export const insertMomentCommentSchema = createInsertSchema(momentComments).omit({ id: true, createdAt: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
@@ -166,6 +177,8 @@ export type ClubScheduleEntry = typeof clubScheduleEntries.$inferSelect;
 export type InsertClubScheduleEntry = z.infer<typeof insertClubScheduleEntrySchema>;
 export type ClubMoment = typeof clubMoments.$inferSelect;
 export type InsertClubMoment = z.infer<typeof insertClubMomentSchema>;
+export type MomentComment = typeof momentComments.$inferSelect;
+export type InsertMomentComment = z.infer<typeof insertMomentCommentSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 

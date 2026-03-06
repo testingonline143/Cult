@@ -1332,6 +1332,55 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/moments/:momentId/comments", async (req, res) => {
+    try {
+      const comments = await storage.getCommentsByMoment(req.params.momentId);
+      res.json(comments);
+    } catch (err) {
+      console.error("Error fetching comments:", err);
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/moments/:momentId/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const content = (req.body.content || "").trim();
+      if (!content) return res.status(400).json({ message: "Comment cannot be empty" });
+      const moment = await storage.getMomentById(req.params.momentId);
+      if (!moment) return res.status(404).json({ message: "Moment not found" });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const userName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "Member";
+      const comment = await storage.createComment({
+        momentId: req.params.momentId,
+        userId,
+        userName,
+        userImageUrl: user.profileImageUrl ?? null,
+        content,
+      });
+      res.status(201).json(comment);
+    } catch (err) {
+      console.error("Error creating comment:", err);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  app.delete("/api/moments/:momentId/comments/:commentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const moment = await storage.getMomentById(req.params.momentId);
+      if (!moment) return res.status(404).json({ message: "Moment not found" });
+      const club = await storage.getClub(moment.clubId);
+      const isOrganiser = club?.creatorUserId === userId;
+      await storage.deleteComment(req.params.commentId, userId, isOrganiser);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+      res.status(500).json({ message: "Failed to delete comment" });
+    }
+  });
+
   app.get("/api/notifications", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

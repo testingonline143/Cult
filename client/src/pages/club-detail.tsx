@@ -3,14 +3,14 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
+import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment, MomentComment } from "@shared/schema";
 
 interface ClubEvent {
   id: string;
@@ -623,7 +623,7 @@ function ClubDetailContent({ club }: { club: Club }) {
       )}
 
       {activeTab === "moments" && (
-        <MomentsTab clubId={club.id} isOwner={isOwner || isApprovedMember} />
+        <MomentsTab clubId={club.id} isOwner={isOwner || isApprovedMember} isOrganiser={isOwner} />
       )}
 
       {activeTab === "faqs" && (
@@ -1055,9 +1055,13 @@ function getMomentIcon(caption: string) {
   return Activity;
 }
 
-function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boolean }) {
+type MomentWithCount = ClubMoment & { commentCount: number };
+
+function MomentsTab({ clubId, isOwner = false, isOrganiser = false }: { clubId: string; isOwner?: boolean; isOrganiser?: boolean }) {
   const [, navigate] = useLocation();
-  const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+
+  const { data: moments = [], isLoading } = useQuery<MomentWithCount[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
     queryFn: async () => {
       const res = await fetch(`/api/clubs/${clubId}/moments`);
@@ -1065,6 +1069,15 @@ function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boo
       return res.json();
     },
   });
+
+  function toggleComments(momentId: string) {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      if (next.has(momentId)) next.delete(momentId);
+      else next.add(momentId);
+      return next;
+    });
+  }
 
   if (isLoading) {
     return (
@@ -1115,6 +1128,7 @@ function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boo
       {moments.map((moment) => {
         const timeAgo = getRelativeTime(moment.createdAt);
         const MomentIcon = getMomentIcon(moment.caption);
+        const isExpanded = expandedComments.has(moment.id);
         return (
           <div
             key={moment.id}
@@ -1122,16 +1136,16 @@ function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boo
             style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
             data-testid={`moment-${moment.id}`}
           >
-            {(moment as any).imageUrl && (
+            {moment.imageUrl && (
               <img
-                src={(moment as any).imageUrl}
+                src={moment.imageUrl}
                 alt={moment.caption}
                 className="w-full object-cover"
                 style={{ maxHeight: 200 }}
               />
             )}
             <div className="p-3.5 flex items-start gap-3">
-              {!(moment as any).imageUrl && (
+              {!moment.imageUrl && (
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
                   {moment.emoji ? (
                     <span className="text-xl">{moment.emoji}</span>
@@ -1141,7 +1155,7 @@ function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boo
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                {moment.emoji && (moment as any).imageUrl && (
+                {moment.emoji && moment.imageUrl && (
                   <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-md mb-1.5 bg-[var(--terra-pale)] text-[var(--terra)]">
                     {moment.emoji}
                   </span>
@@ -1153,9 +1167,185 @@ function MomentsTab({ clubId, isOwner = false }: { clubId: string; isOwner?: boo
                 </div>
               </div>
             </div>
+
+            <div
+              className="px-3.5 pb-2.5 flex items-center"
+              style={{ borderTop: "1px solid var(--warm-border)" }}
+            >
+              <button
+                onClick={() => toggleComments(moment.id)}
+                className="flex items-center gap-1.5 pt-2.5 transition-colors"
+                data-testid={`button-toggle-comments-${moment.id}`}
+              >
+                <MessageCircle
+                  className="w-4 h-4"
+                  style={{ color: isExpanded ? "var(--terra)" : "var(--muted-warm)" }}
+                />
+                <span
+                  className="text-[11px] font-semibold"
+                  style={{ color: isExpanded ? "var(--terra)" : "var(--muted-warm)" }}
+                >
+                  {moment.commentCount === 0 ? "Comment" : `${moment.commentCount} ${moment.commentCount === 1 ? "comment" : "comments"}`}
+                </span>
+              </button>
+            </div>
+
+            {isExpanded && (
+              <CommentsSection momentId={moment.id} isOrganiser={isOrganiser} />
+            )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function CommentsSection({ momentId, isOrganiser }: { momentId: string; isOrganiser: boolean }) {
+  const { user, isAuthenticated } = useAuth();
+  const [text, setText] = useState("");
+
+  const { data: comments = [], isLoading } = useQuery<MomentComment[]>({
+    queryKey: ["/api/moments", momentId, "comments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/moments/${momentId}/comments`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const addMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/moments/${momentId}/comments`, { content: text.trim() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/moments", momentId, "comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+      setText("");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (commentId: string) => apiRequest("DELETE", `/api/moments/${momentId}/comments/${commentId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/moments", momentId, "comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
+    },
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!text.trim() || addMutation.isPending) return;
+    addMutation.mutate();
+  }
+
+  return (
+    <div style={{ borderTop: "1px solid var(--warm-border)" }}>
+      {isLoading ? (
+        <div className="px-4 py-3 space-y-2">
+          {[1, 2].map(i => (
+            <div key={i} className="h-7 rounded-lg animate-pulse" style={{ background: "var(--warm-border)" }} />
+          ))}
+        </div>
+      ) : (
+        <div>
+          {comments.length === 0 && (
+            <p className="px-4 pt-3 pb-1 text-xs italic" style={{ color: "var(--muted-warm)" }}>
+              No comments yet. Be the first!
+            </p>
+          )}
+          <div>
+            {comments.map((c) => {
+              const isOwn = user?.id === c.userId;
+              const canDelete = isOwn || isOrganiser;
+              const initial = c.userName.charAt(0).toUpperCase();
+              const timeAgo = c.createdAt ? getRelativeTime(c.createdAt) : "";
+              return (
+                <div
+                  key={c.id}
+                  className="px-4 py-2.5 flex items-start gap-2.5"
+                  style={{ borderTop: "1px solid var(--warm-border)" }}
+                  data-testid={`comment-${c.id}`}
+                >
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden text-[11px] font-bold"
+                    style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
+                  >
+                    {c.userImageUrl ? (
+                      <img src={c.userImageUrl} alt={c.userName} className="w-full h-full object-cover" />
+                    ) : initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-[12px] font-bold" style={{ color: "var(--ink)" }} data-testid={`comment-author-${c.id}`}>
+                        {c.userName.split(" ")[0]}
+                      </span>
+                      <span className="text-[10px]" style={{ color: "var(--muted-warm)" }}>{timeAgo}</span>
+                    </div>
+                    <p className="text-[13px] leading-snug mt-0.5" style={{ color: "var(--ink3)" }} data-testid={`comment-content-${c.id}`}>
+                      {c.content}
+                    </p>
+                  </div>
+                  {canDelete && (
+                    <button
+                      onClick={() => deleteMutation.mutate(c.id)}
+                      disabled={deleteMutation.isPending}
+                      className="shrink-0 p-1 rounded-md opacity-40 hover:opacity-80 transition-opacity"
+                      data-testid={`button-delete-comment-${c.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" style={{ color: "var(--ink3)" }} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {isAuthenticated ? (
+            <form
+              onSubmit={handleSubmit}
+              className="flex items-center gap-2 px-4 py-3"
+              style={{ borderTop: "1px solid var(--warm-border)" }}
+            >
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden text-[11px] font-bold"
+                style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
+              >
+                {user?.profileImageUrl ? (
+                  <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (user?.firstName?.charAt(0) || "?").toUpperCase()}
+              </div>
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Add a comment…"
+                maxLength={300}
+                className="flex-1 text-sm bg-transparent focus:outline-none"
+                style={{ color: "var(--ink)" }}
+                data-testid="input-comment"
+              />
+              <button
+                type="submit"
+                disabled={!text.trim() || addMutation.isPending}
+                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                style={{ background: "var(--terra)" }}
+                data-testid="button-submit-comment"
+              >
+                <Send className="w-3.5 h-3.5 text-white" />
+              </button>
+            </form>
+          ) : (
+            <div className="px-4 py-3" style={{ borderTop: "1px solid var(--warm-border)" }}>
+              <a
+                href="/api/login"
+                className="text-xs font-semibold"
+                style={{ color: "var(--terra)" }}
+                data-testid="link-sign-in-comment"
+              >
+                Sign in to comment →
+              </a>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

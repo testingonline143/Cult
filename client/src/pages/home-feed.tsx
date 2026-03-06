@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, Heart, Share2, Plus, ChevronRight } from "lucide-react";
+import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
@@ -18,6 +18,7 @@ interface FeedMoment extends ClubMoment {
   clubName: string;
   clubEmoji: string;
   clubLocation: string;
+  commentCount: number;
 }
 
 
@@ -493,6 +494,19 @@ export default function HomeFeed() {
                         }}
                       />
                     </button>
+                    <Link
+                      href={`/club/${moment.clubId}`}
+                      className="flex items-center gap-1.5 transition-transform active:scale-90"
+                      style={{ textDecoration: "none" }}
+                      data-testid={`button-comments-${moment.id}`}
+                    >
+                      <MessageCircle className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                      {moment.commentCount > 0 && (
+                        <span className="text-[11px] font-semibold" style={{ color: "var(--muted-warm)" }}>
+                          {moment.commentCount}
+                        </span>
+                      )}
+                    </Link>
                     <button className="flex items-center gap-1.5 ml-auto" data-testid={`button-share-${moment.id}`}>
                       <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
                     </button>
