@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Compass, Users, Calendar, User, Plus, X, LayoutDashboard, PenLine } from "lucide-react";
+import { Home, Users, Calendar, User, Plus, X, LayoutDashboard, PenLine } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Drawer } from "vaul";
 import { Link } from "wouter";
 
 const MAIN_TABS = [
-  { path: "/explore", label: "EXPLORE", icon: Compass },
-  { path: "/home", label: "CLUBS", icon: Users },
+  { path: "/home", label: "HOME", icon: Home },
+  { path: "/explore", label: "CLUBS", icon: Users },
   { path: "/events", label: "EVENTS", icon: Calendar },
   { path: "/profile", label: "PROFILE", icon: User },
 ];
@@ -25,8 +25,8 @@ export function BottomNav() {
   const isCreator = !!user && (user.wantsToCreate === true || isOrganiser);
 
   const tabs = [
-    { path: "/explore", label: "EXPLORE", icon: Compass },
-    { path: "/home", label: "CLUBS", icon: Users },
+    { path: "/home", label: "HOME", icon: Home },
+    { path: "/explore", label: "CLUBS", icon: Users },
     null,
     { path: "/events", label: "EVENTS", icon: Calendar },
     isOrganiser
