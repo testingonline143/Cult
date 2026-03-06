@@ -959,6 +959,39 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/checkin/manual", isAuthenticated, async (req: any, res) => {
+    try {
+      const organizerUserId = req.user.claims.sub;
+      const { rsvpId, eventId } = req.body;
+      if (!rsvpId || !eventId) {
+        return res.status(400).json({ success: false, message: "rsvpId and eventId are required" });
+      }
+      const rsvp = await storage.getRsvpById(rsvpId);
+      if (!rsvp) {
+        return res.status(404).json({ success: false, message: "RSVP not found" });
+      }
+      if (rsvp.eventId !== eventId) {
+        return res.status(400).json({ success: false, message: "RSVP does not match this event" });
+      }
+      const event = await storage.getEvent(rsvp.eventId);
+      if (!event) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+      const club = await storage.getClub(event.clubId);
+      if (!club || club.creatorUserId !== organizerUserId) {
+        return res.status(403).json({ success: false, message: "Only the event organizer can manually check in attendees" });
+      }
+      if (rsvp.checkedIn) {
+        return res.json({ success: true, alreadyCheckedIn: true });
+      }
+      const updated = await storage.checkInRsvpById(rsvpId);
+      res.json({ success: true, checkedInAt: updated?.checkedInAt });
+    } catch (err) {
+      console.error("Error manual check-in:", err);
+      res.status(500).json({ success: false, message: "Failed to check in" });
+    }
+  });
+
   app.get("/api/events/:id/attendance", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -978,6 +1011,7 @@ export async function registerRoutes(
         checkedIn,
         notYetArrived: totalRsvps - checkedIn,
         attendees: attendees.map(a => ({
+          rsvpId: a.id,
           name: a.userName,
           checkedIn: !!a.checkedIn,
           checkedInAt: a.checkedInAt,

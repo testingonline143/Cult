@@ -106,6 +106,9 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/user/attendance-stats` — per-club attendance stats for authenticated user (attended/totalRsvps per club)
   - `GET /api/clubs/:id/members` — member directory for authenticated approved members or club owner
   - `POST /api/events/:id/rsvp` — **extended**: creates "waitlisted" status when event is at capacity; promotes first waitlisted user when capacity frees up (via DELETE /api/events/:id/rsvp); GET /api/events/:id returns `waitlistCount` and `myRsvp` with status
+  - `POST /api/checkin` — QR token check-in; validates token against eventId, marks RSVP checkedIn=true
+  - `POST /api/checkin/manual` — manual check-in by rsvpId (organizer only); for when QR scan fails or phone is dead
+  - `GET /api/events/:id/attendance` — returns totalRsvps, checkedIn, notYetArrived, attendees list (with rsvpId, name, checkedIn, checkedInAt)
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`

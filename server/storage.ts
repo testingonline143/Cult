@@ -67,6 +67,7 @@ export interface IStorage {
   getRsvpById(rsvpId: string): Promise<EventRsvp | undefined>;
   getRsvpByToken(token: string): Promise<(EventRsvp & { userName: string | null }) | undefined>;
   checkInRsvpByToken(token: string): Promise<EventRsvp | undefined>;
+  checkInRsvpById(rsvpId: string): Promise<EventRsvp | undefined>;
   updateUserRole(userId: string, role: string): Promise<User | undefined>;
   getClubRatings(clubId: string): Promise<ClubRating[]>;
   getClubAverageRating(clubId: string): Promise<{ average: number; count: number }>;
@@ -622,6 +623,14 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(eventRsvps)
       .set({ checkedIn: true, checkedInAt: new Date() })
       .where(and(eq(eventRsvps.checkinToken, token), eq(eventRsvps.status, "going")))
+      .returning();
+    return updated;
+  }
+
+  async checkInRsvpById(rsvpId: string): Promise<EventRsvp | undefined> {
+    const [updated] = await db.update(eventRsvps)
+      .set({ checkedIn: true, checkedInAt: new Date() })
+      .where(and(eq(eventRsvps.id, rsvpId), eq(eventRsvps.status, "going")))
       .returning();
     return updated;
   }
