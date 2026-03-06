@@ -22,6 +22,7 @@ import EventDetail from "@/pages/event-detail";
 import HomeFeed from "@/pages/home-feed";
 import ScanEvent from "@/pages/scan-event";
 import Notifications from "@/pages/notifications";
+import MemberProfile from "@/pages/member-profile";
 
 const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/scan", "/club", "/event", "/events", "/create", "/notifications", "/explore", "/profile"];
 
@@ -56,6 +57,7 @@ function Router() {
         <Route path="/scan/:eventId" component={ScanEvent} />
         <Route path="/event/:id" component={EventDetail} />
         <Route path="/club/:id" component={ClubDetail} />
+        <Route path="/member/:id" component={MemberProfile} />
         <Route component={NotFound} />
       </Switch>
       <BottomNav />

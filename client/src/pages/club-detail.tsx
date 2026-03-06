@@ -126,7 +126,7 @@ function ClubDetailContent({ club }: { club: Club }) {
     },
   });
 
-  const { data: membersPreview = [] } = useQuery<{ name: string; profileImageUrl: string | null }[]>({
+  const { data: membersPreview = [] } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null }[]>({
     queryKey: ["/api/clubs", club.id, "members-preview"],
     queryFn: async () => {
       const res = await fetch(`/api/clubs/${club.id}/members-preview`);
@@ -410,17 +410,34 @@ function ClubDetailContent({ club }: { club: Club }) {
             </Badge>
           </div>
           <div className="flex flex-wrap gap-3">
-            {membersPreview.map((member, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5 w-16" data-testid={`member-preview-${i}`}>
-                <Avatar className="w-11 h-11">
-                  <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
-                  <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
-                    {member.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium">{member.name.split(' ')[0]}</span>
-              </div>
-            ))}
+            {membersPreview.map((member, i) => {
+              const inner = (
+                <>
+                  <Avatar className="w-11 h-11">
+                    <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
+                    <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                      {member.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium">{member.name.split(' ')[0]}</span>
+                </>
+              );
+              return member.userId ? (
+                <Link
+                  key={member.userId}
+                  href={`/member/${member.userId}`}
+                  className="flex flex-col items-center gap-1.5 w-16"
+                  style={{ textDecoration: "none" }}
+                  data-testid={`link-member-profile-${member.userId}`}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div key={i} className="flex flex-col items-center gap-1.5 w-16" data-testid={`member-preview-${i}`}>
+                  {inner}
+                </div>
+              );
+            })}
             {club.memberCount > membersPreview.length && (
               <div className="flex flex-col items-center gap-1.5 w-16" data-testid="member-preview-more">
                 <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
@@ -1249,19 +1266,36 @@ function MembersTab({ clubId }: { clubId: string }) {
         <p className="text-sm text-[var(--muted-warm)] text-center py-8">No members yet.</p>
       ) : (
         <div className="flex flex-wrap gap-4">
-          {members.map((member, i) => (
-            <div key={member.userId || i} className="flex flex-col items-center gap-1.5 w-16" data-testid={`member-card-${member.userId || i}`}>
-              <Avatar className="w-12 h-12">
-                <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
-                <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
-                  {member.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium" data-testid={`text-member-name-${member.userId || i}`}>
-                {member.name.split(' ')[0]}
-              </span>
-            </div>
-          ))}
+          {members.map((member, i) => {
+            const inner = (
+              <>
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
+                  <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium" data-testid={`text-member-name-${member.userId || i}`}>
+                  {member.name.split(' ')[0]}
+                </span>
+              </>
+            );
+            return member.userId ? (
+              <Link
+                key={member.userId}
+                href={`/member/${member.userId}`}
+                className="flex flex-col items-center gap-1.5 w-16"
+                style={{ textDecoration: "none" }}
+                data-testid={`member-card-${member.userId}`}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={i} className="flex flex-col items-center gap-1.5 w-16" data-testid={`member-card-${i}`}>
+                {inner}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

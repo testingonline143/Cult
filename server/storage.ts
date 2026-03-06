@@ -89,7 +89,7 @@ export interface IStorage {
   getUnreadNotificationCount(userId: string): Promise<number>;
   updateEvent(id: string, data: Partial<InsertEvent>): Promise<Event | undefined>;
   cancelEvent(id: string): Promise<Event | undefined>;
-  getMembersPreview(clubId: string, limit?: number): Promise<{ name: string; profileImageUrl: string | null }[]>;
+  getMembersPreview(clubId: string, limit?: number): Promise<{ userId: string | null; name: string; profileImageUrl: string | null }[]>;
   getAdminAnalytics(): Promise<{ totalUsers: number; totalClubs: number; activeClubs: number; totalEvents: number; totalRsvps: number; totalCheckins: number; cityCounts: { city: string; count: number }[] }>;
   getAllUsers(): Promise<{ id: string; email: string | null; firstName: string | null; city: string | null; role: string | null; createdAt: Date | null; clubCount: number }[]>;
   getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
@@ -765,8 +765,9 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getMembersPreview(clubId: string, limit = 10): Promise<{ name: string; profileImageUrl: string | null }[]> {
+  async getMembersPreview(clubId: string, limit = 10): Promise<{ userId: string | null; name: string; profileImageUrl: string | null }[]> {
     const results = await db.select({
+      userId: joinRequests.userId,
       name: joinRequests.name,
       profileImageUrl: users.profileImageUrl,
     })

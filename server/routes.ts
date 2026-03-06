@@ -1448,6 +1448,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const userClubs = await storage.getUserApprovedClubs(req.params.id);
+      const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || "CultFam Member";
+      res.json({
+        id: user.id,
+        name,
+        bio: user.bio ?? null,
+        city: user.city ?? null,
+        profileImageUrl: user.profileImageUrl ?? null,
+        role: user.role ?? "member",
+        clubs: userClubs.map(c => ({ id: c.id, name: c.name, emoji: c.emoji, category: c.category })),
+      });
+    } catch (err) {
+      console.error("Error fetching public user profile:", err);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
   app.get("/api/clubs/:id/members-preview", async (req, res) => {
     try {
       const members = await storage.getMembersPreview(req.params.id, 10);
