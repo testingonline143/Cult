@@ -4,15 +4,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Camera, Repeat, UserCheck, TrendingDown, Medal } from "lucide-react";
-import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Camera, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin } from "lucide-react";
+import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement, ClubPoll } from "@shared/schema";
 
 export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const searchString = useSearch();
-  const urlTab = new URLSearchParams(searchString).get("tab") as "overview" | "requests" | "insights" | "events" | "content" | "edit" | null;
-  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "insights" | "events" | "content" | "edit">(urlTab || "overview");
+  const urlTab = new URLSearchParams(searchString).get("tab") as "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements" | null;
+  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements">(urlTab || "overview");
   const [selectedClubIndex, setSelectedClubIndex] = useState(0);
 
   const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
@@ -131,20 +131,21 @@ export default function Organizer() {
           </div>
         )}
 
-        <RequestsTabBar activeTab={activeTab} setActiveTab={setActiveTab} clubId={club.id} />
+        <RequestsTabBar activeTab={activeTab} setActiveTab={setActiveTab} clubId={club.id} isCreator={user?.id === club.creatorUserId} />
 
-        {activeTab === "overview" && <ClubOverview club={club} setActiveTab={setActiveTab} />}
-        {activeTab === "requests" && <OrganizerRequests clubId={club.id} />}
+        {activeTab === "overview" && <ClubOverview club={club} user={user} setActiveTab={setActiveTab} />}
+        {activeTab === "requests" && <OrganizerRequests clubId={club.id} club={club} />}
         {activeTab === "insights" && <OrganizerInsights clubId={club.id} />}
         {activeTab === "events" && <OrganizerEvents clubId={club.id} />}
         {activeTab === "content" && <ContentManager clubId={club.id} />}
-        {activeTab === "edit" && <EditClub club={club} />}
+        {activeTab === "edit" && user?.id === club.creatorUserId && <EditClub club={club} />}
+        {activeTab === "announcements" && <AnnouncementsManager clubId={club.id} />}
       </div>
     </div>
   );
 }
 
-function ClubOverview({ club, setActiveTab }: { club: Club; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit") => void }) {
+function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void }) {
   const healthColors: Record<string, string> = {
     green: "text-[var(--green-accent)] bg-[var(--green-accent)]/10",
     yellow: "text-chart-4 bg-chart-4/10",
@@ -320,11 +321,13 @@ function ClubOverview({ club, setActiveTab }: { club: Club; setActiveTab: (tab: 
           })()}
         </div>
       </div>
+
+      {user?.id === club.creatorUserId && <CoOrganisersCard clubId={club.id} />}
     </div>
   );
 }
 
-function RequestsTabBar({ activeTab, setActiveTab, clubId }: { activeTab: string; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit") => void; clubId: string }) {
+function RequestsTabBar({ activeTab, setActiveTab, clubId, isCreator }: { activeTab: string; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void; clubId: string; isCreator?: boolean }) {
   const { data: requests = [] } = useQuery<JoinRequest[]>({
     queryKey: ["/api/organizer/join-requests", clubId],
     queryFn: async () => {
@@ -336,19 +339,20 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId }: { activeTab: string
 
   const pendingCount = requests.filter(r => r.status === "pending").length;
 
-  const tabs = ["overview", "requests", "insights", "events", "content", "edit"] as const;
+  const allTabs = ["overview", "requests", "insights", "events", "content", "announcements", ...(isCreator ? ["edit"] : [])] as const;
   const tabLabels: Record<string, string> = {
     overview: "Overview",
     requests: "Requests",
     insights: "Insights",
     events: "Events",
     content: "Content",
+    announcements: "Broadcast",
     edit: "Edit Club",
   };
 
   return (
     <div className="flex gap-2 mb-6 overflow-x-auto flex-wrap">
-      {tabs.map((tab) => (
+      {allTabs.map((tab) => (
         <button
           key={tab}
           onClick={() => setActiveTab(tab)}
@@ -646,8 +650,9 @@ function OrganizerInsights({ clubId }: { clubId: string }) {
   );
 }
 
-function OrganizerRequests({ clubId }: { clubId: string }) {
+function OrganizerRequests({ clubId, club }: { clubId: string; club: Club }) {
   const [viewFilter, setViewFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
 
   const { data: requests = [], isLoading } = useQuery<JoinRequest[]>({
     queryKey: ["/api/organizer/join-requests", clubId],
@@ -806,6 +811,39 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
                   <div className="text-xs text-muted-foreground">
                     {req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""}
                   </div>
+                  {(req as any).answer1 && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => {
+                          const next = new Set(expandedAnswers);
+                          if (next.has(req.id)) { next.delete(req.id); } else { next.add(req.id); }
+                          setExpandedAnswers(next);
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--terra)] transition-colors"
+                        data-testid={`button-toggle-answers-${req.id}`}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        {expandedAnswers.has(req.id) ? "Hide answers" : "View answers"}
+                        {expandedAnswers.has(req.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </button>
+                      {expandedAnswers.has(req.id) && (
+                        <div className="mt-2 space-y-2 p-2.5 rounded-lg" style={{ background: "var(--terra-pale)", border: "1px solid rgba(196,98,45,0.2)" }}>
+                          {club.joinQuestion1 && (
+                            <div>
+                              <div className="text-[10px] font-bold text-[var(--terra)] uppercase tracking-wider">{club.joinQuestion1}</div>
+                              <div className="text-xs text-[var(--ink)] mt-0.5">{(req as any).answer1}</div>
+                            </div>
+                          )}
+                          {club.joinQuestion2 && (req as any).answer2 && (
+                            <div>
+                              <div className="text-[10px] font-bold text-[var(--terra)] uppercase tracking-wider">{club.joinQuestion2}</div>
+                              <div className="text-xs text-[var(--ink)] mt-0.5">{(req as any).answer2}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                   {req.status === "pending" && (
@@ -862,6 +900,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
   const [startsAt, setStartsAt] = useState("");
   const [locationText, setLocationText] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("20");
+  const [recurrenceRule, setRecurrenceRule] = useState("none");
   const [createError, setCreateError] = useState("");
   const [duplicatingFrom, setDuplicatingFrom] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
@@ -911,6 +950,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
     setStartsAt("");
     setLocationText("");
     setMaxCapacity("20");
+    setRecurrenceRule("none");
     setCreateError("");
     setDuplicatingFrom(null);
   };
@@ -927,7 +967,8 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
       startsAt,
       locationText: locationText.trim(),
       maxCapacity: parseInt(maxCapacity) || 20,
-    });
+      ...(recurrenceRule !== "none" ? { recurrenceRule } : {}),
+    } as any);
   };
 
   if (isLoading) return (
@@ -1030,6 +1071,28 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
               className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
               data-testid="input-event-location"
             />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block flex items-center gap-1.5">
+              <Repeat className="w-3 h-3" />
+              Repeat
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {[["none","Once"],["weekly","Weekly"],["biweekly","Bi-weekly"],["monthly","Monthly"]].map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setRecurrenceRule(val)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${recurrenceRule === val ? "bg-[var(--terra-pale)] text-[var(--terra)] border-[rgba(196,98,45,0.4)]" : "bg-[var(--warm-white)] border-[var(--warm-border)] text-muted-foreground"}`}
+                  data-testid={`button-recurrence-${val}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {recurrenceRule !== "none" && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">We'll create 4 instances automatically</p>
+            )}
           </div>
           {createError && <p className="text-xs text-destructive font-medium text-center" data-testid="text-event-error">{createError}</p>}
           <button
@@ -1511,24 +1574,31 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
 }
 
 function ContentManager({ clubId }: { clubId: string }) {
-  const [activeSection, setActiveSection] = useState<"faqs" | "schedule" | "moments">("faqs");
+  const [activeSection, setActiveSection] = useState<"faqs" | "schedule" | "moments" | "polls">("faqs");
+
+  const sections: { key: "faqs" | "schedule" | "moments" | "polls"; label: string }[] = [
+    { key: "faqs", label: "FAQs" },
+    { key: "schedule", label: "Schedule" },
+    { key: "moments", label: "Moments" },
+    { key: "polls", label: "Polls" },
+  ];
 
   return (
     <div className="space-y-4" data-testid="section-content-manager">
       <div className="flex gap-2 flex-wrap">
-        {(["faqs", "schedule", "moments"] as const).map((section) => (
+        {sections.map(({ key, label }) => (
           <button
-            key={section}
-            onClick={() => setActiveSection(section)}
+            key={key}
+            onClick={() => setActiveSection(key)}
             className={`px-4 py-2 rounded-md text-sm font-semibold transition-all whitespace-nowrap ${
-              activeSection === section
+              activeSection === key
                 ? "bg-[var(--terra-pale)] text-[var(--terra)] border-[1.5px] border-[rgba(196,98,45,0.3)]"
                 : "bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground"
             }`}
             style={{ borderRadius: 18 }}
-            data-testid={`tab-content-${section}`}
+            data-testid={`tab-content-${key}`}
           >
-            {section === "faqs" ? "FAQs" : section === "schedule" ? "Schedule" : "Moments"}
+            {label}
           </button>
         ))}
       </div>
@@ -1536,6 +1606,7 @@ function ContentManager({ clubId }: { clubId: string }) {
       {activeSection === "faqs" && <FaqsManager clubId={clubId} />}
       {activeSection === "schedule" && <ScheduleManager clubId={clubId} />}
       {activeSection === "moments" && <MomentsManager clubId={clubId} />}
+      {activeSection === "polls" && <PollsManager clubId={clubId} />}
     </div>
   );
 }
@@ -2217,6 +2288,450 @@ function MomentsManager({ clubId }: { clubId: string }) {
   );
 }
 
+function AnnouncementsManager({ clubId }: { clubId: string }) {
+  const { toast } = useToast();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [isPinned, setIsPinned] = useState(false);
+  const [notifyMembers, setNotifyMembers] = useState(true);
+
+  const { data: announcements = [], isLoading } = useQuery<ClubAnnouncement[]>({
+    queryKey: ["/api/organizer/clubs", clubId, "announcements"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/announcements`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const postMutation = useMutation({
+    mutationFn: async (data: { title: string; body: string; isPinned: boolean; notifyMembers: boolean }) => {
+      const res = await apiRequest("POST", `/api/organizer/clubs/${clubId}/announcements`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Announcement posted!" });
+      setTitle("");
+      setBody("");
+      setIsPinned(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "announcements"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "announcements"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/organizer/clubs/${clubId}/announcements/${id}`, {});
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "announcements"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "announcements"] });
+    },
+  });
+
+  return (
+    <div className="space-y-5" data-testid="section-announcements-manager">
+      <div className="p-4 rounded-2xl space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Megaphone className="w-4 h-4 text-[var(--terra)]" />
+          <h3 className="font-display text-base font-bold text-[var(--ink)]">New Announcement</h3>
+        </div>
+        <input
+          type="text"
+          placeholder="Title (e.g. Weekend trek is on!)"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+          data-testid="input-announcement-title"
+        />
+        <textarea
+          placeholder="Write your message to all members..."
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={3}
+          className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none"
+          data-testid="input-announcement-body"
+        />
+        <div className="flex flex-col gap-2.5">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <div
+              onClick={() => setIsPinned(!isPinned)}
+              className={`w-9 h-5 rounded-full transition-all relative ${isPinned ? "bg-[var(--terra)]" : "bg-[var(--warm-border)]"}`}
+              data-testid="toggle-pin-announcement"
+            >
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${isPinned ? "left-4" : "left-0.5"}`} />
+            </div>
+            <span className="text-sm text-foreground flex items-center gap-1.5">
+              <Pin className="w-3 h-3" />
+              Pin to club page
+            </span>
+          </label>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <div
+              onClick={() => setNotifyMembers(!notifyMembers)}
+              className={`w-9 h-5 rounded-full transition-all relative ${notifyMembers ? "bg-[var(--terra)]" : "bg-[var(--warm-border)]"}`}
+              data-testid="toggle-notify-members"
+            >
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${notifyMembers ? "left-4" : "left-0.5"}`} />
+            </div>
+            <span className="text-sm text-foreground flex items-center gap-1.5">
+              <Bell className="w-3 h-3" />
+              Notify all members
+            </span>
+          </label>
+        </div>
+        <button
+          onClick={() => postMutation.mutate({ title, body, isPinned, notifyMembers })}
+          disabled={postMutation.isPending || !title.trim() || !body.trim()}
+          className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold disabled:opacity-50"
+          data-testid="button-post-announcement"
+        >
+          {postMutation.isPending ? "Posting..." : "Post Announcement"}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "var(--warm-border)" }} />)}
+        </div>
+      ) : announcements.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground text-sm" data-testid="text-no-announcements">
+          No announcements yet. Post your first one above!
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {announcements.map((ann) => (
+            <div key={ann.id} className="p-4 rounded-2xl" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid={`card-announcement-${ann.id}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-display font-bold text-sm text-[var(--ink)]" data-testid={`text-ann-title-${ann.id}`}>{ann.title}</span>
+                    {ann.isPinned && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md" style={{ background: "var(--terra-pale)", color: "var(--terra)" }}>
+                        <Pin className="w-2.5 h-2.5" /> Pinned
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{ann.body}</p>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteMutation.mutate(ann.id)}
+                  disabled={deleteMutation.isPending}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-destructive transition-colors shrink-0"
+                  style={{ background: "rgba(239,68,68,0.08)" }}
+                  data-testid={`button-delete-announcement-${ann.id}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PollsManager({ clubId }: { clubId: string }) {
+  const { toast } = useToast();
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState(["", ""]);
+
+  const { data: polls = [], isLoading } = useQuery<(ClubPoll & { voteCounts: number[]; userVote: number | null })[]>({
+    queryKey: ["/api/organizer/clubs", clubId, "polls"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/polls`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: { question: string; options: string[] }) => {
+      const res = await apiRequest("POST", `/api/organizer/clubs/${clubId}/polls`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Poll created!" });
+      setQuestion("");
+      setOptions(["", ""]);
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (pollId: string) => {
+      const res = await apiRequest("DELETE", `/api/organizer/clubs/${clubId}/polls/${pollId}`, {});
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
+    },
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: async (pollId: string) => {
+      const res = await apiRequest("PATCH", `/api/organizer/clubs/${clubId}/polls/${pollId}/close`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
+    },
+  });
+
+  const addOption = () => { if (options.length < 6) setOptions([...options, ""]); };
+  const removeOption = (i: number) => { if (options.length > 2) setOptions(options.filter((_, idx) => idx !== i)); };
+  const setOption = (i: number, val: string) => { const next = [...options]; next[i] = val; setOptions(next); };
+
+  const validOptions = options.map(o => o.trim()).filter(Boolean);
+
+  return (
+    <div className="space-y-5" data-testid="section-polls-manager">
+      <div className="p-4 rounded-2xl space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Vote className="w-4 h-4 text-[var(--terra)]" />
+          <h3 className="font-display text-base font-bold text-[var(--ink)]">Create a Poll</h3>
+        </div>
+        <input
+          type="text"
+          placeholder="Ask a question..."
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+          data-testid="input-poll-question"
+        />
+        <div className="space-y-2">
+          {options.map((opt, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input
+                type="text"
+                placeholder={`Option ${i + 1}`}
+                value={opt}
+                onChange={(e) => setOption(i, e.target.value)}
+                className="flex-1 px-4 py-2.5 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+                data-testid={`input-poll-option-${i}`}
+              />
+              {options.length > 2 && (
+                <button onClick={() => removeOption(i)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground" style={{ background: "rgba(239,68,68,0.08)" }}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {options.length < 6 && (
+          <button
+            onClick={addOption}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--terra)] transition-colors"
+            data-testid="button-add-poll-option"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add option
+          </button>
+        )}
+        <button
+          onClick={() => createMutation.mutate({ question, options: validOptions })}
+          disabled={createMutation.isPending || !question.trim() || validOptions.length < 2}
+          className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold disabled:opacity-50"
+          data-testid="button-create-poll"
+        >
+          {createMutation.isPending ? "Creating..." : "Create Poll"}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2].map(i => <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: "var(--warm-border)" }} />)}
+        </div>
+      ) : polls.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground text-sm" data-testid="text-no-polls">
+          No polls yet. Create one to engage your members!
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {polls.map((poll) => {
+            const total = (poll.voteCounts || []).reduce((a, b) => a + b, 0);
+            return (
+              <div key={poll.id} className={`p-4 rounded-2xl space-y-3 ${!poll.isOpen ? "opacity-70" : ""}`} style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid={`card-poll-${poll.id}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display font-bold text-sm text-[var(--ink)]">{poll.question}</span>
+                      {!poll.isOpen && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: "var(--warm-border)", color: "var(--muted-warm)" }}>Closed</span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{total} vote{total !== 1 ? "s" : ""}</div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {poll.isOpen && (
+                      <button
+                        onClick={() => closeMutation.mutate(poll.id)}
+                        disabled={closeMutation.isPending}
+                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--terra)] transition-colors"
+                        style={{ background: "var(--terra-pale)", border: "1px solid rgba(196,98,45,0.3)" }}
+                        data-testid={`button-close-poll-${poll.id}`}
+                      >
+                        Close
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteMutation.mutate(poll.id)}
+                      disabled={deleteMutation.isPending}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-destructive"
+                      style={{ background: "rgba(239,68,68,0.08)" }}
+                      data-testid={`button-delete-poll-${poll.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {(poll.options || []).map((opt, i) => {
+                    const count = poll.voteCounts?.[i] ?? 0;
+                    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                    return (
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-[var(--ink)]">{opt}</span>
+                          <span className="font-semibold text-[var(--muted-warm)]">{pct}%</span>
+                        </div>
+                        <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--warm-border)" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "var(--terra)" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CoOrganisersCard({ clubId }: { clubId: string }) {
+  const { toast } = useToast();
+  const [selectedUserId, setSelectedUserId] = useState("");
+
+  const { data: coOrganisers = [] } = useQuery<{ userId: string; name: string; profileImageUrl: string | null }[]>({
+    queryKey: ["/api/organizer/clubs", clubId, "co-organisers"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/clubs/${clubId}/co-organisers`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: approvedMembers = [] } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null }[]>({
+    queryKey: ["/api/clubs", clubId, "members"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/members`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const coOrgIds = new Set(coOrganisers.map(c => c.userId));
+  const eligibleMembers = approvedMembers.filter(m => m.userId && !coOrgIds.has(m.userId));
+
+  const addMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", `/api/organizer/clubs/${clubId}/co-organisers`, { userId });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Co-organiser added!" });
+      setSelectedUserId("");
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "co-organisers"] });
+    },
+    onError: () => toast({ title: "Failed to add co-organiser", variant: "destructive" }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/organizer/clubs/${clubId}/co-organisers/${userId}`, {});
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "co-organisers"] });
+    },
+  });
+
+  return (
+    <div className="p-4 rounded-2xl space-y-4" style={{ background: "var(--warm-white)", border: "1.5px solid rgba(196,98,45,0.25)" }} data-testid="card-co-organisers">
+      <div className="flex items-center gap-2">
+        <Shield className="w-4 h-4 text-[var(--terra)]" />
+        <h3 className="font-display text-base font-bold text-[var(--ink)]">Co-organisers</h3>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: "var(--terra-pale)", color: "var(--terra)" }}>Creator only</span>
+      </div>
+      <p className="text-xs text-muted-foreground">Give trusted members dashboard access to help manage requests, events, and content.</p>
+
+      {coOrganisers.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-2" data-testid="text-no-co-organisers">No co-organisers yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {coOrganisers.map((co) => (
+            <div key={co.userId} className="flex items-center justify-between gap-2 p-2 rounded-xl" style={{ background: "var(--cream)" }} data-testid={`row-co-organiser-${co.userId}`}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: "var(--terra-pale)", color: "var(--terra)" }}>
+                  {co.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-semibold text-[var(--ink)]">{co.name}</span>
+              </div>
+              <button
+                onClick={() => removeMutation.mutate(co.userId)}
+                disabled={removeMutation.isPending}
+                className="text-xs font-semibold text-destructive px-2.5 py-1 rounded-lg transition-colors"
+                style={{ background: "rgba(239,68,68,0.08)" }}
+                data-testid={`button-remove-co-organiser-${co.userId}`}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {eligibleMembers.length > 0 ? (
+        <div className="flex gap-2">
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            className="flex-1 px-3 py-2.5 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none"
+            data-testid="select-co-organiser-candidate"
+          >
+            <option value="">Select a member...</option>
+            {eligibleMembers.map(m => (
+              <option key={m.userId!} value={m.userId!}>{m.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => selectedUserId && addMutation.mutate(selectedUserId)}
+            disabled={!selectedUserId || addMutation.isPending}
+            className="px-4 py-2.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-add-co-organiser"
+          >
+            {addMutation.isPending ? "Adding..." : "Add"}
+          </button>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground italic">All approved members are already co-organisers or there are no members yet.</p>
+      )}
+    </div>
+  );
+}
+
 function EditClub({ club }: { club: Club }) {
   const [shortDesc, setShortDesc] = useState(club.shortDesc);
   const [fullDesc, setFullDesc] = useState(club.fullDesc || "");
@@ -2226,10 +2741,12 @@ function EditClub({ club }: { club: Club }) {
   const [location, setLocation] = useState(club.location);
   const [healthStatus, setHealthStatus] = useState(club.healthStatus);
   const [highlightsText, setHighlightsText] = useState((club.highlights || []).join("\n"));
+  const [joinQuestion1, setJoinQuestion1] = useState((club as any).joinQuestion1 || "");
+  const [joinQuestion2, setJoinQuestion2] = useState((club as any).joinQuestion2 || "");
   const [saved, setSaved] = useState(false);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { shortDesc: string; fullDesc: string; organizerName: string; whatsappNumber: string; schedule: string; location: string; healthStatus: string; highlights: string[] }) => {
+    mutationFn: async (data: any) => {
       const res = await apiRequest("PATCH", `/api/organizer/club/${club.id}`, data);
       return res.json();
     },
@@ -2243,7 +2760,7 @@ function EditClub({ club }: { club: Club }) {
 
   const handleSave = () => {
     const highlights = highlightsText.split("\n").map(h => h.trim()).filter(Boolean);
-    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, healthStatus, highlights });
+    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, healthStatus, highlights, joinQuestion1: joinQuestion1.trim() || null, joinQuestion2: joinQuestion2.trim() || null });
   };
 
   return (
@@ -2346,6 +2863,37 @@ function EditClub({ club }: { club: Club }) {
             data-testid="input-edit-highlights"
           />
           <p className="text-[11px] text-muted-foreground mt-1">One per line. These show on your club page.</p>
+        </div>
+        <div className="pt-2 border-t border-[var(--warm-border)]">
+          <div className="flex items-center gap-1.5 mb-3">
+            <MessageSquare className="w-3.5 h-3.5 text-[var(--terra)]" />
+            <span className="text-xs font-bold text-[var(--terra)] uppercase tracking-wider">Join Questions</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-3">Applicants will see these when requesting to join.</p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Question 1 (optional)</label>
+              <input
+                type="text"
+                value={joinQuestion1}
+                onChange={(e) => setJoinQuestion1(e.target.value)}
+                placeholder="What's your experience level?"
+                className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+                data-testid="input-edit-join-q1"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Question 2 (optional)</label>
+              <input
+                type="text"
+                value={joinQuestion2}
+                onChange={(e) => setJoinQuestion2(e.target.value)}
+                placeholder="How did you hear about us?"
+                className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+                data-testid="input-edit-join-q2"
+              />
+            </div>
+          </div>
         </div>
       </div>
       <button

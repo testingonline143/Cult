@@ -34,6 +34,9 @@ export const clubs = pgTable("clubs", {
   isActive: boolean("is_active").default(true),
   highlights: text("highlights").array(),
   creatorUserId: varchar("creator_user_id"),
+  coOrganiserUserIds: text("co_organiser_user_ids").array(),
+  joinQuestion1: text("join_question_1"),
+  joinQuestion2: text("join_question_2"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -46,6 +49,8 @@ export const joinRequests = pgTable("join_requests", {
   userId: varchar("user_id"),
   status: text("status").notNull().default("pending"),
   markedDone: boolean("marked_done").default(false),
+  answer1: text("answer_1"),
+  answer2: text("answer_2"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -147,6 +152,34 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const clubAnnouncements = pgTable("club_announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  authorUserId: varchar("author_user_id").notNull(),
+  authorName: text("author_name").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  isPinned: boolean("is_pinned").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const clubPolls = pgTable("club_polls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  question: text("question").notNull(),
+  options: text("options").array().notNull(),
+  isOpen: boolean("is_open").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pollVotes = pgTable("poll_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pollId: varchar("poll_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  optionIndex: integer("option_index").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
@@ -158,6 +191,9 @@ export const insertClubScheduleEntrySchema = createInsertSchema(clubScheduleEntr
 export const insertClubMomentSchema = createInsertSchema(clubMoments).omit({ id: true, createdAt: true });
 export const insertMomentCommentSchema = createInsertSchema(momentComments).omit({ id: true, createdAt: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export const insertClubAnnouncementSchema = createInsertSchema(clubAnnouncements).omit({ id: true, createdAt: true });
+export const insertClubPollSchema = createInsertSchema(clubPolls).omit({ id: true, createdAt: true });
+export const insertPollVoteSchema = createInsertSchema(pollVotes).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -181,6 +217,12 @@ export type MomentComment = typeof momentComments.$inferSelect;
 export type InsertMomentComment = z.infer<typeof insertMomentCommentSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type ClubAnnouncement = typeof clubAnnouncements.$inferSelect;
+export type InsertClubAnnouncement = z.infer<typeof insertClubAnnouncementSchema>;
+export type ClubPoll = typeof clubPolls.$inferSelect;
+export type InsertClubPoll = z.infer<typeof insertClubPollSchema>;
+export type PollVote = typeof pollVotes.$inferSelect;
+export type InsertPollVote = z.infer<typeof insertPollVoteSchema>;
 
 export const CATEGORIES = [
   "Trekking",

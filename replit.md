@@ -117,8 +117,11 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **Tables**:
   - `users` — id (UUID), email (unique), firstName, lastName, profileImageUrl, bio, city, **role** (text, default 'user', values: 'user'|'organiser'|'admin'), quizCompleted, createdAt, updatedAt
   - `sessions` — sid (PK), sess (jsonb), expire (timestamp) — used by express-session for Replit Auth
-  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), createdAt
-  - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, **status** (text, default 'pending', values: 'pending'|'approved'|'rejected'), createdAt
+  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), **coOrganiserUserIds** (text[], nullable), **joinQuestion1/joinQuestion2** (text, nullable), createdAt
+  - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, **status** (text, default 'pending', values: 'pending'|'approved'|'rejected'), **answer1/answer2** (text, nullable — join question answers), createdAt
+  - `club_announcements` — id (UUID), clubId, authorUserId, authorName, title (text), body (text), isPinned (boolean, default false), createdAt
+  - `club_polls` — id (UUID), clubId, question (text), options (text[]), isOpen (boolean, default true), createdAt
+  - `poll_votes` — id (UUID), pollId, userId, optionIndex (integer), createdAt. Unique on pollId+userId (one vote per user per poll)
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
   - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, isCancelled (boolean, default false), **recurrenceRule** (text, nullable: "weekly"|"biweekly"|"monthly"), createdAt
   - `notifications` — id (UUID), userId, type (text: "join_approved"|"join_rejected"|"new_event"), title, message, linkUrl, isRead (boolean, default false), createdAt
@@ -187,6 +190,12 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **Time-of-day discovery filter**: Explore page has TIME filter pills (Any / Morning / Evening / Weekends) that filter clubs by their `timeOfDay` field; threaded through storage and API as `?timeOfDay=` query param
 - **Member directory tab**: Authenticated approved members and the club owner can see a "Members" tab on club detail page showing all approved members with avatars, names, and join dates; powered by `GET /api/clubs/:id/members`
 - **Home feed event reminder**: "Happening Soon" card on home feed shows upcoming RSVPd events within 48 hours; RSVP confirmation creates an `rsvp_confirmed` notification
+- **Club announcements**: Organisers post announcements (title + body) with optional "Pin to club page" and "Notify all members" toggles; pinned announcement shows as a prominent terra-pale banner above the tabs on club detail; full broadcast via in-app notifications; managed from "Broadcast" tab in organiser dashboard
+- **Club polls**: Organisers create polls (question + 2-6 options) from ContentManager → Polls section; members vote from club detail "Polls" tab (authenticated users only); live vote % bars, optimistic UI; one vote per user per poll; organiser can close polls; polls show on both organiser dashboard (with Close + Delete) and member view (vote buttons or results)
+- **Join questions**: Organisers set up to 2 custom screening questions in Edit Club; questions appear in join request form on club detail page (Q1 required, Q2 optional); answers stored in join_requests table; visible in organiser requests view as expandable "View Answers" section with question labels
+- **Co-organiser management**: Creator can add trusted approved members as co-organisers (dropdown of eligible members); co-organisers appear in `GET /api/organizer/my-clubs` and have full dashboard access; creator-only features (Edit Club tab, Co-organisers card) are hidden from co-organisers; managed via GET/POST/DELETE `/api/organizer/clubs/:clubId/co-organisers`
+- **Club gallery tab**: Photo-only tab on club detail (appears only when ≥1 moment has an imageUrl); 2-column aspect-square grid; tap to open fullscreen overlay with close button; powered by moments data
+- **Recurring events UI**: Create event form has "Repeat" segmented control (Once / Weekly / Bi-weekly / Monthly) after the location field; selecting a repeat option shows "We'll create 4 instances automatically" note; backend auto-generates 4 future instances
 
 ## External Dependencies
 

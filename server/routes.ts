@@ -40,6 +40,38 @@ const isAdmin: RequestHandler = (req: any, res, next) => {
   next();
 };
 
+function requireClubManager(clubIdParam = "clubId"): RequestHandler {
+  return async (req: any, res, next) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const clubId = req.params[clubIdParam];
+      const ok = await storage.isClubManager(clubId, userId);
+      if (!ok) return res.status(403).json({ message: "Forbidden: not a club manager" });
+      next();
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
+}
+
+function requireClubCreator(clubIdParam = "clubId"): RequestHandler {
+  return async (req: any, res, next) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const clubId = req.params[clubIdParam];
+      const club = await storage.getClub(clubId);
+      if (!club || club.creatorUserId !== userId) {
+        return res.status(403).json({ message: "Forbidden: creator only" });
+      }
+      next();
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
+}
+
 function requireRole(...roles: string[]): RequestHandler {
   return async (req: any, res, next) => {
     try {
@@ -118,7 +150,8 @@ export async function registerRoutes(
           await storage.deleteJoinRequest(existing.id);
         }
       }
-      const request = await storage.createJoinRequest({ ...validated, userId, status: "pending" });
+      const { answer1, answer2 } = req.body;
+      const request = await storage.createJoinRequest({ ...validated, userId, status: "pending", answer1: answer1 || null, answer2: answer2 || null });
       const club = await storage.getClub(validated.clubId);
       res.json({ success: true, message: "Request sent! The organizer will review your request.", data: request, club });
     } catch (err) {
@@ -302,7 +335,7 @@ export async function registerRoutes(
   app.get("/api/organizer/my-clubs", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const clubs = await storage.getClubsByCreator(userId);
+      const clubs = await storage.getClubsForOrganiser(userId);
       res.json(clubs);
     } catch (err) {
       console.error("Error fetching organizer clubs:", err);
@@ -825,7 +858,7 @@ export async function registerRoutes(
       if (!club || club.creatorUserId !== userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const { shortDesc, fullDesc, schedule, location, healthStatus, highlights, organizerName, whatsappNumber } = req.body;
+      const { shortDesc, fullDesc, schedule, location, healthStatus, highlights, organizerName, whatsappNumber, joinQuestion1, joinQuestion2 } = req.body;
       const updateData: Record<string, any> = {};
       if (shortDesc !== undefined) updateData.shortDesc = shortDesc;
       if (fullDesc !== undefined) updateData.fullDesc = fullDesc;
@@ -835,6 +868,8 @@ export async function registerRoutes(
       if (highlights !== undefined) updateData.highlights = highlights;
       if (organizerName !== undefined) updateData.organizerName = organizerName;
       if (whatsappNumber !== undefined) updateData.whatsappNumber = whatsappNumber;
+      if (joinQuestion1 !== undefined) updateData.joinQuestion1 = joinQuestion1 || null;
+      if (joinQuestion2 !== undefined) updateData.joinQuestion2 = joinQuestion2 || null;
       const updated = await storage.updateClub(req.params.id, updateData);
       if (!updated) return res.status(404).json({ message: "Club not found" });
       res.json(updated);
@@ -1566,6 +1601,178 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error fetching join count:", err);
       res.status(500).json({ message: "Failed to get join count" });
+    }
+  });
+
+  // ── ANNOUNCEMENTS ────────────────────────────────────────────────────────
+
+  app.get("/api/clubs/:clubId/announcements", async (req, res) => {
+    try {
+      const announcements = await storage.getClubAnnouncements(req.params.clubId);
+      res.json(announcements);
+    } catch (err) {
+      console.error("Error fetching announcements:", err);
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.post("/api/organizer/clubs/:clubId/announcements", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const { title, body, isPinned, notifyMembers } = req.body;
+      if (!title?.trim() || !body?.trim()) {
+        return res.status(400).json({ message: "Title and body are required" });
+      }
+      const authorName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Organiser";
+      const announcement = await storage.createAnnouncement({
+        clubId: req.params.clubId,
+        authorUserId: userId,
+        authorName,
+        title: title.trim(),
+        body: body.trim(),
+        isPinned: !!isPinned,
+      });
+      if (notifyMembers) {
+        const memberIds = await storage.getClubMemberUserIds(req.params.clubId);
+        const club = await storage.getClub(req.params.clubId);
+        await Promise.all(memberIds.map(memberId =>
+          storage.createNotification({
+            userId: memberId,
+            type: "announcement",
+            title: `${club?.name ?? "Club"}: ${title.trim()}`,
+            message: body.trim().slice(0, 120),
+            linkUrl: `/clubs/${req.params.clubId}`,
+          })
+        ));
+      }
+      res.json(announcement);
+    } catch (err) {
+      console.error("Error creating announcement:", err);
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  app.delete("/api/organizer/clubs/:clubId/announcements/:id", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      await storage.deleteAnnouncement(req.params.id, req.params.clubId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting announcement:", err);
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  // ── POLLS ────────────────────────────────────────────────────────────────
+
+  app.get("/api/clubs/:clubId/polls", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const polls = await storage.getClubPolls(req.params.clubId, userId);
+      res.json(polls);
+    } catch (err) {
+      console.error("Error fetching polls:", err);
+      res.status(500).json({ message: "Failed to fetch polls" });
+    }
+  });
+
+  app.post("/api/organizer/clubs/:clubId/polls", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const { question, options } = req.body;
+      if (!question?.trim()) return res.status(400).json({ message: "Question is required" });
+      if (!Array.isArray(options) || options.length < 2) {
+        return res.status(400).json({ message: "At least 2 options required" });
+      }
+      const poll = await storage.createPoll({
+        clubId: req.params.clubId,
+        question: question.trim(),
+        options: options.map((o: string) => o.trim()).filter(Boolean),
+      });
+      res.json(poll);
+    } catch (err) {
+      console.error("Error creating poll:", err);
+      res.status(500).json({ message: "Failed to create poll" });
+    }
+  });
+
+  app.delete("/api/organizer/clubs/:clubId/polls/:pollId", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      await storage.deletePoll(req.params.pollId, req.params.clubId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting poll:", err);
+      res.status(500).json({ message: "Failed to delete poll" });
+    }
+  });
+
+  app.patch("/api/organizer/clubs/:clubId/polls/:pollId/close", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      await storage.closePoll(req.params.pollId, req.params.clubId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error closing poll:", err);
+      res.status(500).json({ message: "Failed to close poll" });
+    }
+  });
+
+  app.post("/api/polls/:pollId/vote", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { optionIndex } = req.body;
+      if (optionIndex === undefined || optionIndex === null) {
+        return res.status(400).json({ message: "optionIndex is required" });
+      }
+      await storage.castVote(req.params.pollId, userId, Number(optionIndex));
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error casting vote:", err);
+      res.status(500).json({ message: "Failed to cast vote" });
+    }
+  });
+
+  // ── CO-ORGANISERS ────────────────────────────────────────────────────────
+
+  app.get("/api/organizer/clubs/:clubId/co-organisers", isAuthenticated, requireClubCreator(), async (req: any, res) => {
+    try {
+      const club = await storage.getClub(req.params.clubId);
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      const ids = club.coOrganiserUserIds ?? [];
+      const members = await Promise.all(ids.map(id => storage.getUser(id)));
+      res.json(members.filter(Boolean).map(u => ({
+        id: u!.id,
+        name: [u!.firstName, u!.lastName].filter(Boolean).join(" ") || "Member",
+        profileImageUrl: u!.profileImageUrl,
+      })));
+    } catch (err) {
+      console.error("Error fetching co-organisers:", err);
+      res.status(500).json({ message: "Failed to fetch co-organisers" });
+    }
+  });
+
+  app.post("/api/organizer/clubs/:clubId/co-organisers", isAuthenticated, requireClubCreator(), async (req: any, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ message: "userId is required" });
+      const club = await storage.getClub(req.params.clubId);
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      if ((club.coOrganiserUserIds ?? []).includes(userId)) {
+        return res.status(400).json({ message: "Already a co-organiser" });
+      }
+      await storage.addCoOrganiser(req.params.clubId, userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error adding co-organiser:", err);
+      res.status(500).json({ message: "Failed to add co-organiser" });
+    }
+  });
+
+  app.delete("/api/organizer/clubs/:clubId/co-organisers/:userId", isAuthenticated, requireClubCreator(), async (req: any, res) => {
+    try {
+      await storage.removeCoOrganiser(req.params.clubId, req.params.userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error removing co-organiser:", err);
+      res.status(500).json({ message: "Failed to remove co-organiser" });
     }
   });
 

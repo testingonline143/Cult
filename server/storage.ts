@@ -6,11 +6,15 @@ import {
   type ClubRating, type ClubFaq, type ClubScheduleEntry, type ClubMoment,
   type MomentComment,
   type Notification, type InsertNotification,
+  type ClubAnnouncement, type InsertClubAnnouncement,
+  type ClubPoll, type InsertClubPoll,
+  type PollVote,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
-  clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications
+  clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications,
+  clubAnnouncements, clubPolls, pollVotes,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, and, gte, ilike, or, ne } from "drizzle-orm";
+import { eq, sql, desc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
 
 export interface IStorage {
   getClubs(): Promise<Club[]>;
@@ -109,6 +113,19 @@ export interface IStorage {
     engagementRate: number;
     noShowRate: number;
   }>;
+  getClubsForOrganiser(userId: string): Promise<Club[]>;
+  isClubManager(clubId: string, userId: string): Promise<boolean>;
+  getClubAnnouncements(clubId: string): Promise<ClubAnnouncement[]>;
+  createAnnouncement(data: InsertClubAnnouncement): Promise<ClubAnnouncement>;
+  deleteAnnouncement(id: string, clubId: string): Promise<void>;
+  getClubMemberUserIds(clubId: string): Promise<string[]>;
+  getClubPolls(clubId: string, viewerUserId?: string): Promise<(ClubPoll & { voteCounts: number[]; userVote: number | null })[]>;
+  createPoll(data: InsertClubPoll): Promise<ClubPoll>;
+  deletePoll(id: string, clubId: string): Promise<void>;
+  closePoll(id: string, clubId: string): Promise<void>;
+  castVote(pollId: string, userId: string, optionIndex: number): Promise<void>;
+  addCoOrganiser(clubId: string, userId: string): Promise<void>;
+  removeCoOrganiser(clubId: string, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1100,6 +1117,105 @@ export class DatabaseStorage implements IStorage {
 
   async becomeCreator(userId: string): Promise<void> {
     await db.update(users).set({ wantsToCreate: true }).where(eq(users.id, userId));
+  }
+
+  async getClubsForOrganiser(userId: string): Promise<Club[]> {
+    const created = await db.select().from(clubs).where(eq(clubs.creatorUserId, userId));
+    const coManaged = await db.select().from(clubs).where(
+      sql`${clubs.coOrganiserUserIds} @> ARRAY[${userId}]::text[]`
+    );
+    const seen = new Set<string>();
+    const result: Club[] = [];
+    for (const c of [...created, ...coManaged]) {
+      if (!seen.has(c.id)) { seen.add(c.id); result.push(c); }
+    }
+    return result;
+  }
+
+  async isClubManager(clubId: string, userId: string): Promise<boolean> {
+    const [club] = await db.select().from(clubs).where(eq(clubs.id, clubId));
+    if (!club) return false;
+    if (club.creatorUserId === userId) return true;
+    return (club.coOrganiserUserIds ?? []).includes(userId);
+  }
+
+  async getClubAnnouncements(clubId: string): Promise<ClubAnnouncement[]> {
+    return db.select().from(clubAnnouncements)
+      .where(eq(clubAnnouncements.clubId, clubId))
+      .orderBy(desc(clubAnnouncements.createdAt));
+  }
+
+  async createAnnouncement(data: InsertClubAnnouncement): Promise<ClubAnnouncement> {
+    const [created] = await db.insert(clubAnnouncements).values(data).returning();
+    return created;
+  }
+
+  async deleteAnnouncement(id: string, clubId: string): Promise<void> {
+    await db.delete(clubAnnouncements).where(
+      and(eq(clubAnnouncements.id, id), eq(clubAnnouncements.clubId, clubId))
+    );
+  }
+
+  async getClubMemberUserIds(clubId: string): Promise<string[]> {
+    const rows = await db.select({ userId: joinRequests.userId })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")));
+    return rows.map(r => r.userId).filter(Boolean) as string[];
+  }
+
+  async getClubPolls(clubId: string, viewerUserId?: string): Promise<(ClubPoll & { voteCounts: number[]; userVote: number | null })[]> {
+    const polls = await db.select().from(clubPolls)
+      .where(eq(clubPolls.clubId, clubId))
+      .orderBy(desc(clubPolls.createdAt));
+    const result = [];
+    for (const poll of polls) {
+      const allVotes = await db.select().from(pollVotes).where(eq(pollVotes.pollId, poll.id));
+      const voteCounts = (poll.options ?? []).map((_: string, idx: number) =>
+        allVotes.filter(v => v.optionIndex === idx).length
+      );
+      const userVoteRow = viewerUserId
+        ? allVotes.find(v => v.userId === viewerUserId)
+        : undefined;
+      result.push({ ...poll, voteCounts, userVote: userVoteRow?.optionIndex ?? null });
+    }
+    return result;
+  }
+
+  async createPoll(data: InsertClubPoll): Promise<ClubPoll> {
+    const [created] = await db.insert(clubPolls).values(data).returning();
+    return created;
+  }
+
+  async deletePoll(id: string, clubId: string): Promise<void> {
+    await db.delete(clubPolls).where(and(eq(clubPolls.id, id), eq(clubPolls.clubId, clubId)));
+  }
+
+  async closePoll(id: string, clubId: string): Promise<void> {
+    await db.update(clubPolls).set({ isOpen: false })
+      .where(and(eq(clubPolls.id, id), eq(clubPolls.clubId, clubId)));
+  }
+
+  async castVote(pollId: string, userId: string, optionIndex: number): Promise<void> {
+    const existing = await db.select().from(pollVotes)
+      .where(and(eq(pollVotes.pollId, pollId), eq(pollVotes.userId, userId)));
+    if (existing.length > 0) {
+      await db.update(pollVotes).set({ optionIndex })
+        .where(and(eq(pollVotes.pollId, pollId), eq(pollVotes.userId, userId)));
+    } else {
+      await db.insert(pollVotes).values({ pollId, userId, optionIndex });
+    }
+  }
+
+  async addCoOrganiser(clubId: string, userId: string): Promise<void> {
+    await db.update(clubs).set({
+      coOrganiserUserIds: sql`array_append(coalesce(${clubs.coOrganiserUserIds}, ARRAY[]::text[]), ${userId})`
+    }).where(eq(clubs.id, clubId));
+  }
+
+  async removeCoOrganiser(clubId: string, userId: string): Promise<void> {
+    await db.update(clubs).set({
+      coOrganiserUserIds: sql`array_remove(coalesce(${clubs.coOrganiserUserIds}, ARRAY[]::text[]), ${userId})`
+    }).where(eq(clubs.id, clubId));
   }
 }
 

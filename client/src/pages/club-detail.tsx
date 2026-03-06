@@ -3,14 +3,14 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment, MomentComment } from "@shared/schema";
+import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment, MomentComment, ClubAnnouncement, ClubPoll } from "@shared/schema";
 
 interface ClubEvent {
   id: string;
@@ -97,6 +97,8 @@ function ClubDetailContent({ club }: { club: Club }) {
   const [joinName, setJoinName] = useState(user?.firstName || "");
   const [joinPhone, setJoinPhone] = useState("");
   const [joinError, setJoinError] = useState("");
+  const [joinAnswer1, setJoinAnswer1] = useState("");
+  const [joinAnswer2, setJoinAnswer2] = useState("");
   const [activeTab, setActiveTab] = useState("meet-ups");
 
   const { data: activity } = useQuery<{ recentJoins: number; recentJoinNames: string[]; totalEvents: number; lastEventDate: string | null }>({
@@ -198,7 +200,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   }, [showJoinForm]);
 
   const joinMutation = useMutation({
-    mutationFn: async (data: { clubId: string; clubName: string; name: string; phone: string }) => {
+    mutationFn: async (data: { clubId: string; clubName: string; name: string; phone: string; answer1?: string; answer2?: string }) => {
       const res = await apiRequest("POST", "/api/join", data);
       return res.json();
     },
@@ -207,6 +209,8 @@ function ClubDetailContent({ club }: { club: Club }) {
       setShowJoinForm(false);
       setJoinName("");
       setJoinPhone("");
+      setJoinAnswer1("");
+      setJoinAnswer2("");
       setJoinError("");
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clubs-with-activity"] });
@@ -241,11 +245,17 @@ function ClubDetailContent({ club }: { club: Club }) {
       setJoinError("Enter a valid mobile number (10\u201315 digits)");
       return;
     }
+    if ((club as any).joinQuestion1 && !joinAnswer1.trim()) {
+      setJoinError("Please answer the required question");
+      return;
+    }
     joinMutation.mutate({
       clubId: club.id,
       clubName: club.name,
       name: joinName,
       phone: joinPhone,
+      ...(joinAnswer1.trim() && { answer1: joinAnswer1.trim() }),
+      ...(joinAnswer2.trim() && { answer2: joinAnswer2.trim() }),
     });
   };
 
@@ -265,13 +275,36 @@ function ClubDetailContent({ club }: { club: Club }) {
 
   const isApprovedMember = isOwner || joinStatus?.status === "approved";
 
+  const { data: announcements = [] } = useQuery<ClubAnnouncement[]>({
+    queryKey: ["/api/clubs", club.id, "announcements"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/announcements`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: momentsForGallery = [] } = useQuery<ClubMoment[]>({
+    queryKey: ["/api/clubs", club.id, "moments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/moments`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const hasImages = momentsForGallery.some(m => m.imageUrl);
+  const pinnedAnnouncement = announcements.find(a => a.isPinned) || null;
+
   const tabs = [
     { id: "meet-ups", label: "Meet-ups" },
     { id: "schedule", label: "Schedule" },
     { id: "moments", label: "Moments" },
+    ...(hasImages ? [{ id: "gallery", label: "Gallery" }] : []),
     { id: "about", label: "About" },
     { id: "faqs", label: "FAQs" },
     ...(isAuthenticated && isApprovedMember ? [{ id: "members", label: "Members" }] : []),
+    ...(isAuthenticated ? [{ id: "polls", label: "Polls" }] : []),
   ];
 
   return (
@@ -446,6 +479,19 @@ function ClubDetailContent({ club }: { club: Club }) {
                 <span className="text-[10px] text-[var(--muted-warm)] text-center font-medium">more</span>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {pinnedAnnouncement && (
+        <div className="mx-6 mt-3 rounded-2xl p-3.5 flex items-start gap-3" style={{ background: "var(--terra-pale)", border: "1.5px solid rgba(196,98,45,0.25)" }} data-testid="banner-pinned-announcement">
+          <Megaphone className="w-4 h-4 text-[var(--terra)] shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="font-display font-bold text-sm text-[var(--terra)]">{pinnedAnnouncement.title}</div>
+            <p className="text-xs text-[var(--ink3)] mt-0.5 leading-relaxed line-clamp-2">{pinnedAnnouncement.body}</p>
+            <div className="text-[10px] text-[var(--muted-warm)] mt-1">
+              From organiser · {pinnedAnnouncement.createdAt ? getRelativeTime(String(pinnedAnnouncement.createdAt)) : ""}
+            </div>
           </div>
         </div>
       )}
@@ -639,6 +685,14 @@ function ClubDetailContent({ club }: { club: Club }) {
         <MembersTab clubId={club.id} />
       )}
 
+      {activeTab === "gallery" && (
+        <GalleryTab clubId={club.id} />
+      )}
+
+      {activeTab === "polls" && isAuthenticated && (
+        <PollsTab clubId={club.id} />
+      )}
+
       {isAuthenticated && ratingsData?.hasJoined && (
         <RatingSection
           clubId={club.id}
@@ -747,6 +801,34 @@ function ClubDetailContent({ club }: { club: Club }) {
               style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
               data-testid="input-join-phone"
             />
+            {(club as any).joinQuestion1 && (
+              <div>
+                <label className="text-xs font-semibold text-[var(--muted-warm)] block mb-1.5">{(club as any).joinQuestion1} <span className="text-destructive">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Your answer"
+                  value={joinAnswer1}
+                  onChange={(e) => setJoinAnswer1(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 placeholder:text-[var(--muted-warm)]"
+                  style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                  data-testid="input-join-answer1"
+                />
+              </div>
+            )}
+            {(club as any).joinQuestion2 && (
+              <div>
+                <label className="text-xs font-semibold text-[var(--muted-warm)] block mb-1.5">{(club as any).joinQuestion2} <span className="text-muted-foreground">(optional)</span></label>
+                <input
+                  type="text"
+                  placeholder="Your answer (optional)"
+                  value={joinAnswer2}
+                  onChange={(e) => setJoinAnswer2(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 placeholder:text-[var(--muted-warm)]"
+                  style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                  data-testid="input-join-answer2"
+                />
+              </div>
+            )}
             {joinError && (
               <p className="text-xs text-destructive font-medium" data-testid="text-join-error">{joinError}</p>
             )}
@@ -1542,6 +1624,184 @@ function MembersTab({ clubId }: { clubId: string }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function GalleryTab({ clubId }: { clubId: string }) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
+    queryKey: ["/api/clubs", clubId, "moments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/moments`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const images = moments.filter(m => m.imageUrl);
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4">
+        <div className="grid grid-cols-2 gap-2">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4" data-testid="tab-gallery">
+      {images.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <ImageIcon className="w-10 h-10 text-[var(--warm-border)] mb-3" />
+          <p className="text-sm text-muted-foreground">No photos yet</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {images.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setSelectedImage(m.imageUrl!)}
+              className="aspect-square rounded-2xl overflow-hidden transition-all active:scale-[0.97]"
+              data-testid={`img-gallery-${m.id}`}
+            >
+              <img src={m.imageUrl!} alt={m.caption || ""} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setSelectedImage(null)}
+          data-testid="overlay-gallery-fullscreen"
+        >
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-16 right-5 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center z-10"
+            data-testid="button-close-gallery"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <img
+            src={selectedImage}
+            alt=""
+            className="max-w-full max-h-full object-contain p-4"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PollsTab({ clubId }: { clubId: string }) {
+  const { user } = useAuth();
+  const [optimisticVotes, setOptimisticVotes] = useState<Record<string, number>>({});
+
+  const { data: polls = [], isLoading } = useQuery<(ClubPoll & { voteCounts: number[]; userVote: number | null })[]>({
+    queryKey: ["/api/clubs", clubId, "polls"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/polls`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const voteMutation = useMutation({
+    mutationFn: async ({ pollId, optionIndex }: { pollId: string; optionIndex: number }) => {
+      const res = await apiRequest("POST", `/api/polls/${pollId}/vote`, { optionIndex });
+      return res.json();
+    },
+    onMutate: ({ pollId, optionIndex }) => {
+      setOptimisticVotes(prev => ({ ...prev, [pollId]: optionIndex }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
+    },
+    onError: (_err, { pollId }) => {
+      setOptimisticVotes(prev => { const next = { ...prev }; delete next[pollId]; return next; });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4 space-y-3">
+        {[1, 2].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+      </div>
+    );
+  }
+
+  if (polls.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center px-6" data-testid="text-no-polls">
+        <BarChart2 className="w-10 h-10 text-[var(--warm-border)] mb-3" />
+        <p className="text-sm text-muted-foreground">No active polls right now</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4 space-y-4" data-testid="tab-polls">
+      {polls.map((poll) => {
+        const userVote = optimisticVotes[poll.id] !== undefined ? optimisticVotes[poll.id] : poll.userVote;
+        const hasVoted = userVote !== null && userVote !== undefined;
+        const total = (poll.voteCounts || []).reduce((a, b) => a + b, 0);
+
+        return (
+          <div key={poll.id} className="p-4 rounded-2xl space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid={`card-poll-${poll.id}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-display font-bold text-sm text-[var(--ink)] flex-1">{poll.question}</div>
+              {!poll.isOpen && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0" style={{ background: "var(--warm-border)", color: "var(--muted-warm)" }}>Closed</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              {(poll.options || []).map((opt, i) => {
+                const count = poll.voteCounts?.[i] ?? 0;
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                const isChosen = hasVoted && userVote === i;
+                const showResults = hasVoted || !poll.isOpen;
+
+                if (showResults) {
+                  return (
+                    <div key={i} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className={`font-medium ${isChosen ? "text-[var(--terra)]" : "text-[var(--ink)]"}`}>{opt}{isChosen && " ✓"}</span>
+                        <span className="text-muted-foreground">{pct}% · {count}</span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--warm-border)" }}>
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${pct}%`, background: isChosen ? "var(--terra)" : "var(--ink)" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() => user && voteMutation.mutate({ pollId: poll.id, optionIndex: i })}
+                    disabled={!poll.isOpen || voteMutation.isPending}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all active:scale-[0.98] disabled:opacity-60"
+                    style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
+                    data-testid={`button-vote-${poll.id}-${i}`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-muted-foreground">{total} vote{total !== 1 ? "s" : ""} · {poll.isOpen ? "Open" : "Closed"}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
