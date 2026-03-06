@@ -321,6 +321,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/user/clubs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userClubs = await storage.getUserApprovedClubs(userId);
+      res.json(userClubs);
+    } catch (err) {
+      console.error("Error fetching user clubs:", err);
+      res.status(500).json({ message: "Failed to fetch user clubs" });
+    }
+  });
+
+  app.get("/api/feed", async (_req, res) => {
+    try {
+      const moments = await storage.getFeedMoments(10);
+      res.json(moments);
+    } catch (err) {
+      console.error("Error fetching feed:", err);
+      res.status(500).json({ message: "Failed to fetch feed" });
+    }
+  });
+
   app.patch("/api/user/profile", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

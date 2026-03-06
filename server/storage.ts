@@ -89,6 +89,8 @@ export interface IStorage {
   getAllUsers(): Promise<{ id: string; email: string | null; firstName: string | null; city: string | null; role: string | null; createdAt: Date | null; clubCount: number }[]>;
   getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
+  getUserApprovedClubs(userId: string): Promise<Club[]>;
+  getFeedMoments(limit?: number): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -821,6 +823,34 @@ export class DatabaseStorage implements IStorage {
       recentJoins: recentJoins.map(r => ({ name: r.name, date: r.date })),
       recentRsvps: recentRsvps.map(r => ({ userName: r.userName || "Unknown", eventTitle: r.eventTitle, date: r.date })),
     };
+  }
+
+  async getUserApprovedClubs(userId: string): Promise<Club[]> {
+    const result = await db
+      .select({ club: clubs })
+      .from(joinRequests)
+      .innerJoin(clubs, eq(joinRequests.clubId, clubs.id))
+      .where(and(eq(joinRequests.userId, userId), eq(joinRequests.status, "approved")));
+    return result.map(r => r.club);
+  }
+
+  async getFeedMoments(limit = 10): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string })[]> {
+    const result = await db
+      .select({
+        id: clubMoments.id,
+        clubId: clubMoments.clubId,
+        caption: clubMoments.caption,
+        emoji: clubMoments.emoji,
+        createdAt: clubMoments.createdAt,
+        clubName: clubs.name,
+        clubEmoji: clubs.emoji,
+        clubLocation: clubs.location,
+      })
+      .from(clubMoments)
+      .innerJoin(clubs, eq(clubMoments.clubId, clubs.id))
+      .orderBy(desc(clubMoments.createdAt))
+      .limit(limit);
+    return result;
   }
 }
 
