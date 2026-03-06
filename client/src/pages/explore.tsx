@@ -16,15 +16,17 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCity, setActiveCity] = useState("All Cities");
   const [activeVibe, setActiveVibe] = useState("all");
+  const [activeTimeOfDay, setActiveTimeOfDay] = useState("all");
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
   if (activeCategory !== "All") queryParams.set("category", activeCategory);
   if (activeCity !== "All Cities") queryParams.set("city", activeCity);
   if (activeVibe !== "all") queryParams.set("vibe", activeVibe);
+  if (activeTimeOfDay !== "all") queryParams.set("timeOfDay", activeTimeOfDay);
 
   const { data: clubs = [], isLoading } = useQuery<(Club & { recentJoins?: number })[]>({
-    queryKey: ["/api/clubs-with-activity", search, activeCategory, activeCity, activeVibe],
+    queryKey: ["/api/clubs-with-activity", search, activeCategory, activeCity, activeVibe, activeTimeOfDay],
     queryFn: async () => {
       const res = await fetch(`/api/clubs-with-activity?${queryParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch clubs");
@@ -78,7 +80,7 @@ export default function Explore() {
           <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
         </div>
 
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
           <select
             value={activeCity}
             onChange={(e) => setActiveCity(e.target.value)}
@@ -120,6 +122,32 @@ export default function Explore() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 mb-6 flex-wrap" data-testid="filter-time-of-day">
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Time:</span>
+          <div className="flex rounded-xl overflow-hidden" style={{ border: "1.5px solid var(--warm-border)", background: "var(--warm-white)" }}>
+            {[
+              { value: "all", label: "Any" },
+              { value: "morning", label: "☀️ Morning" },
+              { value: "evening", label: "🌆 Evening" },
+              { value: "weekends", label: "🗓️ Weekends" },
+            ].map((t) => (
+              <button
+                key={t.value}
+                onClick={() => setActiveTimeOfDay(t.value)}
+                className="px-3 py-2 text-xs font-medium transition-all"
+                style={
+                  activeTimeOfDay === t.value
+                    ? { background: "var(--ink)", color: "var(--cream)" }
+                    : { color: "var(--muted-warm)" }
+                }
+                data-testid={`time-filter-${t.value}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex flex-col gap-4">
             {[1, 2, 3].map((i) => (
@@ -139,6 +167,7 @@ export default function Explore() {
                 setActiveCategory("All");
                 setActiveCity("All Cities");
                 setActiveVibe("all");
+                setActiveTimeOfDay("all");
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{ background: "var(--terra-pale)", color: "var(--terra)" }}

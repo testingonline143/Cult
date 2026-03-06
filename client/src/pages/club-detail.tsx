@@ -263,12 +263,15 @@ function ClubDetailContent({ club }: { club: Club }) {
     tags.push(club.timeOfDay.charAt(0).toUpperCase() + club.timeOfDay.slice(1));
   }
 
+  const isApprovedMember = isOwner || joinStatus?.status === "approved";
+
   const tabs = [
     { id: "meet-ups", label: "Meet-ups" },
     { id: "schedule", label: "Schedule" },
     { id: "moments", label: "Moments" },
     { id: "about", label: "About" },
     { id: "faqs", label: "FAQs" },
+    ...(isAuthenticated && isApprovedMember ? [{ id: "members", label: "Members" }] : []),
   ];
 
   return (
@@ -379,6 +382,22 @@ function ClubDetailContent({ club }: { club: Club }) {
             </div>
           </div>
           <Heart className="w-5 h-5 text-[var(--terra)] shrink-0" />
+        </div>
+      )}
+
+      {club.whatsappNumber && (
+        <div className="px-6 mt-3" data-testid="section-whatsapp-cta">
+          <a
+            href={`https://wa.me/${club.whatsappNumber.replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2.5 w-full py-3 rounded-2xl text-sm font-bold transition-all active:scale-[0.98]"
+            style={{ background: 'rgba(37,211,102,0.12)', border: '1.5px solid rgba(37,211,102,0.35)', color: '#1A8A3A' }}
+            data-testid="button-whatsapp-join"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Chat on WhatsApp
+          </a>
         </div>
       )}
 
@@ -592,6 +611,10 @@ function ClubDetailContent({ club }: { club: Club }) {
 
       {activeTab === "faqs" && (
         <FaqsTab clubId={club.id} />
+      )}
+
+      {activeTab === "members" && isAuthenticated && isApprovedMember && (
+        <MembersTab clubId={club.id} />
       )}
 
       {isAuthenticated && ratingsData?.hasJoined && (
@@ -1189,6 +1212,60 @@ function getRelativeTime(dateStr: string | Date | null): string {
   const diffWeeks = Math.floor(diffDays / 7);
   if (diffWeeks < 4) return `${diffWeeks}w ago`;
   return date.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+}
+
+function MembersTab({ clubId }: { clubId: string }) {
+  const { data: members = [], isLoading } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: string | null }[]>({
+    queryKey: ["/api/clubs", clubId, "members"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${clubId}/members`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-4">
+        <div className="flex flex-wrap gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5 w-16 animate-pulse">
+              <div className="w-12 h-12 rounded-full" style={{ background: "var(--warm-border)" }} />
+              <div className="w-10 h-2.5 rounded" style={{ background: "var(--warm-border)" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4" data-testid="tab-members">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Members</h2>
+        <span className="text-xs font-semibold text-[var(--muted-warm)]" data-testid="text-member-total">{members.length} members</span>
+      </div>
+      {members.length === 0 ? (
+        <p className="text-sm text-[var(--muted-warm)] text-center py-8">No members yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-4">
+          {members.map((member, i) => (
+            <div key={member.userId || i} className="flex flex-col items-center gap-1.5 w-16" data-testid={`member-card-${member.userId || i}`}>
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
+                <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                  {member.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium" data-testid={`text-member-name-${member.userId || i}`}>
+                {member.name.split(' ')[0]}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ClubDetailSkeleton() {

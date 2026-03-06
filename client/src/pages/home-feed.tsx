@@ -84,6 +84,11 @@ export default function HomeFeed() {
     queryKey: ["/api/events"],
   });
 
+  const { data: myEvents = [] } = useQuery<EventWithClub[]>({
+    queryKey: ["/api/user/events"],
+    enabled: !!user,
+  });
+
   const { data: feedMoments = [] } = useQuery<FeedMoment[]>({
     queryKey: ["/api/feed"],
   });
@@ -93,6 +98,12 @@ export default function HomeFeed() {
   const upcomingEvent = events
     .filter(e => !e.isCancelled && new Date(e.startsAt) > new Date())
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
+
+  const now = new Date();
+  const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const happeningSoon = myEvents
+    .filter(e => !e.isCancelled && new Date(e.startsAt) > now && new Date(e.startsAt) <= in48h)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
   const discoverClubs = allClubs.filter(c => !userClubs.some(uc => uc.id === c.id)).slice(0, 6);
 
@@ -164,6 +175,45 @@ export default function HomeFeed() {
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-6">
+
+        {/* Happening Soon Reminder */}
+        {user && happeningSoon.length > 0 && (
+          <div data-testid="section-happening-soon">
+            {happeningSoon.map(event => {
+              const eventDate = new Date(event.startsAt);
+              const isToday = eventDate.toDateString() === now.toDateString();
+              const diffHrs = Math.round((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60));
+              return (
+                <Link
+                  key={event.id}
+                  href={`/event/${event.id}`}
+                  className="flex items-center gap-4 rounded-2xl p-4 no-underline transition-all active:scale-[0.98]"
+                  style={{ background: 'var(--terra)', border: '1.5px solid rgba(255,255,255,0.15)' }}
+                  data-testid={`card-happening-soon-${event.id}`}
+                >
+                  <div className="rounded-xl px-3 py-2 text-center shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                    <p className="text-[9px] font-bold uppercase text-white/80 leading-none mb-0.5">
+                      {format(eventDate, "MMM")}
+                    </p>
+                    <p className="text-xl font-black text-white leading-none">{format(eventDate, "d")}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-0.5">
+                      {isToday ? "TODAY" : "TOMORROW"} · {diffHrs > 0 ? `in ${diffHrs}h` : "very soon"}
+                    </p>
+                    <p className="font-display font-bold text-white text-[16px] leading-tight truncate" data-testid={`text-soon-event-${event.id}`}>
+                      {event.title}
+                    </p>
+                    {event.clubName && (
+                      <p className="text-[11px] text-white/70 mt-0.5">{event.clubEmoji} {event.clubName}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* Streak / Welcome Card */}
         {userClubs.length > 0 ? (

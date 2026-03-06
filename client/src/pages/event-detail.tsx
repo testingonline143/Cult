@@ -15,6 +15,8 @@ interface RsvpWithUser extends EventRsvp {
 interface EventDetailResponse extends Event {
   rsvps: RsvpWithUser[];
   club: Club | null;
+  waitlistCount?: number;
+  myRsvp?: EventRsvp | null;
 }
 
 function handleShareEvent(event: Event, clubName: string) {
@@ -51,6 +53,7 @@ export default function EventDetail() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [justRsvpd, setJustRsvpd] = useState(false);
+  const [justWaitlisted, setJustWaitlisted] = useState<number | null>(null);
   const [rsvpError, setRsvpError] = useState<string | null>(null);
 
   const { data: eventData, isLoading, error } = useQuery<EventDetailResponse>({
@@ -88,7 +91,9 @@ export default function EventDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setRsvpError(null);
-      if (!data.alreadyRsvpd) {
+      if (data.waitlisted) {
+        setJustWaitlisted(data.position ?? 1);
+      } else if (!data.alreadyRsvpd) {
         setJustRsvpd(true);
       }
     },
@@ -155,8 +160,11 @@ export default function EventDetail() {
   const goingRsvps = eventData.rsvps?.filter(r => r.status === "going") ?? [];
   const rsvpCount = goingRsvps.length;
   const spotsLeft = eventData.maxCapacity - rsvpCount;
-  const userRsvp = eventData.rsvps?.find(r => r.userId === user?.id && r.status === "going");
+  const myRsvp = eventData.myRsvp ?? eventData.rsvps?.find(r => r.userId === user?.id) ?? null;
+  const userRsvp = myRsvp?.status === "going" ? myRsvp : null;
   const hasRsvp = !!userRsvp;
+  const isWaitlisted = myRsvp?.status === "waitlisted";
+  const waitlistCount = eventData.waitlistCount ?? 0;
   const clubName = club?.name || "a club";
 
   const formatDate = (dateStr: string | Date) => {
@@ -440,7 +448,7 @@ export default function EventDetail() {
                 {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
               </div>
               <div className="text-[10px] text-[var(--muted-warm)] font-semibold tracking-wider">
-                of {eventData.maxCapacity} spots
+                {waitlistCount > 0 ? `${waitlistCount} waiting` : `of ${eventData.maxCapacity} spots`}
               </div>
             </div>
 
@@ -474,7 +482,27 @@ export default function EventDetail() {
                   {cancelRsvpMutation.isPending ? "..." : "Cancel"}
                 </button>
               </div>
-            ) : isAuthenticated && !isClubMemberFromStatus && !hasRsvp ? (
+            ) : isWaitlisted ? (
+              <div className="flex-[2] flex gap-2">
+                <div
+                  className="flex-1 rounded-2xl py-3 text-center"
+                  style={{ background: 'rgba(196,168,76,0.12)', border: '1.5px solid rgba(196,168,76,0.4)' }}
+                  data-testid="badge-waitlisted"
+                >
+                  <div className="text-xs font-bold" style={{ color: 'var(--gold)' }}>On Waitlist</div>
+                  <div className="text-[10px]" style={{ color: 'var(--muted-warm)' }}>#{justWaitlisted ?? "?"} in line</div>
+                </div>
+                <button
+                  onClick={() => cancelRsvpMutation.mutate()}
+                  disabled={cancelRsvpMutation.isPending}
+                  className="px-4 py-4 rounded-2xl text-sm text-[var(--muted-warm)]"
+                  style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                  data-testid="button-cancel-waitlist"
+                >
+                  {cancelRsvpMutation.isPending ? "..." : "Leave"}
+                </button>
+              </div>
+            ) : isAuthenticated && !isClubMemberFromStatus ? (
               <Link
                 href={`/club/${clubId}`}
                 className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all no-underline"
@@ -492,6 +520,16 @@ export default function EventDetail() {
                 data-testid="button-rsvp"
               >
                 {rsvpMutation.isPending ? "Joining..." : "Book My Spot \u2192"}
+              </button>
+            ) : isClubMemberFromStatus ? (
+              <button
+                onClick={() => rsvpMutation.mutate()}
+                disabled={rsvpMutation.isPending}
+                className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                style={{ background: 'var(--gold)', color: 'white', letterSpacing: '-0.3px' }}
+                data-testid="button-join-waitlist"
+              >
+                {rsvpMutation.isPending ? "Adding..." : "Join Waitlist"}
               </button>
             ) : (
               <div

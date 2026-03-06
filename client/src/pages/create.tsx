@@ -380,6 +380,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
   const [dateTime, setDateTime] = useState("");
   const [locationText, setLocationText] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("");
+  const [recurrenceRule, setRecurrenceRule] = useState("none");
 
   const effectiveClubId = selectedClubId || (myClubs.length === 1 ? myClubs[0].id : "");
 
@@ -395,6 +396,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
           startsAt: new Date(dateTime).toISOString(),
           locationText,
           maxCapacity: parseInt(maxCapacity) || 50,
+          recurrenceRule: recurrenceRule !== "none" ? recurrenceRule : null,
         }),
       });
       if (!res.ok) {
@@ -411,6 +413,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
       setDateTime("");
       setLocationText("");
       setMaxCapacity("");
+      setRecurrenceRule("none");
       navigate("/organizer");
     },
     onError: (err: Error) => {
@@ -558,6 +561,29 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
           onChange={(e) => setMaxCapacity(e.target.value)}
           data-testid="input-event-capacity"
         />
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+          REPEATS
+        </label>
+        <Select onValueChange={setRecurrenceRule} value={recurrenceRule}>
+          <SelectTrigger className="glass-card rounded-xl" data-testid="select-recurrence">
+            <SelectValue placeholder="Does not repeat" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Does not repeat</SelectItem>
+            <SelectItem value="weekly">Weekly</SelectItem>
+            <SelectItem value="biweekly">Every 2 Weeks</SelectItem>
+            <SelectItem value="monthly">Monthly</SelectItem>
+          </SelectContent>
+        </Select>
+        {recurrenceRule !== "none" && (
+          <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5" data-testid="text-recurrence-info">
+            <Repeat className="w-3 h-3 shrink-0" />
+            Next 4 dates will be auto-created
+          </p>
+        )}
       </div>
 
       <button

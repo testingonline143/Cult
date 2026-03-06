@@ -102,6 +102,9 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/organizer/clubs/:clubId/insights` — organizer insights (member/event stats, attendance rate, top event, recent activity)
   - `DELETE /api/admin/events/:eventId` — cancel any event (admin only)
   - `PATCH /api/clubs/:id/moments/:momentId` — edit moment caption/emoji (organizer only)
+  - `GET /api/user/attendance-stats` — per-club attendance stats for authenticated user (attended/totalRsvps per club)
+  - `GET /api/clubs/:id/members` — member directory for authenticated approved members or club owner
+  - `POST /api/events/:id/rsvp` — **extended**: creates "waitlisted" status when event is at capacity; promotes first waitlisted user when capacity frees up (via DELETE /api/events/:id/rsvp); GET /api/events/:id returns `waitlistCount` and `myRsvp` with status
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`
@@ -116,7 +119,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, **status** (text, default 'pending', values: 'pending'|'approved'|'rejected'), createdAt
   - `user_quiz_answers` — id (UUID), userId, interests (text[]), experienceLevel, vibePreference, availability (text[]), collegeOrWork, createdAt
-  - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, isCancelled (boolean, default false), createdAt
+  - `events` — id (UUID), clubId, title, description, locationText, locationUrl, startsAt, endsAt, maxCapacity, coverImageUrl, isPublic, isCancelled (boolean, default false), **recurrenceRule** (text, nullable: "weekly"|"biweekly"|"monthly"), createdAt
   - `notifications` — id (UUID), userId, type (text: "join_approved"|"join_rejected"|"new_event"), title, message, linkUrl, isRead (boolean, default false), createdAt
   - `event_rsvps` — id (UUID), eventId, userId, status, checkinToken (UUID, auto-generated), checkedIn, checkedInAt, createdAt
   - `club_ratings` — id (UUID), clubId, userId, rating (integer 1-5), review (text, optional), createdAt. Unique constraint on clubId+userId (one rating per user per club, upsert on conflict).
@@ -169,7 +172,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **QR ticket check-in** (organizer scans member): Members get personal QR ticket after RSVP (shown on event detail page via `/api/rsvps/:rsvpId/qr` AND via "Show Ticket" button on profile page). Organizers open `/scan/:eventId` to scan member QR codes with phone camera (html5-qrcode). Each QR encodes `{ token, eventId, userId }` — token validated server-side via `POST /api/checkin`. Live attendance dashboard with real-time counts and attendee list. **Organizer UX enhancements**: "EVENT TODAY" dark banner with large "Check In Attendees" CTA auto-surfaces on event day; event cards have prominent "Scan & Check In" primary button with "Copy scanner link" for sharing with co-organizers; past events show attendance summary with progress bar and percentage; Edit/Duplicate/Cancel are secondary actions.
 - **WhatsApp sharing**: Share buttons on club cards, detail pages, event pages, and modals using Web Share API with WhatsApp fallback. Post-RSVP share prompts on event cards and event detail page.
 - **Open Graph meta tags**: Server-side OG tags for club pages and event pages (bot detection) for rich previews on WhatsApp/social media. Event OG tags include date, time, location, and club name.
-- **Profile page** (/profile): Editable name + bio (200 char), profile photo upload (tap avatar to change, multer + /uploads/ static serving, max 5MB, jpeg/png/webp/gif), joined clubs list, RSVP'd events with "Show Ticket" QR access for upcoming events and Attended/Missed badges for past events, request history, redo quiz button
+- **Profile page** (/profile): Editable name + bio (200 char), profile photo upload (tap avatar to change, multer + /uploads/ static serving, max 5MB, jpeg/png/webp/gif), joined clubs list, RSVP'd events with "Show Ticket" QR access for upcoming events and Attended/Missed badges for past events, request history, redo quiz button, **Attendance History section** (per-club attendance rate with progress bar, via `/api/user/attendance-stats`)
 - **Live stats**: Homepage stats bar shows real counts from DB (totalMembers, totalClubs, upcomingEvents) with 5-minute cache
 - **Multi-city**: Supports Tirupati, Chennai, Bengaluru, Hyderabad, Kochi, Vizag, Vijayawada, Nellore, Guntur, Warangal, Coimbatore. Home feed has city selector pills with localStorage persistence.
 - **In-app notifications**: Bell icon (ALERTS tab) in bottom nav with unread count badge. Notifications created when: join request approved/rejected, new event created for club members. Notifications page shows all notifications with read/unread styling, mark-as-read on click, "Mark All Read" button.
@@ -177,6 +180,12 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **Enhanced club editing**: Organizers can edit full description, organizer name, and WhatsApp number from dashboard in addition to existing fields.
 - **Social proof / Activity signals**: "X joined this week" badge on club cards, member preview section on club detail (avatars + names of first 10 members), reviews highlight card (average rating + count), enhanced moments feed with timestamps and context icons, Club Highlights editable by organizers
 - **Mobile-first app layout**: Bottom tab bar navigation (Home/Explore/Events/Create/Profile), pages designed as focused views — Home is a feed with "Find Your Tribe" masthead and "Trending Clubs", Explore has full-width image-style club cards, Events has calendar-style cards with filters, Create has tabbed New Club / New Event forms
+- **WhatsApp button prominence**: Full-width green "Chat on WhatsApp" button on club detail page, placed between stats grid and tabs, visible to all users (unauthenticated and members alike)
+- **Recurring events**: `recurrenceRule` field on events (weekly/biweekly/monthly); when creating a recurring event, the backend auto-generates 4 future instances; organizer event cards show a "Recurring" badge with Repeat icon; create form has a "Repeats" dropdown
+- **Event waitlist**: When an event reaches maxCapacity, new RSVPs get `status="waitlisted"`; cancelling an RSVP auto-promotes the first waitlisted user and sends them a notification; event detail shows "Join Waitlist" button and "On Waitlist" badge; event detail API returns `waitlistCount` and `myRsvp`
+- **Time-of-day discovery filter**: Explore page has TIME filter pills (Any / Morning / Evening / Weekends) that filter clubs by their `timeOfDay` field; threaded through storage and API as `?timeOfDay=` query param
+- **Member directory tab**: Authenticated approved members and the club owner can see a "Members" tab on club detail page showing all approved members with avatars, names, and join dates; powered by `GET /api/clubs/:id/members`
+- **Home feed event reminder**: "Happening Soon" card on home feed shows upcoming RSVPd events within 48 hours; RSVP confirmation creates an `rsvp_confirmed` notification
 
 ## External Dependencies
 

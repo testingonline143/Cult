@@ -73,6 +73,7 @@ export const events = pgTable("events", {
   coverImageUrl: text("cover_image_url"),
   isPublic: boolean("is_public").default(true),
   isCancelled: boolean("is_cancelled").default(false),
+  recurrenceRule: text("recurrence_rule"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

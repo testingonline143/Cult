@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3 } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -68,6 +68,7 @@ export default function Profile() {
         <ProfileActions user={user} />
         <UserEvents userId={user.id} />
         <JoinedClubs userId={user.id} />
+        <AttendanceSection />
       </div>
     </div>
   );
@@ -627,6 +628,57 @@ function JoinedClubs({ userId }: { userId: string }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function AttendanceSection() {
+  const { data: stats = [], isLoading } = useQuery<{ clubId: string; clubName: string; clubEmoji: string; totalRsvps: number; attended: number }[]>({
+    queryKey: ["/api/user/attendance-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/attendance-stats", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading || stats.length === 0) return null;
+
+  return (
+    <div className="mt-8" data-testid="section-attendance">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="w-4 h-4" style={{ color: 'var(--terra)' }} />
+        <h2 className="font-display text-lg font-bold text-foreground" data-testid="text-attendance-title">
+          Attendance History
+        </h2>
+      </div>
+      <div className="space-y-3">
+        {stats.map((stat) => {
+          const pct = stat.totalRsvps > 0 ? Math.round((stat.attended / stat.totalRsvps) * 100) : 0;
+          return (
+            <div
+              key={stat.clubId}
+              className="glass-card rounded-2xl p-4 flex items-center gap-4"
+              data-testid={`card-attendance-${stat.clubId}`}
+            >
+              <div className="text-2xl shrink-0">{stat.clubEmoji}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-foreground truncate">{stat.clubName}</div>
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--warm-border)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--terra)' }} />
+                  </div>
+                  <span className="text-xs font-bold shrink-0" style={{ color: 'var(--terra)' }} data-testid={`text-attendance-pct-${stat.clubId}`}>{pct}%</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-sm font-bold text-foreground" data-testid={`text-attended-${stat.clubId}`}>{stat.attended}/{stat.totalRsvps}</div>
+                <div className="text-[10px] text-muted-foreground">attended</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

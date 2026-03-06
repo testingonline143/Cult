@@ -460,7 +460,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/events/:id", async (req, res) => {
+  app.get("/api/events/:id", async (req: any, res) => {
     try {
       const event = await storage.getEvent(req.params.id);
       if (!event) {
@@ -468,7 +468,12 @@ export async function registerRoutes(
       }
       const rsvps = await storage.getRsvpsByEvent(event.id);
       const club = await storage.getClub(event.clubId);
-      res.json({ ...event, rsvps, club });
+      const waitlistCount = await storage.getWaitlistCount(event.id);
+      let myRsvp = null;
+      if (req.user?.claims?.sub) {
+        myRsvp = await storage.getUserRsvp(event.id, req.user.claims.sub);
+      }
+      res.json({ ...event, rsvps, club, waitlistCount, myRsvp });
     } catch (err) {
       console.error("Error fetching event:", err);
       res.status(500).json({ message: "Failed to fetch event" });
@@ -501,16 +506,34 @@ export async function registerRoutes(
       if (club.creatorUserId !== userId) {
         return res.status(403).json({ success: false, message: "Not authorized for this club" });
       }
+      const recurrenceRule = req.body.recurrenceRule && req.body.recurrenceRule !== "none" ? req.body.recurrenceRule : null;
+      const baseStartsAt = new Date(req.body.startsAt);
+      const baseEndsAt = req.body.endsAt ? new Date(req.body.endsAt) : null;
       const eventData = {
         title: req.body.title,
         description: req.body.description || "",
         clubId: req.params.id,
-        startsAt: new Date(req.body.startsAt),
-        endsAt: req.body.endsAt ? new Date(req.body.endsAt) : null,
+        startsAt: baseStartsAt,
+        endsAt: baseEndsAt,
         locationText: req.body.locationText,
         maxCapacity: parseInt(req.body.maxCapacity) || 20,
+        recurrenceRule,
       };
       const event = await storage.createEvent(eventData);
+      if (recurrenceRule) {
+        for (let i = 1; i <= 4; i++) {
+          const nextStartsAt = new Date(baseStartsAt);
+          if (recurrenceRule === "weekly") nextStartsAt.setDate(nextStartsAt.getDate() + 7 * i);
+          else if (recurrenceRule === "biweekly") nextStartsAt.setDate(nextStartsAt.getDate() + 14 * i);
+          else if (recurrenceRule === "monthly") nextStartsAt.setMonth(nextStartsAt.getMonth() + i);
+          let nextEndsAt = null;
+          if (baseEndsAt) {
+            const duration = baseEndsAt.getTime() - baseStartsAt.getTime();
+            nextEndsAt = new Date(nextStartsAt.getTime() + duration);
+          }
+          await storage.createEvent({ ...eventData, startsAt: nextStartsAt, endsAt: nextEndsAt });
+        }
+      }
       const approvedMembers = await storage.getApprovedMembersByClub(req.params.id);
       for (const member of approvedMembers) {
         if (member.userId && member.userId !== userId) {
@@ -550,11 +573,26 @@ export async function registerRoutes(
       if (existingRsvp && existingRsvp.status === "going") {
         return res.json({ success: true, rsvp: existingRsvp, alreadyRsvpd: true });
       }
+      if (existingRsvp && existingRsvp.status === "waitlisted") {
+        const position = await storage.getUserWaitlistPosition(event.id, userId);
+        return res.json({ success: true, rsvp: existingRsvp, waitlisted: true, position });
+      }
       const rsvpCount = await storage.getRsvpCount(event.id);
       if (rsvpCount >= event.maxCapacity) {
-        return res.status(400).json({ success: false, message: "Event is full" });
+        const rsvp = await storage.createRsvp({ eventId: event.id, userId, status: "waitlisted" });
+        const position = await storage.getUserWaitlistPosition(event.id, userId);
+        return res.json({ success: true, rsvp, waitlisted: true, position });
       }
       const rsvp = await storage.createRsvp({ eventId: event.id, userId, status: "going" });
+      const eventDate = new Date(event.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+      await storage.createNotification({
+        userId,
+        type: "rsvp_confirmed",
+        title: "You're in!",
+        message: `You're registered for ${event.title} on ${eventDate}. See you there!`,
+        linkUrl: `/event/${event.id}`,
+        isRead: false,
+      });
       res.json({ success: true, rsvp });
     } catch (err) {
       console.error("Error creating RSVP:", err);
@@ -565,7 +603,23 @@ export async function registerRoutes(
   app.delete("/api/events/:id/rsvp", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const existingRsvp = await storage.getUserRsvp(req.params.id, userId);
       await storage.cancelRsvp(req.params.id, userId);
+      if (existingRsvp?.status === "going") {
+        const promoted = await storage.promoteFirstFromWaitlist(req.params.id);
+        if (promoted) {
+          const event = await storage.getEvent(req.params.id);
+          const eventDate = event ? new Date(event.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) : "";
+          await storage.createNotification({
+            userId: promoted.userId,
+            type: "waitlist_promoted",
+            title: "You're off the waitlist!",
+            message: `A spot opened up for ${event?.title || "the event"}${eventDate ? ` on ${eventDate}` : ""}. You're now confirmed!`,
+            linkUrl: `/event/${req.params.id}`,
+            isRead: false,
+          });
+        }
+      }
       res.json({ success: true });
     } catch (err) {
       console.error("Error cancelling RSVP:", err);
@@ -1002,10 +1056,10 @@ export async function registerRoutes(
 
   app.get("/api/clubs-with-activity", async (req, res) => {
     try {
-      const { category, search, city, vibe } = req.query as Record<string, string | undefined>;
+      const { category, search, city, vibe, timeOfDay } = req.query as Record<string, string | undefined>;
       let clubsList;
-      if (search || city || vibe || (category && category !== "all")) {
-        clubsList = await storage.searchClubs({ search, category, city, vibe });
+      if (search || city || vibe || timeOfDay || (category && category !== "all")) {
+        clubsList = await storage.searchClubs({ search, category, city, vibe, timeOfDay });
       } else {
         clubsList = await storage.getClubs();
       }
@@ -1388,6 +1442,37 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error fetching members preview:", err);
       res.status(500).json({ message: "Failed to fetch members preview" });
+    }
+  });
+
+  app.get("/api/clubs/:id/members", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.id);
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      const isOwner = club.creatorUserId === userId;
+      if (!isOwner) {
+        const joinStatus = await storage.getUserJoinStatus(req.params.id, userId);
+        if (joinStatus.status !== "approved") {
+          return res.status(403).json({ message: "Only club members can view the member directory" });
+        }
+      }
+      const members = await storage.getMemberDirectory(req.params.id);
+      res.json(members);
+    } catch (err) {
+      console.error("Error fetching member directory:", err);
+      res.status(500).json({ message: "Failed to fetch members" });
+    }
+  });
+
+  app.get("/api/user/attendance-stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stats = await storage.getUserAttendanceStats(userId);
+      res.json(stats);
+    } catch (err) {
+      console.error("Error fetching attendance stats:", err);
+      res.status(500).json({ message: "Failed to fetch attendance stats" });
     }
   });
 

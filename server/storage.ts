@@ -37,7 +37,12 @@ export interface IStorage {
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
   saveQuizAnswers(answers: InsertQuizAnswers): Promise<QuizAnswers>;
   getQuizAnswers(userId: string): Promise<QuizAnswers | undefined>;
-  searchClubs(params: { search?: string; category?: string; city?: string; vibe?: string }): Promise<Club[]>;
+  searchClubs(params: { search?: string; category?: string; city?: string; vibe?: string; timeOfDay?: string }): Promise<Club[]>;
+  getUserAttendanceStats(userId: string): Promise<{ clubId: string; clubName: string; clubEmoji: string; totalRsvps: number; attended: number }[]>;
+  getWaitlistCount(eventId: string): Promise<number>;
+  getUserWaitlistPosition(eventId: string, userId: string): Promise<number>;
+  promoteFirstFromWaitlist(eventId: string): Promise<EventRsvp | undefined>;
+  getMemberDirectory(clubId: string): Promise<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: Date | null }[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   getEvent(id: string): Promise<Event | undefined>;
   getEventsByClub(clubId: string): Promise<Event[]>;
@@ -229,7 +234,7 @@ export class DatabaseStorage implements IStorage {
     return answers;
   }
 
-  async searchClubs(params: { search?: string; category?: string; city?: string; vibe?: string }): Promise<Club[]> {
+  async searchClubs(params: { search?: string; category?: string; city?: string; vibe?: string; timeOfDay?: string }): Promise<Club[]> {
     const conditions = [];
     if (params.category && params.category !== "All") {
       conditions.push(eq(clubs.category, params.category));
@@ -239,6 +244,9 @@ export class DatabaseStorage implements IStorage {
     }
     if (params.vibe && params.vibe !== "all") {
       conditions.push(eq(clubs.vibe, params.vibe));
+    }
+    if (params.timeOfDay && params.timeOfDay !== "all") {
+      conditions.push(eq(clubs.timeOfDay, params.timeOfDay));
     }
     if (params.search) {
       conditions.push(
@@ -254,6 +262,69 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(clubs).orderBy(desc(clubs.memberCount));
     }
     return db.select().from(clubs).where(and(...conditions)).orderBy(desc(clubs.memberCount));
+  }
+
+  async getUserAttendanceStats(userId: string): Promise<{ clubId: string; clubName: string; clubEmoji: string; totalRsvps: number; attended: number }[]> {
+    const results = await db.select({
+      clubId: clubs.id,
+      clubName: clubs.name,
+      clubEmoji: clubs.emoji,
+      totalRsvps: sql<number>`count(*)::int`,
+      attended: sql<number>`sum(case when ${eventRsvps.checkedIn} = true then 1 else 0 end)::int`,
+    })
+      .from(eventRsvps)
+      .innerJoin(events, eq(eventRsvps.eventId, events.id))
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .where(and(eq(eventRsvps.userId, userId), eq(eventRsvps.status, "going")))
+      .groupBy(clubs.id, clubs.name, clubs.emoji);
+    return results;
+  }
+
+  async getWaitlistCount(eventId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(eventRsvps)
+      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.status, "waitlisted")));
+    return result?.count ?? 0;
+  }
+
+  async getUserWaitlistPosition(eventId: string, userId: string): Promise<number> {
+    const userRsvp = await this.getUserRsvp(eventId, userId);
+    if (!userRsvp || userRsvp.status !== "waitlisted") return 0;
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(eventRsvps)
+      .where(and(
+        eq(eventRsvps.eventId, eventId),
+        eq(eventRsvps.status, "waitlisted"),
+        sql`${eventRsvps.createdAt} <= ${userRsvp.createdAt}`
+      ));
+    return result?.count ?? 1;
+  }
+
+  async promoteFirstFromWaitlist(eventId: string): Promise<EventRsvp | undefined> {
+    const [first] = await db.select()
+      .from(eventRsvps)
+      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.status, "waitlisted")))
+      .orderBy(eventRsvps.createdAt)
+      .limit(1);
+    if (!first) return undefined;
+    const [promoted] = await db.update(eventRsvps)
+      .set({ status: "going" })
+      .where(eq(eventRsvps.id, first.id))
+      .returning();
+    return promoted;
+  }
+
+  async getMemberDirectory(clubId: string): Promise<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: Date | null }[]> {
+    return db.select({
+      userId: joinRequests.userId,
+      name: joinRequests.name,
+      profileImageUrl: users.profileImageUrl,
+      joinedAt: joinRequests.createdAt,
+    })
+      .from(joinRequests)
+      .leftJoin(users, eq(joinRequests.userId, users.id))
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")))
+      .orderBy(joinRequests.createdAt);
   }
 
   async createEvent(event: InsertEvent): Promise<Event> {
