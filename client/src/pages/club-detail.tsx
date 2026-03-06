@@ -623,7 +623,12 @@ function ClubDetailContent({ club }: { club: Club }) {
       )}
 
       {activeTab === "moments" && (
-        <MomentsTab clubId={club.id} isOwner={isOwner || isApprovedMember} isOrganiser={isOwner} />
+        <MomentsTab
+          clubId={club.id}
+          isOwner={isOwner}
+          isOrganiser={isOwner}
+          isMember={isApprovedMember && !isOwner}
+        />
       )}
 
       {activeTab === "faqs" && (
@@ -1057,7 +1062,17 @@ function getMomentIcon(caption: string) {
 
 type MomentWithCount = ClubMoment & { commentCount: number };
 
-function MomentsTab({ clubId, isOwner = false, isOrganiser = false }: { clubId: string; isOwner?: boolean; isOrganiser?: boolean }) {
+function MomentsTab({
+  clubId,
+  isOwner = false,
+  isOrganiser = false,
+  isMember = false,
+}: {
+  clubId: string;
+  isOwner?: boolean;
+  isOrganiser?: boolean;
+  isMember?: boolean;
+}) {
   const [, navigate] = useLocation();
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
@@ -1090,21 +1105,42 @@ function MomentsTab({ clubId, isOwner = false, isOrganiser = false }: { clubId: 
 
   if (moments.length === 0) {
     return (
-      <div className="px-6 py-6 text-center">
-        {isOwner && (
-          <button
-            onClick={() => navigate("/organizer?tab=content")}
-            className="flex items-center gap-2 mx-auto mb-4 px-4 py-2 rounded-full text-xs font-bold text-white"
-            style={{ background: "var(--terra)" }}
-            data-testid="button-add-moment-shortcut"
+      <div className="px-6 py-6">
+        {isOwner ? (
+          <div
+            className="rounded-2xl p-5 text-center space-y-3"
+            style={{ background: "var(--terra-pale)", border: "1.5px dashed var(--terra)" }}
           >
-            <Plus className="w-3.5 h-3.5" />
-            Add First Moment
-          </button>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: "var(--terra)" }}>
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: "var(--ink)" }}>Share your club's first moment</p>
+              <p className="text-xs mt-1" style={{ color: "var(--ink3)" }}>Photos, milestones, recaps — your members are waiting</p>
+            </div>
+            <button
+              onClick={() => navigate("/organizer?tab=content")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white"
+              style={{ background: "var(--terra)" }}
+              data-testid="button-add-moment-shortcut"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Post a Moment
+            </button>
+          </div>
+        ) : isMember ? (
+          <div className="text-center py-4">
+            <Sparkles className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-warm2)" }} />
+            <p className="text-sm font-semibold" style={{ color: "var(--ink3)" }}>Moments are on their way</p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>Be the first to react when the organiser posts</p>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <Activity className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-warm2)" }} />
+            <p className="text-sm font-semibold" style={{ color: "var(--ink3)" }}>No moments yet</p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>Join this club to be part of the conversation</p>
+          </div>
         )}
-        <Activity className="w-8 h-8 mx-auto text-[var(--muted-warm2)] mb-2" />
-        <p className="text-sm font-semibold text-[var(--ink3)]">No moments yet</p>
-        <p className="text-xs text-[var(--muted-warm)] mt-1">Highlights and updates will appear here</p>
       </div>
     );
   }
@@ -1112,7 +1148,25 @@ function MomentsTab({ clubId, isOwner = false, isOrganiser = false }: { clubId: 
   return (
     <div className="px-6 py-4 space-y-3" data-testid="section-moments">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Recent Moments</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Recent Moments</h2>
+          {isMember && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
+            >
+              Member
+            </span>
+          )}
+          {isOrganiser && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: "var(--terra)", color: "white" }}
+            >
+              Organiser
+            </span>
+          )}
+        </div>
         {isOwner && (
           <button
             onClick={() => navigate("/organizer?tab=content")}
@@ -1160,21 +1214,21 @@ function MomentsTab({ clubId, isOwner = false, isOrganiser = false }: { clubId: 
                     {moment.emoji}
                   </span>
                 )}
-                <p className="text-sm text-[var(--ink)] leading-relaxed">{moment.caption}</p>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--ink)" }}>{moment.caption}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <Clock className="w-3 h-3 text-[var(--muted-warm)]" />
-                  <span className="text-[10px] text-[var(--muted-warm)] font-medium">{timeAgo}</span>
+                  <Clock className="w-3 h-3" style={{ color: "var(--muted-warm)" }} />
+                  <span className="text-[10px] font-medium" style={{ color: "var(--muted-warm)" }}>{timeAgo}</span>
                 </div>
               </div>
             </div>
 
             <div
-              className="px-3.5 pb-2.5 flex items-center"
+              className="px-3.5 py-2.5 flex items-center"
               style={{ borderTop: "1px solid var(--warm-border)" }}
             >
               <button
                 onClick={() => toggleComments(moment.id)}
-                className="flex items-center gap-1.5 pt-2.5 transition-colors"
+                className="flex items-center gap-1.5 transition-colors"
                 data-testid={`button-toggle-comments-${moment.id}`}
               >
                 <MessageCircle
@@ -1247,7 +1301,7 @@ function CommentsSection({ momentId, isOrganiser }: { momentId: string; isOrgani
       ) : (
         <div>
           {comments.length === 0 && (
-            <p className="px-4 pt-3 pb-1 text-xs italic" style={{ color: "var(--muted-warm)" }}>
+            <p className="px-4 py-4 text-xs italic text-center" style={{ color: "var(--muted-warm)" }}>
               No comments yet. Be the first!
             </p>
           )}
@@ -1287,10 +1341,10 @@ function CommentsSection({ momentId, isOrganiser }: { momentId: string; isOrgani
                     <button
                       onClick={() => deleteMutation.mutate(c.id)}
                       disabled={deleteMutation.isPending}
-                      className="shrink-0 p-1 rounded-md opacity-40 hover:opacity-80 transition-opacity"
+                      className="shrink-0 p-1 rounded-md opacity-40 hover:opacity-100 transition-all group"
                       data-testid={`button-delete-comment-${c.id}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" style={{ color: "var(--ink3)" }} />
+                      <Trash2 className="w-3.5 h-3.5 group-hover:text-[var(--terra)] transition-colors" style={{ color: "var(--ink3)" }} />
                     </button>
                   )}
                 </div>
@@ -1318,7 +1372,7 @@ function CommentsSection({ momentId, isOrganiser }: { momentId: string; isOrgani
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Add a comment…"
                 maxLength={300}
-                className="flex-1 text-sm bg-transparent focus:outline-none"
+                className="flex-1 text-sm bg-transparent focus:outline-none placeholder:text-[var(--muted-warm)] placeholder:opacity-70"
                 style={{ color: "var(--ink)" }}
                 data-testid="input-comment"
               />
