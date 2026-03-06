@@ -777,6 +777,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/organizer/clubs/:clubId/analytics", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const analytics = await storage.getClubAnalytics(req.params.clubId);
+      res.json(analytics);
+    } catch (err) {
+      console.error("Error fetching club analytics:", err);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
   app.delete("/api/clubs/:id/leave", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

@@ -97,6 +97,13 @@ export interface IStorage {
   getUserApprovedClubs(userId: string): Promise<Club[]>;
   getFeedMoments(limit?: number): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string })[]>;
   becomeCreator(userId: string): Promise<void>;
+  getClubAnalytics(clubId: string): Promise<{
+    memberGrowth: { week: string; count: number }[];
+    perEventStats: { id: string; title: string; date: string; rsvps: number; attended: number; rate: number; isCancelled: boolean | null }[];
+    mostActiveMembers: { name: string; rsvpCount: number }[];
+    engagementRate: number;
+    noShowRate: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -924,6 +931,115 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(clubMoments.createdAt))
       .limit(limit);
     return result;
+  }
+
+  async getClubAnalytics(clubId: string) {
+    // ── 1. Member growth — last 8 weeks ─────────────────────────────────────
+    const eightWeeksAgo = new Date();
+    eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
+
+    const recentJoins = await db
+      .select({ createdAt: joinRequests.createdAt })
+      .from(joinRequests)
+      .where(and(
+        eq(joinRequests.clubId, clubId),
+        eq(joinRequests.status, "approved"),
+        gte(joinRequests.createdAt, eightWeeksAgo),
+      ));
+
+    const now = new Date();
+    const memberGrowth: { week: string; count: number }[] = [];
+    for (let w = 7; w >= 0; w--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - w * 7 - now.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const count = recentJoins.filter(j =>
+        j.createdAt && new Date(j.createdAt) >= weekStart && new Date(j.createdAt) < weekEnd
+      ).length;
+      const label = weekStart.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      memberGrowth.push({ week: label, count });
+    }
+
+    // ── 2. Per-event stats ───────────────────────────────────────────────────
+    const clubEvents = await db
+      .select({ id: events.id, title: events.title, startsAt: events.startsAt, isCancelled: events.isCancelled })
+      .from(events)
+      .where(eq(events.clubId, clubId))
+      .orderBy(desc(events.startsAt));
+
+    const perEventStats: { id: string; title: string; date: string; rsvps: number; attended: number; rate: number; isCancelled: boolean | null }[] = [];
+    for (const evt of clubEvents.slice(0, 10)) {
+      const [row] = await db
+        .select({
+          total: sql<number>`count(*)::int`,
+          attended: sql<number>`coalesce(sum(case when ${eventRsvps.checkedIn} then 1 else 0 end), 0)::int`,
+        })
+        .from(eventRsvps)
+        .where(eq(eventRsvps.eventId, evt.id));
+      const rsvps = row?.total ?? 0;
+      const attended = row?.attended ?? 0;
+      const rate = rsvps > 0 ? Math.round((attended / rsvps) * 100) : 0;
+      perEventStats.push({
+        id: evt.id,
+        title: evt.title,
+        date: evt.startsAt ? new Date(evt.startsAt).toISOString() : "",
+        rsvps,
+        attended,
+        rate,
+        isCancelled: evt.isCancelled,
+      });
+    }
+
+    // ── 3. Most active members — top 5 by RSVP count ────────────────────────
+    const topRsvpers = await db
+      .select({
+        userId: eventRsvps.userId,
+        rsvpCount: sql<number>`count(*)::int`,
+      })
+      .from(eventRsvps)
+      .innerJoin(events, eq(events.id, eventRsvps.eventId))
+      .where(eq(events.clubId, clubId))
+      .groupBy(eventRsvps.userId)
+      .orderBy(desc(sql<number>`count(*)`))
+      .limit(5);
+
+    const mostActiveMembers: { name: string; rsvpCount: number }[] = [];
+    for (const row of topRsvpers) {
+      const [u] = await db
+        .select({ firstName: users.firstName })
+        .from(users)
+        .where(eq(users.id, row.userId));
+      mostActiveMembers.push({ name: u?.firstName ?? "Member", rsvpCount: row.rsvpCount });
+    }
+
+    // ── 4. Engagement rate ───────────────────────────────────────────────────
+    const [engRow] = await db
+      .select({ engaged: sql<number>`count(distinct ${eventRsvps.userId})::int` })
+      .from(eventRsvps)
+      .innerJoin(events, eq(events.id, eventRsvps.eventId))
+      .where(eq(events.clubId, clubId));
+
+    const [membRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")));
+
+    const totalMembers = membRow?.count ?? 0;
+    const engagementRate = totalMembers > 0
+      ? Math.round(((engRow?.engaged ?? 0) / totalMembers) * 100)
+      : 0;
+
+    // ── 5. No-show rate ──────────────────────────────────────────────────────
+    const pastWithRsvps = perEventStats.filter(e => !e.isCancelled && e.rsvps > 0);
+    let noShowRate = 0;
+    if (pastWithRsvps.length > 0) {
+      const totalRate = pastWithRsvps.reduce((sum, e) => sum + (e.rsvps - e.attended) / e.rsvps, 0);
+      noShowRate = Math.round((totalRate / pastWithRsvps.length) * 100);
+    }
+
+    return { memberGrowth, perEventStats, mostActiveMembers, engagementRate, noShowRate };
   }
 
   async becomeCreator(userId: string): Promise<void> {

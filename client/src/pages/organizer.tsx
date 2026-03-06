@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Camera, Repeat } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Camera, Repeat, UserCheck, TrendingDown, Medal } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
 
 export default function Organizer() {
@@ -185,9 +185,15 @@ function ClubOverview({ club, setActiveTab }: { club: Club; setActiveTab: (tab: 
           >
             {club.emoji}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h2 className="font-display text-lg font-bold text-[var(--terra)]">{club.name}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{club.shortDesc}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{club.shortDesc}</p>
+            {club.schedule && (
+              <div className="flex items-center gap-1 mt-1.5">
+                <Clock3 className="w-3 h-3 text-muted-foreground shrink-0" />
+                <span className="text-[11px] text-muted-foreground truncate">{club.schedule}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -210,8 +216,11 @@ function ClubOverview({ club, setActiveTab }: { club: Club; setActiveTab: (tab: 
           <div className="text-xs text-muted-foreground mt-1">Founding Spots</div>
         </div>
         <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
-          <div className="text-sm font-medium text-foreground" data-testid="text-overview-schedule">{club.schedule}</div>
-          <div className="text-xs text-muted-foreground mt-1">Schedule</div>
+          <div className="flex items-center justify-center gap-1">
+            <MapPin className="w-4 h-4 text-[var(--terra)]" />
+            <span className="text-sm font-bold text-[var(--terra)] truncate" data-testid="text-overview-city">{club.city || club.location || "—"}</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">City</div>
         </div>
       </div>
 
@@ -252,35 +261,63 @@ function ClubOverview({ club, setActiveTab }: { club: Club; setActiveTab: (tab: 
             <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
 
-          {nextEvent && (
-            <div
-              className="w-full bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 flex items-center gap-3"
-              style={{ borderRadius: 18 }}
-              data-testid="quick-action-next-event"
-            >
-              <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--green-accent)]/10 shrink-0" style={{ borderRadius: 12 }}>
-                <Calendar className="w-5 h-5 text-[var(--green-accent)]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-foreground">{nextEvent.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(nextEvent.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
-                  {" · "}
-                  {new Date(nextEvent.startsAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                  {" · "}
-                  {nextEvent.rsvpCount} RSVP{nextEvent.rsvpCount !== 1 ? "s" : ""}
+          {nextEvent && (() => {
+            const fillPct = nextEvent.maxCapacity > 0 ? Math.round((nextEvent.rsvpCount / nextEvent.maxCapacity) * 100) : 0;
+            const isFilling = fillPct >= 80;
+            return (
+              <div
+                className="w-full bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4"
+                style={{ borderRadius: 18 }}
+                data-testid="quick-action-next-event"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--green-accent)]/10 shrink-0" style={{ borderRadius: 12 }}>
+                    <Calendar className="w-5 h-5 text-[var(--green-accent)]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-semibold text-foreground truncate">{nextEvent.title}</div>
+                      {isFilling && (
+                        <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0" style={{ background: "#C4622D22", color: "#C4622D" }} data-testid="badge-filling-up">
+                          <Zap className="w-2.5 h-2.5" />
+                          Filling up!
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(nextEvent.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                      {" · "}
+                      {new Date(nextEvent.startsAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/scan-event?eventId=${nextEvent.id}`}
+                    className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-[var(--terra)] text-white whitespace-nowrap shrink-0"
+                    data-testid="link-scan-next-event"
+                  >
+                    <QrCode className="w-3 h-3" />
+                    Scan
+                  </Link>
+                </div>
+                <div className="mt-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">{nextEvent.rsvpCount} / {nextEvent.maxCapacity} spots taken</span>
+                    <span className="text-[10px] font-bold font-mono text-[var(--terra)]" data-testid="text-fill-rate">{fillPct}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--warm-border)" }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${fillPct}%`,
+                        background: isFilling ? "var(--terra)" : "var(--green-accent)",
+                      }}
+                      data-testid="bar-event-fill-rate"
+                    />
+                  </div>
                 </div>
               </div>
-              <Link
-                href={`/scan-event?eventId=${nextEvent.id}`}
-                className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-[var(--terra)] text-white whitespace-nowrap shrink-0"
-                data-testid="link-scan-next-event"
-              >
-                <QrCode className="w-3 h-3" />
-                Scan
-              </Link>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>
@@ -344,8 +381,16 @@ interface InsightsData {
   recentRsvps: { userName: string; eventTitle: string; date: string | null }[];
 }
 
+interface AnalyticsData {
+  memberGrowth: { week: string; count: number }[];
+  perEventStats: { id: string; title: string; date: string; rsvps: number; attended: number; rate: number; isCancelled: boolean | null }[];
+  mostActiveMembers: { name: string; rsvpCount: number }[];
+  engagementRate: number;
+  noShowRate: number;
+}
+
 function OrganizerInsights({ clubId }: { clubId: string }) {
-  const { data: insights, isLoading } = useQuery<InsightsData>({
+  const { data: insights, isLoading: insightsLoading } = useQuery<InsightsData>({
     queryKey: ["/api/organizer/clubs", clubId, "insights"],
     queryFn: async () => {
       const res = await fetch(`/api/organizer/clubs/${clubId}/insights`, { credentials: "include" });
@@ -354,9 +399,20 @@ function OrganizerInsights({ clubId }: { clubId: string }) {
     },
   });
 
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<AnalyticsData>({
+    queryKey: ["/api/organizer/clubs", clubId, "analytics"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/clubs/${clubId}/analytics`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch analytics");
+      return res.json();
+    },
+  });
+
+  const isLoading = insightsLoading || analyticsLoading;
+
   if (isLoading) return (
     <div className="space-y-3">
-      {[1, 2, 3].map((i) => (
+      {[1, 2, 3, 4].map((i) => (
         <div key={i} className="h-24 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
       ))}
     </div>
@@ -368,27 +424,167 @@ function OrganizerInsights({ clubId }: { clubId: string }) {
     </div>
   );
 
+  const maxGrowth = analytics ? Math.max(...analytics.memberGrowth.map(w => w.count), 1) : 1;
+
   return (
     <div className="space-y-4" data-testid="section-organizer-insights">
+
+      {/* ── Section 1: Key Metrics ── */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 text-center" style={{ borderRadius: 18 }}>
           <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-insight-members">{insights.totalMembers}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Members</div>
         </div>
-        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 text-center" style={{ borderRadius: 18 }}>
           <div className="text-2xl font-bold text-chart-4 font-mono" data-testid="text-insight-pending">{insights.pendingRequests}</div>
           <div className="text-xs text-muted-foreground mt-1">Pending Requests</div>
         </div>
-        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 text-center" style={{ borderRadius: 18 }}>
           <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-insight-events">{insights.totalEvents}</div>
           <div className="text-xs text-muted-foreground mt-1">Events Created</div>
         </div>
-        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 text-center" style={{ borderRadius: 18 }}>
           <div className="text-2xl font-bold text-[var(--green-accent)] font-mono" data-testid="text-insight-attendance">{insights.avgAttendanceRate}%</div>
           <div className="text-xs text-muted-foreground mt-1">Avg Attendance</div>
         </div>
       </div>
 
+      {/* ── Section 2: Engagement Health ── */}
+      {analytics && (
+        <div className="grid grid-cols-2 gap-3" data-testid="section-engagement-health">
+          <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <UserCheck className="w-3.5 h-3.5 text-[var(--terra)]" />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Engagement</span>
+            </div>
+            <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-engagement-rate">{analytics.engagementRate}%</div>
+            <div className="text-[10px] text-muted-foreground mt-1 leading-relaxed">members who've RSVPd to at least one event</div>
+          </div>
+          <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">No-Shows</span>
+            </div>
+            <div className="text-2xl font-bold text-destructive font-mono" data-testid="text-noshow-rate">{analytics.noShowRate}%</div>
+            <div className="text-[10px] text-muted-foreground mt-1 leading-relaxed">avg RSVPs that didn't check in</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 3: Member Growth Chart ── */}
+      {analytics && (
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-member-growth">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-[var(--terra)]" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Growth (last 8 weeks)</span>
+          </div>
+          <div className="flex items-end gap-1.5 h-20" data-testid="chart-member-growth">
+            {analytics.memberGrowth.map((bar, i) => {
+              const heightPct = maxGrowth > 0 ? Math.max((bar.count / maxGrowth) * 100, bar.count > 0 ? 8 : 3) : 3;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-full flex flex-col justify-end" style={{ height: 64 }}>
+                    <div
+                      className="w-full rounded-t-sm transition-all"
+                      style={{
+                        height: `${heightPct}%`,
+                        minHeight: 3,
+                        background: bar.count > 0 ? "var(--terra)" : "var(--warm-border)",
+                        opacity: bar.count > 0 ? 1 : 0.5,
+                      }}
+                      data-testid={`bar-growth-${i}`}
+                    />
+                  </div>
+                  {bar.count > 0 && (
+                    <div className="text-[9px] font-mono font-bold text-[var(--terra)]">{bar.count}</div>
+                  )}
+                  <div className="text-[8px] text-muted-foreground text-center leading-tight truncate w-full px-0.5">{bar.week}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 4: Per-Event Attendance Breakdown ── */}
+      {analytics && (
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-event-breakdown">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-[var(--terra)]" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Event Breakdown</span>
+          </div>
+          {analytics.perEventStats.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-2" data-testid="text-no-events-breakdown">No events yet — create one to see attendance data.</div>
+          ) : (
+            <div className="space-y-3">
+              {analytics.perEventStats.slice(0, 8).map((evt, i) => (
+                <div key={evt.id} data-testid={`event-breakdown-row-${evt.id}`}>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-foreground truncate">{evt.title}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {evt.date ? new Date(evt.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"}
+                        {evt.isCancelled && <span className="ml-1 text-destructive">• Cancelled</span>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs font-bold font-mono text-[var(--terra)]" data-testid={`text-event-rate-${evt.id}`}>{evt.rate}%</div>
+                      <div className="text-[10px] text-muted-foreground">{evt.attended}/{evt.rsvps}</div>
+                    </div>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "var(--warm-border)" }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${evt.rsvps > 0 ? evt.rate : 0}%`,
+                        background: evt.rate >= 80 ? "var(--green-accent)" : evt.rate >= 50 ? "var(--terra)" : "hsl(var(--chart-4))",
+                      }}
+                      data-testid={`bar-event-attendance-${evt.id}`}
+                    />
+                  </div>
+                  {i < analytics.perEventStats.slice(0, 8).length - 1 && (
+                    <div className="mt-3 border-t border-[var(--warm-border)]" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Section 5: Most Active Members ── */}
+      {analytics && (
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-top-members">
+          <div className="flex items-center gap-2 mb-3">
+            <Medal className="w-4 h-4 text-[var(--terra)]" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Members</span>
+          </div>
+          {analytics.mostActiveMembers.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-2" data-testid="text-no-top-members">No event RSVPs yet.</div>
+          ) : (
+            <div className="space-y-2">
+              {analytics.mostActiveMembers.map((member, i) => (
+                <div key={i} className="flex items-center justify-between gap-2" data-testid={`top-member-${i}`}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                      style={{ background: i === 0 ? "#C4622D" : i === 1 ? "#8B7355" : "var(--warm-border)", color: i < 2 ? "white" : "var(--ink)" }}
+                    >
+                      {i + 1}
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{member.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono" style={{ background: "var(--terra)", color: "white" }} data-testid={`badge-member-rsvps-${i}`}>
+                    {member.rsvpCount} RSVPs
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Section 6: Most Popular Event + Recent Activity (existing) ── */}
       {insights.topEvent && (
         <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-top-event">
           <div className="flex items-center gap-2 mb-2">
