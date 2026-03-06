@@ -61,7 +61,7 @@ export function HeroSection() {
     if (user) {
       becomeCreatorMutation.mutate();
     } else {
-      navigate("/create");
+      window.location.href = "/api/login";
     }
   }
 
@@ -144,7 +144,7 @@ export function HeroSection() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
         >
           <button
-            onClick={() => navigate("/explore")}
+            onClick={() => navigate("/home")}
             className="rounded-full px-10 py-4 text-base font-bold transition-all"
             style={{
               background: "var(--terra)",

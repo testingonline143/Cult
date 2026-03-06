@@ -4,12 +4,36 @@ import { Menu, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+
+  const becomeCreatorMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
+        old ? { ...old, wantsToCreate: true } : old
+      );
+      navigate("/create");
+    },
+    onError: () => {
+      navigate("/create");
+    },
+  });
+
+  function handleListClub() {
+    if (isAuthenticated) {
+      becomeCreatorMutation.mutate();
+    } else {
+      window.location.href = "/api/login";
+    }
+  }
 
   const displayName = user?.firstName || user?.email || "User";
 
@@ -111,10 +135,11 @@ export function Navbar() {
             <Button
               size="sm"
               className="rounded-full hidden sm:inline-flex"
-              onClick={() => navigate("/create")}
+              onClick={handleListClub}
+              disabled={becomeCreatorMutation.isPending}
               data-testid="button-list-club-nav"
             >
-              List Your Club
+              {becomeCreatorMutation.isPending ? "Setting up..." : "List Your Club"}
             </Button>
             <Button
               size="icon"
@@ -162,8 +187,14 @@ export function Navbar() {
                   Sign In
                 </Button>
               )}
-              <Button size="sm" className="mt-2 rounded-full" onClick={() => { navigate("/create"); setMobileOpen(false); }} data-testid="button-list-club-mobile">
-                List Your Club
+              <Button
+                size="sm"
+                className="mt-2 rounded-full"
+                onClick={() => { handleListClub(); setMobileOpen(false); }}
+                disabled={becomeCreatorMutation.isPending}
+                data-testid="button-list-club-mobile"
+              >
+                {becomeCreatorMutation.isPending ? "Setting up..." : "List Your Club"}
               </Button>
             </div>
           </motion.div>
