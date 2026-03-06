@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Users, MapPin, Calendar } from "lucide-react";
+import { Search, Users, MapPin, Calendar, PlusCircle } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { CATEGORIES, CITIES, CATEGORY_EMOJI } from "@shared/schema";
 import type { Club } from "@shared/schema";
 
@@ -27,6 +28,8 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 const DEFAULT_GRADIENT = "linear-gradient(135deg, #E8D5B8, #C4A882)";
 
 export default function Explore() {
+  const { user, isAuthenticated } = useAuth();
+  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCity, setActiveCity] = useState("All Cities");
@@ -213,6 +216,25 @@ export default function Explore() {
                 </Link>
               );
             })}
+
+            {isAuthenticated && !isOrganiser && (
+              <Link href="/create" data-testid="card-start-club">
+                <div className="rounded-[18px] p-6 text-center space-y-3" style={{ background: "var(--terra-pale)", border: "1.5px dashed rgba(196,98,45,0.4)" }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: "rgba(196,98,45,0.15)" }}>
+                    <PlusCircle className="w-6 h-6" style={{ color: "var(--terra)" }} />
+                  </div>
+                  <h3 className="font-display text-base font-bold" style={{ color: "var(--terra)" }}>
+                    Don't see your hobby?
+                  </h3>
+                  <p className="text-xs" style={{ color: "var(--muted-warm)" }}>
+                    Start your own club and build a community around what you love.
+                  </p>
+                  <span className="inline-block text-sm font-semibold" style={{ color: "var(--terra)" }}>
+                    Start a Club &rarr;
+                  </span>
+                </div>
+              </Link>
+            )}
           </div>
         )}
       </div>

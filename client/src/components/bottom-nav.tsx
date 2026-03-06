@@ -1,11 +1,19 @@
 import { useLocation } from "wouter";
-import { Home, Compass, Calendar, PlusCircle, User } from "lucide-react";
+import { Home, Compass, Calendar, PlusCircle, User, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
-const TABS = [
+const USER_TABS = [
   { path: "/home", label: "HOME", icon: Home },
   { path: "/explore", label: "EXPLORE", icon: Compass },
   { path: "/events", label: "EVENTS", icon: Calendar },
-  { path: "/create", label: "CREATE", icon: PlusCircle },
+  { path: "/profile", label: "PROFILE", icon: User },
+];
+
+const ORGANISER_TABS = [
+  { path: "/home", label: "HOME", icon: Home },
+  { path: "/explore", label: "EXPLORE", icon: Compass },
+  { path: "/events", label: "EVENTS", icon: Calendar },
+  { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard },
   { path: "/profile", label: "PROFILE", icon: User },
 ];
 
@@ -13,8 +21,12 @@ const TAB_PATHS = ["/home", "/explore", "/events", "/create", "/profile", "/orga
 
 export function BottomNav() {
   const [location, navigate] = useLocation();
+  const { user } = useAuth();
 
   if (!TAB_PATHS.includes(location)) return null;
+
+  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
+  const tabs = isOrganiser ? ORGANISER_TABS : USER_TABS;
 
   return (
     <nav
@@ -28,7 +40,7 @@ export function BottomNav() {
       data-testid="nav-bottom"
     >
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = location === tab.path;
           const Icon = tab.icon;
           return (
