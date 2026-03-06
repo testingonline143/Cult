@@ -56,37 +56,27 @@ export function CategoryShowcase() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.15 }}
         >
-          {CATEGORIES.map((cat) => {
-            const count = categoryCounts[cat] || 0;
-            return (
-              <motion.button
-                key={cat}
-                variants={cardVariants}
-                data-testid={`card-category-${cat.toLowerCase()}`}
-                onClick={() => navigate(`/explore?category=${encodeURIComponent(cat)}`)}
-                className="flex flex-col items-center gap-2 rounded-md p-5 sm:p-6 cursor-pointer transition-colors hover-elevate active-elevate-2"
-                style={{
-                  background: "var(--cream)",
-                  border: "1.5px solid var(--warm-border)",
-                }}
+          {CATEGORIES.filter((cat) => (categoryCounts[cat] || 0) > 0).map((cat) => (
+            <motion.button
+              key={cat}
+              variants={cardVariants}
+              data-testid={`card-category-${cat.toLowerCase()}`}
+              onClick={() => navigate(`/explore?category=${encodeURIComponent(cat)}`)}
+              className="flex flex-col items-center gap-2 rounded-md p-5 sm:p-6 cursor-pointer transition-colors hover-elevate active-elevate-2"
+              style={{
+                background: "var(--cream)",
+                border: "1.5px solid var(--warm-border)",
+              }}
+            >
+              <span className="text-4xl sm:text-5xl leading-none">{CATEGORY_EMOJI[cat]}</span>
+              <span
+                className="font-semibold text-sm sm:text-base"
+                style={{ color: "var(--ink)" }}
               >
-                <span className="text-4xl sm:text-5xl leading-none">{CATEGORY_EMOJI[cat]}</span>
-                <span
-                  className="font-semibold text-sm sm:text-base"
-                  style={{ color: "var(--ink)" }}
-                >
-                  {cat}
-                </span>
-                <span
-                  className="text-xs"
-                  style={{ color: "var(--muted-warm)" }}
-                  data-testid={`text-category-count-${cat.toLowerCase()}`}
-                >
-                  {count} {count === 1 ? "club" : "clubs"}
-                </span>
-              </motion.button>
-            );
-          })}
+                {cat}
+              </span>
+            </motion.button>
+          ))}
         </motion.div>
       </div>
     </section>
