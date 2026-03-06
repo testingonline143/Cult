@@ -184,6 +184,51 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/analytics", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const analytics = await storage.getAdminAnalytics();
+      res.json(analytics);
+    } catch (err) {
+      console.error("Error fetching admin analytics:", err);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/admin/users", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (err) {
+      console.error("Error fetching admin users:", err);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/role", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { role } = req.body;
+      if (!role || !["user", "organiser", "admin"].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+      const updated = await storage.updateUserRole(req.params.id, role);
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error updating user role:", err);
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  });
+
+  app.get("/api/admin/events", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const events = await storage.getAllEventsAdmin();
+      res.json(events);
+    } catch (err) {
+      console.error("Error fetching admin events:", err);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
   app.post("/api/clubs/create", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -626,6 +671,16 @@ export async function registerRoutes(
       res.json({ count });
     } catch (err) {
       res.status(500).json({ message: "Failed to get count" });
+    }
+  });
+
+  app.get("/api/organizer/clubs/:clubId/insights", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const insights = await storage.getOrganizerInsights(req.params.clubId);
+      res.json(insights);
+    } catch (err) {
+      console.error("Error fetching organizer insights:", err);
+      res.status(500).json({ message: "Failed to fetch insights" });
     }
   });
 

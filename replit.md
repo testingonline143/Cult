@@ -95,6 +95,11 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `PATCH /api/clubs/:clubId/events/:eventId` — edit event details (organizer only, cannot edit cancelled events)
   - `DELETE /api/clubs/:clubId/events/:eventId` — cancel event (sets isCancelled=true, organizer only)
   - `GET /api/clubs/:id/members-preview` — get first 10 approved members (name, profileImageUrl) for social proof
+  - `GET /api/admin/analytics` — platform-wide analytics (user/club/event/rsvp/checkin counts, city breakdown) (admin only)
+  - `GET /api/admin/users` — list all users with role, city, club count (admin only)
+  - `PATCH /api/admin/users/:id/role` — change user role to user/organiser/admin (admin only)
+  - `GET /api/admin/events` — list all events with club info, rsvp/checkin counts (admin only)
+  - `GET /api/organizer/clubs/:clubId/insights` — organizer insights (member/event stats, attendance rate, top event, recent activity)
 - **Validation**: Zod schemas generated from Drizzle table definitions via drizzle-zod
 - **Dev Server**: Vite middleware is used in development for HMR; static file serving in production
 - **Build**: esbuild bundles the server to `dist/index.cjs`; Vite builds client to `dist/public/`
@@ -148,9 +153,9 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **Instant club creation**: Authenticated users fill a rich form (name, category, description, schedule, location, organizer name, WhatsApp, city) → club goes live immediately → redirected to organizer dashboard
 - **Membership approval flow**: Join requests start as 'pending'. Organizers approve/reject from dashboard. Member count and founding spots only increment on approval. Users can leave clubs (decrements counts). Organizers can remove members. Duplicate join prevention by userId+clubId.
 - **RSVP gating**: Only approved club members (or the club creator) can RSVP to club events. Non-members see an error with a link to the club page.
-- **Admin dashboard** (/admin): Requires Replit Auth + `ADMIN_USER_ID` env var match; shows live clubs monitoring with deactivate/activate controls, plus join requests. Non-admin users see "Access Denied"
+- **Admin dashboard** (/admin): Requires Replit Auth + `ADMIN_USER_ID` env var match. Tabbed interface: Analytics (platform-wide stats grid + city breakdown), Clubs (monitor/deactivate/activate), Users (search, view, change roles), Events (all events across clubs with status/attendance), Requests (join requests). Non-admin users see "Access Denied"
 - **Replit Auth sign-in**: Google, GitHub, Apple, email sign-in via `/api/login`; session-based auth
-- **Organizer dashboard** (/organizer): Identifies organizer by creatorUserId; club overview, manage join requests, create events, edit club details, QR codes for events, attendance tracking
+- **Organizer dashboard** (/organizer): Identifies organizer by creatorUserId; club overview with quick action cards (pending requests, create event, next event), manage join requests with CSV member export, create events, edit club details, QR codes for events, attendance tracking, Insights tab (member count, pending requests, events created, avg attendance rate, top event, recent joins/RSVPs timeline)
 - **Onboarding quiz** (/onboarding): 5-step quiz (interests, availability, vibe, experience, user type) with progress bar, slide transitions, loading screen → matched clubs page
 - **Quiz gate**: New users redirected to quiz after first login; returning users skip quiz. "Redo Quiz" option in profile.
 - **Club detail page** (/club/:id): Dedicated shareable page with full club info, italic tagline (shortDesc), founding member spots card, 3-col stats (Members/Active/Rating with Bebas Neue), horizontal tab bar (Meet-ups/Schedule/Moments/About/FAQs), "Usually Meet At" venue card, events listing, join form, organizer info, WhatsApp link, sticky "Join the Tribe" bottom bar

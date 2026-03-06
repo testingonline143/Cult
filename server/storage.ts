@@ -84,6 +84,10 @@ export interface IStorage {
   updateEvent(id: string, data: Partial<InsertEvent>): Promise<Event | undefined>;
   cancelEvent(id: string): Promise<Event | undefined>;
   getMembersPreview(clubId: string, limit?: number): Promise<{ name: string; profileImageUrl: string | null }[]>;
+  getAdminAnalytics(): Promise<{ totalUsers: number; totalClubs: number; activeClubs: number; totalEvents: number; totalRsvps: number; totalCheckins: number; cityCounts: { city: string; count: number }[] }>;
+  getAllUsers(): Promise<{ id: string; email: string | null; firstName: string | null; city: string | null; role: string | null; createdAt: Date | null; clubCount: number }[]>;
+  getAllEventsAdmin(): Promise<{ id: string; title: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
+  getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -685,6 +689,122 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(joinRequests.createdAt))
       .limit(limit);
     return results;
+  }
+
+  async getAdminAnalytics() {
+    const [userCount] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+    const [clubCount] = await db.select({ count: sql<number>`count(*)::int` }).from(clubs);
+    const [activeCount] = await db.select({ count: sql<number>`count(*)::int` }).from(clubs).where(ne(clubs.isActive, false));
+    const [eventCount] = await db.select({ count: sql<number>`count(*)::int` }).from(events);
+    const [rsvpCount] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps);
+    const [checkinCount] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps).where(eq(eventRsvps.checkedIn, true));
+
+    const cityRows = await db.select({
+      city: clubs.city,
+      count: sql<number>`count(*)::int`,
+    }).from(clubs).groupBy(clubs.city).orderBy(sql`count(*) desc`);
+
+    return {
+      totalUsers: userCount.count,
+      totalClubs: clubCount.count,
+      activeClubs: activeCount.count,
+      totalEvents: eventCount.count,
+      totalRsvps: rsvpCount.count,
+      totalCheckins: checkinCount.count,
+      cityCounts: cityRows.map(r => ({ city: r.city, count: r.count })),
+    };
+  }
+
+  async getAllUsers() {
+    const results = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      city: users.city,
+      role: users.role,
+      createdAt: users.createdAt,
+      clubCount: sql<number>`(select count(*)::int from ${joinRequests} where ${joinRequests.userId} = ${users.id} and ${joinRequests.status} = 'approved')`,
+    }).from(users).orderBy(desc(users.createdAt));
+    return results;
+  }
+
+  async getAllEventsAdmin() {
+    const results = await db.select({
+      id: events.id,
+      title: events.title,
+      clubName: clubs.name,
+      clubEmoji: clubs.emoji,
+      startsAt: events.startsAt,
+      isCancelled: events.isCancelled,
+      maxCapacity: events.maxCapacity,
+      rsvpCount: sql<number>`(select count(*)::int from ${eventRsvps} where ${eventRsvps.eventId} = ${events.id})`,
+      checkedInCount: sql<number>`(select count(*)::int from ${eventRsvps} where ${eventRsvps.eventId} = ${events.id} and ${eventRsvps.checkedIn} = true)`,
+    })
+      .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .orderBy(desc(events.startsAt));
+    return results;
+  }
+
+  async getOrganizerInsights(clubId: string) {
+    const [memberResult] = await db.select({ count: sql<number>`count(*)::int` }).from(joinRequests).where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")));
+    const [pendingResult] = await db.select({ count: sql<number>`count(*)::int` }).from(joinRequests).where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "pending")));
+    const clubEvents = await db.select({ id: events.id, title: events.title }).from(events).where(eq(events.clubId, clubId));
+
+    let avgAttendanceRate = 0;
+    let topEvent: { title: string; attended: number; total: number } | null = null;
+
+    if (clubEvents.length > 0) {
+      let totalRate = 0;
+      let ratedEvents = 0;
+      let bestAttendance = -1;
+
+      for (const ev of clubEvents) {
+        const [rsvpC] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps).where(eq(eventRsvps.eventId, ev.id));
+        const [checkinC] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps).where(and(eq(eventRsvps.eventId, ev.id), eq(eventRsvps.checkedIn, true)));
+        if (rsvpC.count > 0) {
+          const rate = checkinC.count / rsvpC.count;
+          totalRate += rate;
+          ratedEvents++;
+          if (checkinC.count > bestAttendance) {
+            bestAttendance = checkinC.count;
+            topEvent = { title: ev.title, attended: checkinC.count, total: rsvpC.count };
+          }
+        }
+      }
+      avgAttendanceRate = ratedEvents > 0 ? Math.round((totalRate / ratedEvents) * 100) : 0;
+    }
+
+    const recentJoins = await db.select({
+      name: joinRequests.name,
+      date: joinRequests.createdAt,
+    })
+      .from(joinRequests)
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")))
+      .orderBy(desc(joinRequests.createdAt))
+      .limit(5);
+
+    const recentRsvps = await db.select({
+      userName: users.firstName,
+      eventTitle: events.title,
+      date: eventRsvps.createdAt,
+    })
+      .from(eventRsvps)
+      .innerJoin(events, eq(eventRsvps.eventId, events.id))
+      .innerJoin(users, eq(eventRsvps.userId, users.id))
+      .where(eq(events.clubId, clubId))
+      .orderBy(desc(eventRsvps.createdAt))
+      .limit(5);
+
+    return {
+      totalMembers: memberResult.count,
+      pendingRequests: pendingResult.count,
+      totalEvents: clubEvents.length,
+      avgAttendanceRate,
+      topEvent,
+      recentJoins: recentJoins.map(r => ({ name: r.name, date: r.date })),
+      recentRsvps: recentRsvps.map(r => ({ userName: r.userName || "Unknown", eventTitle: r.eventTitle, date: r.date })),
+    };
   }
 }
 

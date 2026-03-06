@@ -4,13 +4,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
 
 export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "events" | "content" | "edit">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "requests" | "insights" | "events" | "content" | "edit">("overview");
   const [selectedClubIndex, setSelectedClubIndex] = useState(0);
 
   const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
@@ -131,8 +131,9 @@ export default function Organizer() {
 
         <RequestsTabBar activeTab={activeTab} setActiveTab={setActiveTab} clubId={club.id} />
 
-        {activeTab === "overview" && <ClubOverview club={club} />}
+        {activeTab === "overview" && <ClubOverview club={club} setActiveTab={setActiveTab} />}
         {activeTab === "requests" && <OrganizerRequests clubId={club.id} />}
+        {activeTab === "insights" && <OrganizerInsights clubId={club.id} />}
         {activeTab === "events" && <OrganizerEvents clubId={club.id} />}
         {activeTab === "content" && <ContentManager clubId={club.id} />}
         {activeTab === "edit" && <EditClub club={club} />}
@@ -141,12 +142,36 @@ export default function Organizer() {
   );
 }
 
-function ClubOverview({ club }: { club: Club }) {
+function ClubOverview({ club, setActiveTab }: { club: Club; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit") => void }) {
   const healthColors: Record<string, string> = {
     green: "text-[var(--green-accent)] bg-[var(--green-accent)]/10",
     yellow: "text-chart-4 bg-chart-4/10",
     red: "text-destructive bg-destructive/10",
   };
+
+  const { data: pendingData } = useQuery<{ count: number }>({
+    queryKey: ["/api/organizer/clubs", club.id, "pending-count"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/clubs/${club.id}/pending-count`, { credentials: "include" });
+      if (!res.ok) return { count: 0 };
+      return res.json();
+    },
+  });
+
+  const { data: clubEvents = [] } = useQuery<(Event & { rsvpCount: number })[]>({
+    queryKey: ["/api/clubs", club.id, "events"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/events`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const pendingCount = pendingData?.count ?? 0;
+  const now = new Date();
+  const nextEvent = clubEvents
+    .filter(e => !e.isCancelled && new Date(e.startsAt) > now)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0] || null;
 
   return (
     <div className="space-y-4" data-testid="section-club-overview">
@@ -187,11 +212,80 @@ function ClubOverview({ club }: { club: Club }) {
           <div className="text-xs text-muted-foreground mt-1">Schedule</div>
         </div>
       </div>
+
+      <div className="space-y-2" data-testid="section-quick-actions">
+        <h3 className="font-display text-sm font-bold text-[var(--terra)] uppercase tracking-wider">Quick Actions</h3>
+        <div className="grid grid-cols-1 gap-2">
+          {pendingCount > 0 && (
+            <button
+              onClick={() => setActiveTab("requests")}
+              className="w-full bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 flex items-center gap-3 text-left"
+              style={{ borderRadius: 18 }}
+              data-testid="quick-action-pending-requests"
+            >
+              <div className="w-10 h-10 rounded-md flex items-center justify-center bg-chart-4/15 shrink-0" style={{ borderRadius: 12 }}>
+                <Clock3 className="w-5 h-5 text-chart-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-foreground">{pendingCount} Pending Request{pendingCount !== 1 ? "s" : ""}</div>
+                <div className="text-xs text-muted-foreground">Review and approve new members</div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveTab("events")}
+            className="w-full bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 flex items-center gap-3 text-left"
+            style={{ borderRadius: 18 }}
+            data-testid="quick-action-create-event"
+          >
+            <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--terra)]/10 shrink-0" style={{ borderRadius: 12 }}>
+              <Plus className="w-5 h-5 text-[var(--terra)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-foreground">Create Event</div>
+              <div className="text-xs text-muted-foreground">Schedule a new activity for your club</div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
+
+          {nextEvent && (
+            <div
+              className="w-full bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 flex items-center gap-3"
+              style={{ borderRadius: 18 }}
+              data-testid="quick-action-next-event"
+            >
+              <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--green-accent)]/10 shrink-0" style={{ borderRadius: 12 }}>
+                <Calendar className="w-5 h-5 text-[var(--green-accent)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-foreground">{nextEvent.title}</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(nextEvent.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                  {" · "}
+                  {new Date(nextEvent.startsAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  {" · "}
+                  {nextEvent.rsvpCount} RSVP{nextEvent.rsvpCount !== 1 ? "s" : ""}
+                </div>
+              </div>
+              <Link
+                href={`/scan-event?eventId=${nextEvent.id}`}
+                className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-[var(--terra)] text-white whitespace-nowrap shrink-0"
+                data-testid="link-scan-next-event"
+              >
+                <QrCode className="w-3 h-3" />
+                Scan
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function RequestsTabBar({ activeTab, setActiveTab, clubId }: { activeTab: string; setActiveTab: (tab: "overview" | "requests" | "events" | "content" | "edit") => void; clubId: string }) {
+function RequestsTabBar({ activeTab, setActiveTab, clubId }: { activeTab: string; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit") => void; clubId: string }) {
   const { data: requests = [] } = useQuery<JoinRequest[]>({
     queryKey: ["/api/organizer/join-requests", clubId],
     queryFn: async () => {
@@ -203,10 +297,11 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId }: { activeTab: string
 
   const pendingCount = requests.filter(r => r.status === "pending").length;
 
-  const tabs = ["overview", "requests", "events", "content", "edit"] as const;
+  const tabs = ["overview", "requests", "insights", "events", "content", "edit"] as const;
   const tabLabels: Record<string, string> = {
     overview: "Overview",
     requests: "Requests",
+    insights: "Insights",
     events: "Events",
     content: "Content",
     edit: "Edit Club",
@@ -233,6 +328,122 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId }: { activeTab: string
           )}
         </button>
       ))}
+    </div>
+  );
+}
+
+interface InsightsData {
+  totalMembers: number;
+  pendingRequests: number;
+  totalEvents: number;
+  avgAttendanceRate: number;
+  topEvent: { title: string; attended: number; total: number } | null;
+  recentJoins: { name: string; date: string | null }[];
+  recentRsvps: { userName: string; eventTitle: string; date: string | null }[];
+}
+
+function OrganizerInsights({ clubId }: { clubId: string }) {
+  const { data: insights, isLoading } = useQuery<InsightsData>({
+    queryKey: ["/api/organizer/clubs", clubId, "insights"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/clubs/${clubId}/insights`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch insights");
+      return res.json();
+    },
+  });
+
+  if (isLoading) return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-24 rounded-[18px] animate-pulse" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} />
+      ))}
+    </div>
+  );
+
+  if (!insights) return (
+    <div className="text-center py-8 text-muted-foreground text-sm" data-testid="text-no-insights">
+      Unable to load insights.
+    </div>
+  );
+
+  return (
+    <div className="space-y-4" data-testid="section-organizer-insights">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+          <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-insight-members">{insights.totalMembers}</div>
+          <div className="text-xs text-muted-foreground mt-1">Total Members</div>
+        </div>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+          <div className="text-2xl font-bold text-chart-4 font-mono" data-testid="text-insight-pending">{insights.pendingRequests}</div>
+          <div className="text-xs text-muted-foreground mt-1">Pending Requests</div>
+        </div>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+          <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-insight-events">{insights.totalEvents}</div>
+          <div className="text-xs text-muted-foreground mt-1">Events Created</div>
+        </div>
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
+          <div className="text-2xl font-bold text-[var(--green-accent)] font-mono" data-testid="text-insight-attendance">{insights.avgAttendanceRate}%</div>
+          <div className="text-xs text-muted-foreground mt-1">Avg Attendance</div>
+        </div>
+      </div>
+
+      {insights.topEvent && (
+        <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-top-event">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-[var(--terra)]" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Most Popular Event</span>
+          </div>
+          <div className="font-semibold text-sm text-foreground" data-testid="text-top-event-title">{insights.topEvent.title}</div>
+          <div className="text-xs text-muted-foreground mt-0.5" data-testid="text-top-event-stats">
+            {insights.topEvent.attended} attended out of {insights.topEvent.total} RSVPs
+          </div>
+        </div>
+      )}
+
+      <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-recent-activity">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-[var(--terra)]" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Member Joins</span>
+        </div>
+        {insights.recentJoins.length === 0 ? (
+          <div className="text-xs text-muted-foreground">No recent joins</div>
+        ) : (
+          <div className="space-y-2">
+            {insights.recentJoins.map((join, i) => (
+              <div key={i} className="flex items-center justify-between gap-2" data-testid={`recent-join-${i}`}>
+                <span className="text-sm text-foreground">{join.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {join.date ? new Date(join.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }} data-testid="card-recent-rsvps">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar className="w-4 h-4 text-[var(--terra)]" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent RSVPs</span>
+        </div>
+        {insights.recentRsvps.length === 0 ? (
+          <div className="text-xs text-muted-foreground">No recent RSVPs</div>
+        ) : (
+          <div className="space-y-2">
+            {insights.recentRsvps.map((rsvp, i) => (
+              <div key={i} className="flex items-center justify-between gap-2" data-testid={`recent-rsvp-${i}`}>
+                <div className="min-w-0">
+                  <span className="text-sm text-foreground">{rsvp.userName}</span>
+                  <span className="text-xs text-muted-foreground ml-1.5">for {rsvp.eventTitle}</span>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {rsvp.date ? new Date(rsvp.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -304,6 +515,26 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
     { key: "all" as const, label: "All", count: requests.length },
   ];
 
+  const handleDownloadMembers = () => {
+    const members = requests.filter(r => r.status === "approved");
+    if (members.length === 0) return;
+    const header = "Name,Phone,Join Date";
+    const rows = members.map(m => {
+      const name = `"${(m.name || "").replace(/"/g, '""')}"`;
+      const phone = `"${(m.phone || "").replace(/"/g, '""')}"`;
+      const joinDate = m.createdAt ? new Date(m.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "";
+      return `${name},${phone},${joinDate}`;
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "members.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4" data-testid="list-organizer-requests">
       <div className="flex gap-2 overflow-x-auto flex-wrap">
@@ -327,6 +558,17 @@ function OrganizerRequests({ clubId }: { clubId: string }) {
             </span>
           </button>
         ))}
+        {viewFilter === "approved" && approved.length > 0 && (
+          <button
+            onClick={handleDownloadMembers}
+            className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap inline-flex items-center gap-1.5 bg-[var(--terra)] text-white ml-auto"
+            style={{ borderRadius: 14 }}
+            data-testid="button-download-members"
+          >
+            <Download className="w-3 h-3" />
+            Download CSV
+          </button>
+        )}
       </div>
 
       {filteredRequests.length === 0 ? (
