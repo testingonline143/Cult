@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap } from "lucide-react";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment } from "@shared/schema";
 
 export default function Organizer() {
@@ -608,11 +609,93 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate} />
-          ))}
+          {(() => {
+            const now = new Date();
+            const todayStr = now.toDateString();
+            const todayEvents = events.filter((e) => !e.isCancelled && new Date(e.startsAt).toDateString() === todayStr);
+            const otherEvents = events.filter((e) => e.isCancelled || new Date(e.startsAt).toDateString() !== todayStr);
+            return (
+              <>
+                {todayEvents.map((event) => (
+                  <EventTodayBanner key={`today-${event.id}`} event={event} />
+                ))}
+                {otherEvents.map((event) => (
+                  <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate} />
+                ))}
+              </>
+            );
+          })()}
         </div>
       )}
+    </div>
+  );
+}
+
+function EventTodayBanner({ event }: { event: Event & { rsvpCount: number } }) {
+  const d = new Date(event.startsAt);
+  const { toast } = useToast();
+
+  const copyLink = () => {
+    const url = `${window.location.origin}/scan/${event.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast({ title: "Scanner link copied!" });
+    }).catch(() => {
+      toast({ title: "Could not copy link", variant: "destructive" });
+    });
+  };
+
+  return (
+    <div
+      className="relative overflow-hidden p-5"
+      style={{
+        borderRadius: 18,
+        background: "linear-gradient(135deg, var(--ink) 0%, #2d1810 100%)",
+      }}
+      data-testid={`banner-event-today-${event.id}`}
+    >
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--terra)] text-white text-[10px] font-bold uppercase tracking-wider">
+        <Zap className="w-3 h-3" />
+        Today
+      </div>
+
+      <div className="mb-4">
+        <h3 className="font-display text-lg font-bold text-white pr-16" data-testid={`text-today-event-title-${event.id}`}>
+          {event.title}
+        </h3>
+        <div className="flex items-center gap-3 text-xs text-white/60 mt-2 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+          <span className="flex items-center gap-1">
+            <MapPin className="w-3 h-3" />
+            {event.locationText}
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {event.rsvpCount}/{event.maxCapacity} RSVPs
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <Link
+          href={`/scan/${event.id}`}
+          className="flex-1 flex items-center justify-center gap-2 bg-[var(--terra)] text-white rounded-xl py-3.5 text-sm font-bold transition-all active:scale-[0.98]"
+          data-testid={`button-today-checkin-${event.id}`}
+        >
+          <QrCode className="w-5 h-5" />
+          Check In Attendees
+        </Link>
+        <button
+          onClick={copyLink}
+          className="flex items-center justify-center gap-1.5 px-4 rounded-xl text-xs font-semibold bg-white/10 text-white/80 transition-all active:scale-[0.98]"
+          data-testid={`button-today-copy-link-${event.id}`}
+        >
+          <Link2 className="w-3.5 h-3.5" />
+          Share
+        </button>
+      </div>
     </div>
   );
 }
@@ -623,6 +706,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
   const [showAttendees, setShowAttendees] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const { toast } = useToast();
   const [editTitle, setEditTitle] = useState(event.title);
   const [editDescription, setEditDescription] = useState(event.description || "");
   const [editStartsAt, setEditStartsAt] = useState(() => {
@@ -697,8 +781,8 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
       style={{ borderRadius: 18 }}
       data-testid={`event-card-${event.id}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="mb-2">
+        <div className="flex items-center gap-2 flex-wrap mb-1">
           <span className="font-semibold text-sm text-foreground">{event.title}</span>
           {isCancelled && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-destructive/15 text-destructive" data-testid={`badge-cancelled-${event.id}`}>
@@ -707,46 +791,6 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
             </span>
           )}
           {!isCancelled && isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md text-muted-foreground">Past</span>}
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-          {!isCancelled && (
-            <>
-              <button
-                onClick={() => setShowEditForm(!showEditForm)}
-                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
-                data-testid={`button-edit-event-${event.id}`}
-              >
-                <Pencil className="w-3 h-3" />
-                Edit
-              </button>
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-destructive/10 text-destructive"
-                data-testid={`button-cancel-event-${event.id}`}
-              >
-                <Ban className="w-3 h-3" />
-                Cancel
-              </button>
-            </>
-          )}
-          <button
-            onClick={() => onDuplicate(event)}
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
-            data-testid={`button-duplicate-${event.id}`}
-          >
-            <Copy className="w-3 h-3" />
-            Duplicate
-          </button>
-          {!isCancelled && (
-            <Link
-              href={`/scan/${event.id}`}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
-              data-testid={`button-scan-attendees-${event.id}`}
-            >
-              <QrCode className="w-3 h-3" />
-              Scan
-            </Link>
-          )}
         </div>
       </div>
 
@@ -871,17 +915,118 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
           {event.rsvpCount}/{event.maxCapacity}
         </span>
       </div>
-      {!isCancelled && (
+
+      {!isCancelled && !isPast && (
+        <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
+          <div className="flex gap-2 mb-2">
+            <Link
+              href={`/scan/${event.id}`}
+              className="flex-1 flex items-center justify-center gap-2 bg-[var(--terra)] text-white rounded-xl py-2.5 text-sm font-bold transition-all active:scale-[0.98]"
+              data-testid={`button-scan-attendees-${event.id}`}
+            >
+              <QrCode className="w-4 h-4" />
+              Scan & Check In
+            </Link>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/scan/${event.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  toast({ title: "Scanner link copied!" });
+                }).catch(() => {
+                  toast({ title: "Could not copy link", variant: "destructive" });
+                });
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-semibold bg-[var(--terra-pale)] text-[var(--terra)] transition-all active:scale-[0.98]"
+              data-testid={`button-copy-scan-link-${event.id}`}
+            >
+              <Link2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setShowEditForm(!showEditForm)}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground"
+              data-testid={`button-edit-event-${event.id}`}
+            >
+              <Pencil className="w-2.5 h-2.5" />
+              Edit
+            </button>
+            <button
+              onClick={() => onDuplicate(event)}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground"
+              data-testid={`button-duplicate-${event.id}`}
+            >
+              <Copy className="w-2.5 h-2.5" />
+              Duplicate
+            </button>
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-destructive/70"
+              data-testid={`button-cancel-event-${event.id}`}
+            >
+              <Ban className="w-2.5 h-2.5" />
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isCancelled && isPast && (
+        <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
+          <div className="mb-2" data-testid={`summary-attendance-${event.id}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-foreground" data-testid={`text-attendance-stats-${event.id}`}>
+                {checkedInCount} of {totalRsvps} attended
+              </span>
+              <span className="text-xs font-bold text-[var(--terra)]">
+                {totalRsvps > 0 ? Math.round((checkedInCount / totalRsvps) * 100) : 0}%
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-[var(--cream)] overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${totalRsvps > 0 ? Math.round((checkedInCount / totalRsvps) * 100) : 0}%`,
+                  background: "var(--terra)",
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => onDuplicate(event)}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground"
+              data-testid={`button-duplicate-${event.id}`}
+            >
+              <Copy className="w-2.5 h-2.5" />
+              Duplicate
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isCancelled && (
         <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
           <button
+            onClick={() => onDuplicate(event)}
+            className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground"
+            data-testid={`button-duplicate-${event.id}`}
+          >
+            <Copy className="w-2.5 h-2.5" />
+            Duplicate
+          </button>
+        </div>
+      )}
+
+      {!isCancelled && (
+        <div className="mt-2">
+          <button
             onClick={() => setShowAttendees(!showAttendees)}
-            className="flex items-center gap-2 text-xs font-semibold text-foreground"
+            className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"
             data-testid={`button-toggle-attendees-${event.id}`}
           >
-            <span data-testid={`text-attendance-stats-${event.id}`}>
-              {checkedInCount}/{totalRsvps} checked in
-            </span>
-            <span className="text-muted-foreground">{showAttendees ? "Hide" : "Show"} attendees</span>
+            <Users className="w-3 h-3" />
+            <span>{showAttendees ? "Hide" : "Show"} attendees ({totalRsvps})</span>
           </button>
           {showAttendees && (
             <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>

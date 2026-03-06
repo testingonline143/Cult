@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -289,6 +289,8 @@ interface UserRsvp {
   clubName: string;
   clubEmoji: string;
   status: string;
+  checkedIn?: boolean | null;
+  checkedInAt?: string | null;
 }
 
 function UserEvents({ userId }: { userId: string }) {
@@ -303,7 +305,9 @@ function UserEvents({ userId }: { userId: string }) {
     },
   });
 
-  const upcomingRsvps = rsvps.filter((r) => new Date(r.eventStartsAt) > new Date());
+  const now = new Date();
+  const upcomingRsvps = rsvps.filter((r) => new Date(r.eventStartsAt) > now);
+  const pastRsvps = rsvps.filter((r) => new Date(r.eventStartsAt) <= now);
 
   if (isLoading) {
     return (
@@ -318,44 +322,114 @@ function UserEvents({ userId }: { userId: string }) {
     );
   }
 
-  if (upcomingRsvps.length === 0) return null;
+  if (upcomingRsvps.length === 0 && pastRsvps.length === 0) return null;
 
   return (
     <div className="mb-6">
-      <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-your-events-title">
-        Your Upcoming Events ({upcomingRsvps.length})
-      </h2>
-      <div className="space-y-2" data-testid="list-user-events">
-        {upcomingRsvps.map((rsvp) => {
-          const d = new Date(rsvp.eventStartsAt);
-          return (
-            <div
-              key={rsvp.id}
-              className="flex items-center gap-4 p-4 glass-card rounded-2xl"
-              data-testid={`card-rsvp-event-${rsvp.eventId}`}
-            >
-              <div className="text-2xl shrink-0">{rsvp.clubEmoji}</div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm text-foreground">{rsvp.eventTitle}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{rsvp.clubName}</div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} &middot; {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {rsvp.eventLocation}
-                  </span>
-                </div>
-              </div>
-              <span className="text-xs font-semibold shrink-0 flex items-center gap-1" style={{ color: 'var(--green-accent)' }}>
+      {upcomingRsvps.length > 0 && (
+        <>
+          <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-your-events-title">
+            Your Upcoming Events ({upcomingRsvps.length})
+          </h2>
+          <div className="space-y-2 mb-6" data-testid="list-user-events">
+            {upcomingRsvps.map((rsvp) => (
+              <EventTicketCard key={rsvp.id} rsvp={rsvp} isPast={false} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {pastRsvps.length > 0 && (
+        <>
+          <h2 className="font-display text-lg font-bold text-foreground mb-4" data-testid="text-past-events-title">
+            Past Events ({pastRsvps.length})
+          </h2>
+          <div className="space-y-2" data-testid="list-past-events">
+            {pastRsvps.map((rsvp) => (
+              <EventTicketCard key={rsvp.id} rsvp={rsvp} isPast={true} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function EventTicketCard({ rsvp, isPast }: { rsvp: UserRsvp; isPast: boolean }) {
+  const [showTicket, setShowTicket] = useState(false);
+  const d = new Date(rsvp.eventStartsAt);
+
+  return (
+    <div
+      className={`glass-card rounded-2xl overflow-hidden ${isPast ? "opacity-60" : ""}`}
+      data-testid={`card-rsvp-event-${rsvp.eventId}`}
+    >
+      <div className="flex items-center gap-4 p-4">
+        <div className="text-2xl shrink-0">{rsvp.clubEmoji}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm text-foreground">{rsvp.eventTitle}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{rsvp.clubName}</div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} &middot; {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {rsvp.eventLocation}
+            </span>
+          </div>
+        </div>
+        <div className="shrink-0 flex flex-col items-end gap-1.5">
+          {isPast ? (
+            rsvp.checkedIn ? (
+              <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--green-accent)' }} data-testid={`badge-attended-${rsvp.eventId}`}>
+                <CheckCircle2 className="w-3 h-3" /> Attended
+              </span>
+            ) : (
+              <span className="text-xs font-semibold flex items-center gap-1 text-muted-foreground" data-testid={`badge-missed-${rsvp.eventId}`}>
+                <XCircle className="w-3 h-3" /> Missed
+              </span>
+            )
+          ) : (
+            <>
+              <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--green-accent)' }}>
                 <Check className="w-3 h-3" /> Going
               </span>
-            </div>
-          );
-        })}
+              <button
+                onClick={() => setShowTicket(!showTicket)}
+                className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-all"
+                style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}
+                data-testid={`button-show-ticket-${rsvp.eventId}`}
+              >
+                <Ticket className="w-3 h-3" />
+                {showTicket ? "Hide" : "Ticket"}
+                <ChevronDown className={`w-3 h-3 transition-transform ${showTicket ? "rotate-180" : ""}`} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {showTicket && !isPast && (
+        <div className="px-4 pb-4 pt-0">
+          <div
+            className="rounded-xl p-4 text-center"
+            style={{ background: 'var(--cream)', border: '1.5px dashed var(--warm-border)' }}
+            data-testid={`ticket-qr-${rsvp.eventId}`}
+          >
+            <img
+              src={`/api/rsvps/${rsvp.id}/qr`}
+              alt="QR Ticket"
+              className="w-[200px] h-[200px] mx-auto mb-3 rounded-lg"
+              style={{ imageRendering: 'pixelated' }}
+              data-testid={`img-qr-${rsvp.eventId}`}
+            />
+            <p className="text-xs font-semibold text-foreground mb-0.5">{rsvp.eventTitle}</p>
+            <p className="text-[11px] text-muted-foreground">Show this at the door</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
