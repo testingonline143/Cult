@@ -6,7 +6,7 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import type { Event, Club, EventRsvp } from "@shared/schema";
 
-const FILTERS = ["All", "Free", "Today", "This Weekend"] as const;
+const FILTERS = ["All", "Today", "This Weekend"] as const;
 type Filter = (typeof FILTERS)[number];
 
 interface EventWithRsvps extends Event {
@@ -39,9 +39,7 @@ export default function Events() {
     const now = new Date();
     let filtered = events.filter((e) => new Date(e.startsAt) >= now);
 
-    if (activeFilter === "Free") {
-      filtered = filtered.filter((e) => !e.ticketPrice || e.ticketPrice === 0);
-    } else if (activeFilter === "Today") {
+    if (activeFilter === "Today") {
       filtered = filtered.filter((e) => isToday(new Date(e.startsAt)));
     } else if (activeFilter === "This Weekend") {
       filtered = filtered.filter((e) => {
@@ -171,15 +169,9 @@ export default function Events() {
                   </div>
                 </div>
 
-                {(!event.ticketPrice || event.ticketPrice === 0) ? (
-                  <span className="absolute top-3 right-3 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1px solid rgba(196,98,45,0.2)" }} data-testid={`badge-free-${event.id}`}>
-                    FREE
-                  </span>
-                ) : (
-                  <span className="absolute top-3 right-3 font-mono text-lg font-bold" style={{ color: "var(--terra-light)", letterSpacing: "1px" }} data-testid={`badge-price-${event.id}`}>
-                    ₹{event.ticketPrice}
-                  </span>
-                )}
+                <span className="absolute top-3 right-3 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1px solid rgba(196,98,45,0.2)" }} data-testid={`badge-free-${event.id}`}>
+                  FREE
+                </span>
               </div>
             );
           })}

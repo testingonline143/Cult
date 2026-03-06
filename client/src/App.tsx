@@ -39,7 +39,7 @@ function QuizGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
+function ProtectedRoute({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {

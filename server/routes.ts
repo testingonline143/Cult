@@ -176,7 +176,7 @@ export async function registerRoutes(
 
   app.patch("/api/admin/join-requests/:id/done", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const updated = await storage.markJoinRequestDone(req.params.id);
+      const updated = await storage.markJoinRequestDone(req.params.id as string);
       if (!updated) return res.status(404).json({ message: "Not found" });
       res.json(updated);
     } catch (err) {
@@ -197,7 +197,7 @@ export async function registerRoutes(
 
   app.patch("/api/admin/clubs/:id/deactivate", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateClub(req.params.id, { isActive: false });
+      const updated = await storage.updateClub(req.params.id as string, { isActive: false });
       if (!updated) return res.status(404).json({ message: "Club not found" });
       res.json(updated);
     } catch (err) {
@@ -208,7 +208,7 @@ export async function registerRoutes(
 
   app.patch("/api/admin/clubs/:id/activate", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateClub(req.params.id, { isActive: true });
+      const updated = await storage.updateClub(req.params.id as string, { isActive: true });
       if (!updated) return res.status(404).json({ message: "Club not found" });
       res.json(updated);
     } catch (err) {
@@ -243,7 +243,7 @@ export async function registerRoutes(
       if (!role || !["user", "organiser", "admin"].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
-      const updated = await storage.updateUserRole(req.params.id, role);
+      const updated = await storage.updateUserRole(req.params.id as string, role);
       if (!updated) return res.status(404).json({ message: "User not found" });
       res.json(updated);
     } catch (err) {
@@ -688,7 +688,7 @@ export async function registerRoutes(
       if (!clubs.some(c => c.id === request.clubId)) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const updated = await storage.markJoinRequestDone(req.params.id);
+      const updated = await storage.markJoinRequestDone(req.params.id as string);
       if (!updated) return res.status(404).json({ message: "Not found" });
       res.json(updated);
     } catch (err) {
