@@ -51,21 +51,19 @@ export function BottomNav() {
             if (tab === null) {
               return (
                 <div key="fab-slot" className="flex flex-col items-center px-3 py-1 relative" style={{ width: 56 }}>
-                  {isCreator && (
-                    <button
-                      onClick={() => setDrawerOpen(true)}
-                      className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                      style={{
-                        background: "var(--terra)",
-                        position: "absolute",
-                        bottom: 10,
-                        boxShadow: "0 4px 20px rgba(196,98,45,0.45)",
-                      }}
-                      data-testid="button-fab"
-                    >
-                      <Plus className="w-6 h-6 text-white" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                    style={{
+                      background: "var(--terra)",
+                      position: "absolute",
+                      bottom: 10,
+                      boxShadow: "0 4px 20px rgba(196,98,45,0.45)",
+                    }}
+                    data-testid="button-fab"
+                  >
+                    <Plus className="w-6 h-6 text-white" />
+                  </button>
                 </div>
               );
             }
