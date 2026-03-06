@@ -2,7 +2,7 @@
 
 ## Overview
 
-CultFam is a club discovery platform specifically built for Tirupati, India. It helps users find and join local community clubs (trekking, books, cycling, photography, fitness, art, etc.). The app features a single-page landing experience with an integrated matcher widget in the hero, club browsing with emoji-based cards, a process section, and instant club creation for organizers.
+CultFam is a club discovery platform for Indian cities. It helps users find and join local community clubs (trekking, books, cycling, photography, fitness, art, etc.). The landing page features a bold dark gradient hero with floating category icons, a category showcase grid, horizontally scrolling club cards, a simplified 3-step "How It Works" section, and a dark organizer CTA section.
 
 The project follows a full-stack TypeScript monorepo pattern with a React frontend, Express backend, and PostgreSQL database.
 
@@ -16,7 +16,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Scan Event (/scan/:eventId), 404
-- **Navigation**: Landing page (/) uses top Navbar only (no bottom tab bar). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`). **Regular users** see 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), ALERTS (/notifications), PROFILE (/profile). **Organizers/admins** see 6 tabs: HOME, EXPLORE, EVENTS, ALERTS, DASHBOARD (/organizer), PROFILE. Bell icon shows unread notification count badge. Bottom nav visible on /organizer, /create, /notifications. HOME tab (/home) shows a clean mobile feed with city selector pills, "Find Your Tribe" masthead, "Happening Today", and "Trending Clubs". Admin/onboarding/club-detail/event-detail pages use top Navbar only. Regular users access club creation via "Start a Club" CTA on Explore page (links to /create).
+- **Navigation**: Landing page (/) uses scroll-aware top Navbar (transparent over dark hero, solid cream after scroll). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`). **Regular users** see 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), ALERTS (/notifications), PROFILE (/profile). **Organizers/admins** see 6 tabs: HOME, EXPLORE, EVENTS, ALERTS, DASHBOARD (/organizer), PROFILE. Bell icon shows unread notification count badge. Bottom nav visible on /organizer, /create, /notifications. HOME tab (/home) shows a clean mobile feed with city selector pills, "Find Your Tribe" masthead, "Happening Today", and "Trending Clubs". Admin/onboarding/club-detail/event-detail pages use top Navbar only. Regular users access club creation via "Start a Club" CTA on Explore page (links to /create).
 - **Styling**: Tailwind CSS with CSS variables for theming (warm cream editorial design, single light theme)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
 - **Animations**: Framer Motion for scroll-triggered animations and transitions

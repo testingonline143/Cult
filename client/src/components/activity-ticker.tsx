@@ -1,75 +1,98 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { CATEGORIES, CATEGORY_EMOJI } from "@shared/schema";
+import type { Club } from "@shared/schema";
 
-interface ActivityItem {
-  name: string;
-  clubName: string;
-  clubEmoji: string;
-  createdAt: string;
-}
+export function CategoryShowcase() {
+  const [, navigate] = useLocation();
 
-function getRelativeTime(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
+  const { data: clubs = [] } = useQuery<Club[]>({
+    queryKey: ["/api/clubs"],
+  });
 
-  if (diffSec < 60) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${diffDay}d ago`;
+  const categoryCounts: Record<string, number> = {};
+  for (const club of clubs) {
+    categoryCounts[club.category] = (categoryCounts[club.category] || 0) + 1;
+  }
+
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.06,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: "easeOut" },
+    },
+  };
+
+  return (
+    <section
+      data-testid="section-category-showcase"
+      className="py-16 px-4 sm:px-6"
+      style={{ background: "var(--warm-white)" }}
+    >
+      <div className="max-w-5xl mx-auto">
+        <h2
+          data-testid="text-category-heading"
+          className="font-display text-3xl sm:text-4xl font-bold text-center mb-10"
+          style={{ color: "var(--ink)" }}
+        >
+          What's your thing?
+        </h2>
+
+        <motion.div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+        >
+          {CATEGORIES.map((cat) => {
+            const count = categoryCounts[cat] || 0;
+            return (
+              <motion.button
+                key={cat}
+                variants={cardVariants}
+                data-testid={`card-category-${cat.toLowerCase()}`}
+                onClick={() => navigate(`/explore?category=${encodeURIComponent(cat)}`)}
+                className="flex flex-col items-center gap-2 rounded-md p-5 sm:p-6 cursor-pointer transition-colors hover-elevate active-elevate-2"
+                style={{
+                  background: "var(--cream)",
+                  border: "1.5px solid var(--warm-border)",
+                }}
+              >
+                <span className="text-4xl sm:text-5xl leading-none">{CATEGORY_EMOJI[cat]}</span>
+                <span
+                  className="font-semibold text-sm sm:text-base"
+                  style={{ color: "var(--ink)" }}
+                >
+                  {cat}
+                </span>
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--muted-warm)" }}
+                  data-testid={`text-category-count-${cat.toLowerCase()}`}
+                >
+                  {count} {count === 1 ? "club" : "clubs"}
+                </span>
+              </motion.button>
+            );
+          })}
+        </motion.div>
+      </div>
+    </section>
+  );
 }
 
 export function ActivityTicker() {
-  const { data, isLoading } = useQuery<ActivityItem[]>({
-    queryKey: ["/api/activity/feed"],
-    queryFn: async () => {
-      const res = await fetch("/api/activity/feed");
-      if (!res.ok) throw new Error("Failed to fetch activity feed");
-      return res.json();
-    },
-  });
-
-  if (isLoading || !data || data.length === 0) return null;
-
-  const items = [...data, ...data, ...data];
-
-  return (
-    <div
-      data-testid="section-activity-ticker"
-      className="py-2.5 overflow-hidden"
-      style={{ background: "var(--warm-white)", borderTop: "1.5px solid var(--ink)", borderBottom: "1px solid var(--warm-border)" }}
-    >
-      <div className="flex animate-marquee whitespace-nowrap">
-        {items.map((item, i) => (
-          <span
-            key={i}
-            data-testid="text-activity-item"
-            className="text-sm font-medium mx-8 inline-flex items-center gap-1.5 shrink-0"
-            style={{ color: "var(--muted-warm)" }}
-          >
-            <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: "var(--terra)", animation: "blink 2s infinite" }} />
-            <span className="text-base">{item.clubEmoji}</span>
-            <span className="font-semibold" style={{ color: "var(--ink)" }}>{item.name}</span> joined {item.clubName}
-            <span className="text-xs" style={{ color: "var(--muted-warm2)" }}>{"\u00B7"} {getRelativeTime(item.createdAt)}</span>
-          </span>
-        ))}
-      </div>
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-33.33%); }
-        }
-        .animate-marquee {
-          animation: marquee 25s linear infinite;
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-      `}</style>
-    </div>
-  );
+  return <CategoryShowcase />;
 }

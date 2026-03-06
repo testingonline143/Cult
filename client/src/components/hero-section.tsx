@@ -1,55 +1,100 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowDown } from "lucide-react";
+import { useLocation } from "wouter";
+import { Mountain, BookOpen, Bike, Camera, Dumbbell, Palette, Music, Gamepad2, ChefHat, MapPin } from "lucide-react";
+import { CITIES } from "@shared/schema";
 
-const INTERESTS = [
-  { id: "Trekking", emoji: "\u{1F3D4}\uFE0F" },
-  { id: "Books", emoji: "\u{1F4DA}" },
-  { id: "Cycling", emoji: "\u{1F6B4}" },
-  { id: "Photography", emoji: "\u{1F4F7}" },
-  { id: "Fitness", emoji: "\u{1F4AA}" },
-  { id: "Art", emoji: "\u{1F3A8}" },
+const FLOATING_ICONS = [
+  { Icon: Mountain, label: "Trekking" },
+  { Icon: BookOpen, label: "Books" },
+  { Icon: Bike, label: "Cycling" },
+  { Icon: Camera, label: "Photography" },
+  { Icon: Dumbbell, label: "Fitness" },
+  { Icon: Palette, label: "Art" },
+  { Icon: Music, label: "Music" },
+  { Icon: Gamepad2, label: "Gaming" },
+  { Icon: ChefHat, label: "Cooking" },
 ];
 
-const TIMES = [
-  { id: "morning", label: "Early Morning", emoji: "\u{1F305}" },
-  { id: "evening", label: "Evening", emoji: "\u{1F307}" },
-  { id: "weekends", label: "Weekends", emoji: "\u{1F4C5}" },
+const ICON_POSITIONS = [
+  { top: "8%", left: "5%", size: 28, delay: 0 },
+  { top: "15%", right: "8%", size: 32, delay: 0.5 },
+  { top: "35%", left: "3%", size: 24, delay: 1.2 },
+  { top: "55%", right: "5%", size: 30, delay: 0.8 },
+  { top: "70%", left: "8%", size: 26, delay: 1.5 },
+  { top: "25%", right: "15%", size: 22, delay: 0.3 },
+  { top: "80%", right: "12%", size: 28, delay: 1.0 },
+  { top: "45%", left: "12%", size: 20, delay: 1.8 },
+  { top: "65%", right: "18%", size: 24, delay: 0.6 },
 ];
 
-interface HeroSectionProps {
-  onMatch: (categories: string[], times: string[]) => void;
-}
+export function HeroSection() {
+  const [, navigate] = useLocation();
+  const [cityIndex, setCityIndex] = useState(0);
 
-export function HeroSection({ onMatch }: HeroSectionProps) {
-  const { data: stats } = useQuery<{ totalMembers: number; totalClubs: number; upcomingEvents: number }>({
-    queryKey: ["/api/stats"],
-  });
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCityIndex((prev) => (prev + 1) % CITIES.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <section id="hero" className="relative min-h-[85vh] flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden" style={{ background: "var(--cream)" }}>
-      <div className="relative z-10 text-center max-w-[800px] mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-bold tracking-[2.5px] uppercase mb-8" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--terra)" }} />
-            Tirupati
-          </div>
-        </motion.div>
+    <section
+      id="hero"
+      className="relative min-h-[92vh] flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden"
+      style={{
+        background: "linear-gradient(165deg, var(--ink) 0%, var(--ink2) 40%, var(--terra2) 100%)",
+      }}
+    >
+      {FLOATING_ICONS.map((item, i) => {
+        const pos = ICON_POSITIONS[i];
+        if (!pos) return null;
+        return (
+          <motion.div
+            key={item.label}
+            className="absolute pointer-events-none"
+            style={{
+              top: pos.top,
+              left: "left" in pos ? pos.left : undefined,
+              right: "right" in pos ? pos.right : undefined,
+              opacity: 0.12,
+            }}
+            animate={{
+              y: [0, -12, 0, 8, 0],
+            }}
+            transition={{
+              duration: 6 + i * 0.5,
+              repeat: Infinity,
+              delay: pos.delay,
+              ease: "easeInOut",
+            }}
+          >
+            <item.Icon
+              style={{ width: pos.size, height: pos.size, color: "rgba(255,255,255,0.6)" }}
+              strokeWidth={1.5}
+            />
+          </motion.div>
+        );
+      })}
 
+      <div className="relative z-10 text-center max-w-[800px] mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
+          transition={{ duration: 0.7, delay: 0.15 }}
           className="font-display font-black leading-[0.95] tracking-tight mb-6"
-          style={{ fontSize: "clamp(48px, 10vw, 96px)", letterSpacing: "-3px", color: "var(--ink)" }}
+          style={{
+            fontSize: "clamp(40px, 8vw, 80px)",
+            letterSpacing: "-2px",
+            color: "#FFFFFF",
+          }}
           data-testid="text-hero-headline"
         >
-          Find your <em style={{ color: "var(--terra)", fontStyle: "italic" }}>cult.</em>
+          Your city's hobby scene.{" "}
+          <em style={{ color: "var(--terra-light)", fontStyle: "italic" }}>
+            All in one place.
+          </em>
         </motion.h1>
 
         <motion.p
@@ -57,177 +102,70 @@ export function HeroSection({ onMatch }: HeroSectionProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.35 }}
           className="max-w-[480px] mx-auto mb-10 leading-relaxed"
-          style={{ fontSize: "clamp(16px, 2.2vw, 20px)", color: "var(--muted-warm)" }}
+          style={{
+            fontSize: "clamp(16px, 2.2vw, 20px)",
+            color: "rgba(255,255,255,0.65)",
+          }}
           data-testid="text-hero-subheadline"
         >
-          Your city has more going on than you think.
+          Discover clubs, join meetups, find your people.
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
         >
           <button
-            onClick={() => document.getElementById("clubs")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => navigate("/explore")}
             className="rounded-full px-10 py-4 text-base font-bold transition-all"
-            style={{ background: "var(--terra)", color: "white", boxShadow: "var(--warm-shadow)" }}
+            style={{
+              background: "var(--terra)",
+              color: "white",
+              boxShadow: "0 4px 24px rgba(196,98,45,0.4)",
+            }}
             data-testid="button-explore-clubs"
           >
-            Explore Clubs
+            Explore Clubs &rarr;
           </button>
           <button
-            onClick={() => document.getElementById("match")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => navigate("/create")}
             className="rounded-full px-8 py-4 text-sm font-medium transition-all"
-            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}
-            data-testid="button-find-match"
+            style={{
+              background: "transparent",
+              border: "1.5px solid rgba(255,255,255,0.25)",
+              color: "rgba(255,255,255,0.85)",
+            }}
+            data-testid="button-start-club"
           >
-            Find Your Match
+            Start a Club
           </button>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.65 }}
-          className="flex items-center justify-center gap-6 sm:gap-10"
+          transition={{ duration: 0.5, delay: 0.7 }}
+          className="flex flex-wrap items-center justify-center gap-2"
         >
-          {[
-            { value: stats ? `${stats.totalClubs}+` : "\u2014", label: "Active Clubs" },
-            { value: stats ? `${stats.totalMembers}+` : "\u2014", label: "Members" },
-            { value: stats ? `${stats.upcomingEvents}` : "\u2014", label: "Events This Week" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="text-center"
-              data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
+          {CITIES.slice(0, 6).map((city, i) => (
+            <span
+              key={city}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium tracking-wide"
+              style={{
+                background: cityIndex === i ? "rgba(196,98,45,0.25)" : "rgba(255,255,255,0.08)",
+                color: cityIndex === i ? "var(--terra-light)" : "rgba(255,255,255,0.45)",
+                border: "1px solid",
+                borderColor: cityIndex === i ? "rgba(196,98,45,0.3)" : "rgba(255,255,255,0.08)",
+                transition: "all 0.4s ease",
+              }}
+              data-testid={`pill-city-${city.toLowerCase()}`}
             >
-              <div className="font-mono text-2xl sm:text-3xl leading-none" style={{ color: "var(--terra)", letterSpacing: "1px" }}>{stat.value}</div>
-              <div className="text-[11px] mt-1 uppercase tracking-wider font-medium" style={{ color: "var(--muted-warm)" }}>{stat.label}</div>
-            </div>
+              <MapPin style={{ width: 10, height: 10 }} />
+              {city}
+            </span>
           ))}
-        </motion.div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 1.2 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2"
-      >
-        <button
-          onClick={() => document.getElementById("match")?.scrollIntoView({ behavior: "smooth" })}
-          className="transition-colors animate-bounce"
-          style={{ color: "var(--muted-warm)" }}
-          aria-label="Scroll down"
-          data-testid="button-scroll-down"
-        >
-          <ArrowDown className="w-5 h-5" />
-        </button>
-      </motion.div>
-    </section>
-  );
-}
-
-export function MatchSection({ onMatch }: HeroSectionProps) {
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
-
-  const toggleInterest = (id: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
-
-  const toggleTime = (id: string) => {
-    setSelectedTimes((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
-  };
-
-  const handleMatch = () => {
-    onMatch(selectedInterests, selectedTimes);
-    document.getElementById("clubs")?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  return (
-    <section id="match" className="py-16 sm:py-20">
-      <div className="max-w-[520px] mx-auto px-4 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-8"
-        >
-          <h2 className="font-display text-2xl sm:text-3xl font-black tracking-tight mb-2" style={{ color: "var(--ink)" }}>
-            What are you into?
-          </h2>
-          <p className="text-sm" style={{ color: "var(--muted-warm)" }}>
-            Pick your interests and we'll match you with the right cult
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-2xl p-5 sm:p-6"
-          style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "18px" }}
-          data-testid="card-match-widget"
-        >
-          <div className="mb-4">
-            <div className="text-xs font-medium mb-2.5" style={{ color: "var(--muted-warm)" }}>Interests</div>
-            <div className="flex flex-wrap gap-2">
-              {INTERESTS.map((interest) => (
-                <button
-                  key={interest.id}
-                  onClick={() => toggleInterest(interest.id)}
-                  className="px-3.5 py-2 rounded-full border-[1.5px] text-[13px] font-medium transition-all"
-                  style={
-                    selectedInterests.includes(interest.id)
-                      ? { background: "var(--ink)", color: "var(--cream)", borderColor: "var(--ink)" }
-                      : { background: "var(--warm-white)", borderColor: "var(--warm-border)", color: "var(--ink3, #3D3228)" }
-                  }
-                  data-testid={`button-interest-${interest.id.toLowerCase()}`}
-                >
-                  {interest.emoji} {interest.id}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <div className="text-xs font-medium mb-2.5" style={{ color: "var(--muted-warm)" }}>When are you free?</div>
-            <div className="flex flex-wrap gap-2">
-              {TIMES.map((time) => (
-                <button
-                  key={time.id}
-                  onClick={() => toggleTime(time.id)}
-                  className="px-3.5 py-2 rounded-full border-[1.5px] text-[13px] font-medium transition-all"
-                  style={
-                    selectedTimes.includes(time.id)
-                      ? { background: "var(--ink)", color: "var(--cream)", borderColor: "var(--ink)" }
-                      : { background: "var(--warm-white)", borderColor: "var(--warm-border)", color: "var(--ink3, #3D3228)" }
-                  }
-                  data-testid={`button-time-${time.id}`}
-                >
-                  {time.emoji} {time.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={handleMatch}
-            className="w-full border-none rounded-xl py-3.5 text-sm font-bold transition-all"
-            style={{ background: "var(--terra)", color: "white", boxShadow: "var(--warm-shadow)" }}
-            data-testid="button-show-matches"
-          >
-            Show My Matches
-          </button>
         </motion.div>
       </div>
     </section>

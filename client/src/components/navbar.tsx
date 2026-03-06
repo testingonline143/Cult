@@ -1,58 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
+import { Link, useLocation } from "wouter";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
 
   const displayName = user?.firstName || user?.email || "User";
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    setMobileOpen(false);
-  };
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroEl = document.getElementById("hero");
+      if (heroEl) {
+        const heroBottom = heroEl.offsetTop + heroEl.offsetHeight;
+        setScrolled(window.scrollY > heroBottom - 80);
+      } else {
+        setScrolled(window.scrollY > 100);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const navBg = scrolled
+    ? "rgba(245,240,232,0.95)"
+    : "transparent";
+  const navBorder = scrolled
+    ? "var(--warm-border)"
+    : "transparent";
+  const textColor = scrolled ? "var(--ink)" : "#FFFFFF";
+  const mutedColor = scrolled ? "var(--muted-warm)" : "rgba(255,255,255,0.7)";
+  const pillBg = scrolled ? "var(--terra-pale)" : "rgba(255,255,255,0.1)";
+  const pillColor = scrolled ? "var(--muted-warm)" : "rgba(255,255,255,0.8)";
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ background: "rgba(245,240,232,0.95)", backdropFilter: "blur(16px)", borderColor: "var(--warm-border)" }}>
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      style={{
+        background: navBg,
+        backdropFilter: scrolled ? "blur(16px)" : "none",
+        borderBottom: `1px solid ${navBorder}`,
+      }}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between gap-2 h-16">
           <div className="flex items-center gap-4">
-            <a
+            <Link
               href="/"
               className="flex items-center gap-2"
               data-testid="link-home"
             >
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--terra)" }} />
-              <span className="text-xl font-display font-black tracking-tight" style={{ color: "var(--ink)" }}>CultFam</span>
-            </a>
-            <a
+              <span className="text-xl font-display font-black tracking-tight transition-colors duration-300" style={{ color: textColor }}>CultFam</span>
+            </Link>
+            <Link
               href="/explore"
-              className="hidden sm:flex items-center gap-1 text-sm transition-colors"
-              style={{ color: "var(--muted-warm)" }}
+              className="hidden sm:flex items-center gap-1 text-sm transition-colors duration-300"
+              style={{ color: mutedColor }}
               data-testid="link-explore"
             >
               <Compass className="w-4 h-4" />
               Explore
-            </a>
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase px-3 py-1 rounded-full" style={{ color: "var(--muted-warm)", background: "var(--terra-pale)" }}>
+            <span
+              className="hidden sm:inline-flex text-[11px] font-semibold tracking-widest uppercase px-3 py-1 rounded-full transition-colors duration-300"
+              style={{ color: pillColor, background: pillBg }}
+            >
               {user?.city || "Tirupati"}
             </span>
             {isAuthenticated ? (
               <div className="hidden sm:flex items-center gap-2">
-                <a
+                <Link
                   href="/profile"
-                  className="text-sm font-medium transition-colors"
-                  style={{ color: "var(--ink)" }}
+                  className="text-sm font-medium transition-colors duration-300"
+                  style={{ color: textColor }}
                   data-testid="link-profile"
                 >
                   {displayName}
-                </a>
+                </Link>
                 <Button
                   size="sm"
                   variant="outline"
@@ -77,7 +111,7 @@ export function Navbar() {
             <Button
               size="sm"
               className="rounded-full hidden sm:inline-flex"
-              onClick={() => { window.location.href = "/create"; }}
+              onClick={() => navigate("/create")}
               data-testid="button-list-club-nav"
             >
               List Your Club
@@ -89,7 +123,7 @@ export function Navbar() {
               onClick={() => setMobileOpen(!mobileOpen)}
               data-testid="button-mobile-menu"
             >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileOpen ? <X className="w-5 h-5" style={{ color: textColor }} /> : <Menu className="w-5 h-5" style={{ color: textColor }} />}
             </Button>
           </div>
         </div>
@@ -105,22 +139,19 @@ export function Navbar() {
             style={{ background: "rgba(245,240,232,0.95)", backdropFilter: "blur(16px)", borderColor: "var(--warm-border)" }}
           >
             <div className="px-4 py-3 flex flex-col gap-1">
-              <a href="/explore" className="flex items-center gap-2 text-sm font-medium px-3 py-1.5" style={{ color: "var(--ink)" }} onClick={() => setMobileOpen(false)} data-testid="link-explore-mobile">
+              <Link href="/explore" className="flex items-center gap-2 text-sm font-medium px-3 py-1.5" style={{ color: "var(--ink)" }} onClick={() => setMobileOpen(false)} data-testid="link-explore-mobile">
                 <Compass className="w-4 h-4" />
                 Explore Clubs
-              </a>
-              <Button variant="ghost" size="sm" className="justify-start" onClick={() => scrollTo("process")} data-testid="link-process-mobile">
-                How It Works
-              </Button>
+              </Link>
               {isAuthenticated ? (
                 <div className="flex flex-col gap-1 mt-2">
-                  <a href="/profile" className="text-sm font-medium transition-colors px-3 py-1.5" style={{ color: "var(--ink)" }} data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>
+                  <Link href="/profile" className="text-sm font-medium transition-colors px-3 py-1.5" style={{ color: "var(--ink)" }} data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>
                     My Profile ({displayName})
-                  </a>
+                  </Link>
                   {user && !user.quizCompleted && (
-                    <a href="/onboarding" className="text-sm font-medium px-3 py-1.5" style={{ color: "var(--terra)" }} data-testid="link-quiz-mobile" onClick={() => setMobileOpen(false)}>
+                    <Link href="/onboarding" className="text-sm font-medium px-3 py-1.5" style={{ color: "var(--terra)" }} data-testid="link-quiz-mobile" onClick={() => setMobileOpen(false)}>
                       Take Quiz
-                    </a>
+                    </Link>
                   )}
                   <Button size="sm" variant="outline" className="rounded-full text-xs self-start" onClick={() => logout()} data-testid="button-sign-out-mobile">
                     Sign Out
@@ -131,7 +162,7 @@ export function Navbar() {
                   Sign In
                 </Button>
               )}
-              <Button size="sm" className="mt-2 rounded-full" onClick={() => { window.location.href = "/create"; setMobileOpen(false); }} data-testid="button-list-club-mobile">
+              <Button size="sm" className="mt-2 rounded-full" onClick={() => { navigate("/create"); setMobileOpen(false); }} data-testid="button-list-club-mobile">
                 List Your Club
               </Button>
             </div>

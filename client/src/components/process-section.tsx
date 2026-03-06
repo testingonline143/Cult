@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
+import { Compass, UserPlus, MapPin } from "lucide-react";
 
 const STEPS = [
-  { num: "01", icon: "\u{1F50D}", title: "Discover", description: "Browse clubs or use our matcher. Find what fits your vibe and schedule." },
-  { num: "02", icon: "\u{2705}", title: "Vibe Check", description: "See the Club Health Score \u2014 know if they're actually meeting before you commit." },
-  { num: "03", icon: "\u{1F91D}", title: "Join", description: "20 seconds. That's it. Grab a Founding Member spot if you're early." },
-  { num: "04", icon: "\u{26A1}", title: "Show Up", description: "Meet your people. Build something real. Your cult is waiting." },
+  { num: "01", icon: Compass, title: "Browse", description: "Find clubs and events in your city" },
+  { num: "02", icon: UserPlus, title: "Join", description: "Request to join — organizers approve within 24hrs" },
+  { num: "03", icon: MapPin, title: "Show Up", description: "Attend meetups, meet your people" },
 ];
 
 export function ProcessSection() {
@@ -16,35 +16,41 @@ export function ProcessSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-14"
+          className="text-center mb-14"
         >
-          <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase mb-3" style={{ color: "var(--terra)" }}>
+          <div className="flex items-center justify-center gap-2 text-[11px] font-semibold tracking-[2px] uppercase mb-3" style={{ color: "var(--terra)" }}>
             <span className="w-5 h-px" style={{ background: "var(--terra)" }} />
             How It Works
+            <span className="w-5 h-px" style={{ background: "var(--terra)" }} />
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] max-w-[500px]" style={{ color: "var(--ink)" }}>
-            Stranger to <em style={{ color: "var(--terra)", fontStyle: "italic" }}>cult member</em> in minutes
+          <h2 className="font-display text-3xl sm:text-4xl font-black tracking-tight leading-[1.1]" style={{ color: "var(--ink)" }}>
+            Three steps. That's it.
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {STEPS.map((step, i) => (
-            <motion.div
-              key={step.num}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="p-7 rounded-2xl transition-all hover-elevate"
-              style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "18px" }}
-              data-testid={`card-step-${step.num}`}
-            >
-              <div className="font-mono text-5xl leading-none mb-4" style={{ color: "rgba(26,20,16,0.08)", letterSpacing: "1px" }}>{step.num}</div>
-              <div className="text-[28px] mb-3">{step.icon}</div>
-              <h3 className="text-base font-bold mb-2" style={{ color: "var(--ink)" }}>{step.title}</h3>
-              <p className="text-[13px] leading-relaxed" style={{ color: "var(--muted-warm)" }}>{step.description}</p>
-            </motion.div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {STEPS.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={step.num}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.12 }}
+                className="text-center p-8 rounded-2xl hover-elevate"
+                style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderRadius: "18px" }}
+                data-testid={`card-step-${step.num}`}
+              >
+                <div className="font-mono text-5xl leading-none mb-5" style={{ color: "rgba(26,20,16,0.08)", letterSpacing: "1px" }}>{step.num}</div>
+                <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4" style={{ background: "var(--terra-pale)" }}>
+                  <Icon className="w-5 h-5" style={{ color: "var(--terra)" }} />
+                </div>
+                <h3 className="text-lg font-bold mb-2" style={{ color: "var(--ink)" }}>{step.title}</h3>
+                <p className="text-[14px] leading-relaxed" style={{ color: "var(--muted-warm)" }}>{step.description}</p>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>
