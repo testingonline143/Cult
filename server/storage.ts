@@ -106,7 +106,7 @@ export interface IStorage {
   getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
   getUserApprovedClubs(userId: string): Promise<Club[]>;
-  getFeedMoments(limit?: number): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number })[]>;
+  getFeedMoments(limit?: number, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean })[]>;
   becomeCreator(userId: string): Promise<void>;
   getClubAnalytics(clubId: string): Promise<{
     memberGrowth: { week: string; count: number }[];
@@ -999,7 +999,7 @@ export class DatabaseStorage implements IStorage {
     return result.map(r => r.club);
   }
 
-  async getFeedMoments(limit = 10): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number })[]> {
+  async getFeedMoments(limit = 10, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean })[]> {
     const rows = await db
       .select({
         id: clubMoments.id,
@@ -1026,7 +1026,15 @@ export class DatabaseStorage implements IStorage {
       .groupBy(momentComments.momentId);
     const countMap: Record<string, number> = {};
     for (const c of counts) countMap[c.momentId] = c.count;
-    return rows.map(r => ({ ...r, commentCount: countMap[r.id] ?? 0 }));
+    let likedSet = new Set<string>();
+    if (userId) {
+      const likedRows = await db
+        .select({ momentId: momentLikes.momentId })
+        .from(momentLikes)
+        .where(and(eq(momentLikes.userId, userId), sql`${momentLikes.momentId} = ANY(${sql.raw(`ARRAY[${ids.map(id => `'${id}'`).join(",")}]`)})`));
+      for (const row of likedRows) likedSet.add(row.momentId);
+    }
+    return rows.map(r => ({ ...r, commentCount: countMap[r.id] ?? 0, userHasLiked: likedSet.has(r.id) }));
   }
 
   async getClubAnalytics(clubId: string) {

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle, Compass } from "lucide-react";
+import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 interface EventWithClub extends Event {
   clubName?: string;
@@ -19,6 +21,7 @@ interface FeedMoment extends ClubMoment {
   clubEmoji: string;
   clubLocation: string;
   commentCount: number;
+  userHasLiked: boolean;
 }
 
 
@@ -63,10 +66,68 @@ function ClubAvatar({ emoji, color, size = 52 }: { emoji: string; color?: string
   );
 }
 
+function getEventLabel(date: Date): string {
+  if (isToday(date)) return "Today";
+  if (isTomorrow(date)) return "Tomorrow";
+  return format(date, "MMM d");
+}
+
+function MomentCardSkeleton() {
+  return (
+    <div
+      className="rounded-[20px] overflow-hidden mb-4"
+      style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+    >
+      <div className="flex items-center gap-3 p-4 pb-3">
+        <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+        <div className="flex-1 space-y-1.5">
+          <Skeleton className="h-3.5 w-32 rounded" />
+          <Skeleton className="h-3 w-20 rounded" />
+        </div>
+      </div>
+      <div className="mx-4 mb-3">
+        <Skeleton className="w-full h-[180px] rounded-[16px]" />
+      </div>
+      <div className="px-4 pb-4 space-y-2">
+        <Skeleton className="h-3 w-full rounded" />
+        <Skeleton className="h-3 w-3/4 rounded" />
+        <div className="flex items-center gap-5 pt-1">
+          <Skeleton className="h-5 w-12 rounded" />
+          <Skeleton className="h-5 w-12 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExpandableCaption({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > 160;
+  return (
+    <p className="text-[13px] leading-relaxed mb-3" style={{ color: "var(--ink)" }}>
+      {isLong && !expanded ? (
+        <>
+          {text.slice(0, 160)}…{" "}
+          <button
+            onClick={() => setExpanded(true)}
+            className="font-semibold"
+            style={{ color: "var(--terra)" }}
+          >
+            more
+          </button>
+        </>
+      ) : (
+        text
+      )}
+    </p>
+  );
+}
+
 export default function HomeFeed() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCountOverrides, setLikeCountOverrides] = useState<Record<string, number>>({});
 
@@ -136,9 +197,21 @@ export default function HomeFeed() {
     enabled: !!user,
   });
 
-  const { data: feedMoments = [] } = useQuery<FeedMoment[]>({
+  const { data: feedMoments = [], isLoading: feedLoading } = useQuery<FeedMoment[]>({
     queryKey: ["/api/feed"],
   });
+
+  useEffect(() => {
+    if (feedMoments.length === 0) return;
+    const alreadyLiked = new Set(feedMoments.filter(m => m.userHasLiked).map(m => m.id));
+    if (alreadyLiked.size > 0) {
+      setLikedPosts(prev => {
+        const merged = new Set(prev);
+        alreadyLiked.forEach(id => merged.add(id));
+        return merged;
+      });
+    }
+  }, [feedMoments]);
 
   const unreadCount = unreadData?.count ?? 0;
 
@@ -169,6 +242,28 @@ export default function HomeFeed() {
       unlikeMutation.mutate(id);
     } else {
       likeMutation.mutate(id);
+    }
+  }
+
+  async function handleShare(moment: FeedMoment) {
+    const url = `${window.location.origin}/club/${moment.clubId}`;
+    const shareData = {
+      title: moment.clubName,
+      text: moment.caption || `Check out ${moment.clubName} on CultFam!`,
+      url,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ description: "Link copied to clipboard!" });
+    } catch {
+      toast({ description: "Could not copy link", variant: "destructive" });
     }
   }
 
@@ -235,7 +330,6 @@ export default function HomeFeed() {
           <div data-testid="section-happening-soon">
             {happeningSoon.map(event => {
               const eventDate = new Date(event.startsAt);
-              const isToday = eventDate.toDateString() === now.toDateString();
               const diffHrs = Math.round((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60));
               return (
                 <Link
@@ -253,7 +347,7 @@ export default function HomeFeed() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-0.5">
-                      {isToday ? "TODAY" : "TOMORROW"} · {diffHrs > 0 ? `in ${diffHrs}h` : "very soon"}
+                      {getEventLabel(eventDate).toUpperCase()} · {diffHrs > 0 ? `in ${diffHrs}h` : "very soon"}
                     </p>
                     <p className="font-display font-bold text-white text-[16px] leading-tight truncate" data-testid={`text-soon-event-${event.id}`}>
                       {event.title}
@@ -402,7 +496,7 @@ export default function HomeFeed() {
           >
             <div className="p-5">
               <p className="text-[10px] font-bold tracking-[2px] uppercase mb-2" style={{ color: "var(--terra-light)" }}>
-                Happening Tomorrow
+                {getEventLabel(new Date(upcomingEvent.startsAt))}
               </p>
               <div className="flex items-start justify-between gap-4">
                 <h3 className="font-display font-bold text-[20px] text-white leading-tight flex-1">
@@ -459,9 +553,42 @@ export default function HomeFeed() {
         )}
 
         {/* Community Feed */}
-        {feedMoments.length > 0 && (
-          <div data-testid="section-feed">
-            {feedMoments.map((moment) => (
+        <div data-testid="section-feed">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>Community</h2>
+          </div>
+
+          {feedLoading ? (
+            <>
+              <MomentCardSkeleton />
+              <MomentCardSkeleton />
+            </>
+          ) : feedMoments.length === 0 ? (
+            <div
+              className="rounded-[20px] p-6 flex flex-col items-center text-center gap-3"
+              style={{ background: "var(--warm-white)", border: "1.5px dashed var(--terra)", borderColor: "rgba(196,98,45,0.35)" }}
+              data-testid="empty-state-feed"
+            >
+              <span className="text-4xl">📸</span>
+              <div>
+                <p className="font-display font-bold text-[15px] mb-1" style={{ color: "var(--ink)" }}>
+                  No posts yet
+                </p>
+                <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
+                  Clubs will share moments here once they get going.
+                </p>
+              </div>
+              <Link
+                href="/explore"
+                className="rounded-full px-5 py-2 text-[12px] font-bold text-white"
+                style={{ background: "var(--terra)" }}
+                data-testid="button-empty-feed-explore"
+              >
+                Explore Clubs
+              </Link>
+            </div>
+          ) : (
+            feedMoments.map((moment) => (
               <div
                 key={moment.id}
                 className="rounded-[20px] overflow-hidden mb-4"
@@ -470,15 +597,19 @@ export default function HomeFeed() {
               >
                 <div className="flex items-center gap-3 p-4 pb-3">
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-xl"
-                    style={{ background: "var(--ink2)" }}
+                    className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-xl"
+                    style={{ background: "var(--ink2)", border: "2px solid var(--terra)" }}
                   >
                     {moment.clubEmoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[14px] leading-tight truncate" style={{ color: "var(--ink)" }}>
+                    <Link
+                      href={`/club/${moment.clubId}`}
+                      className="font-bold text-[14px] leading-tight truncate block no-underline"
+                      style={{ color: "var(--ink)" }}
+                    >
                       {moment.clubName}
-                    </p>
+                    </Link>
                     <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
                       {moment.createdAt
                         ? `${formatDistanceToNow(new Date(moment.createdAt))} ago`
@@ -490,12 +621,12 @@ export default function HomeFeed() {
                 </div>
 
                 {moment.imageUrl ? (
-                  <div className="mx-4 rounded-[12px] overflow-hidden mb-3">
+                  <div className="mx-4 rounded-[16px] overflow-hidden mb-3">
                     <img
                       src={moment.imageUrl}
-                      alt={moment.caption}
+                      alt={moment.caption || ""}
                       className="w-full object-cover"
-                      style={{ maxHeight: 240 }}
+                      style={{ maxHeight: 260 }}
                     />
                   </div>
                 ) : moment.emoji ? (
@@ -504,10 +635,8 @@ export default function HomeFeed() {
                   </div>
                 ) : null}
 
-                <div className="px-4 pb-3">
-                  <p className="text-[13px] leading-relaxed mb-3" style={{ color: "var(--ink)" }}>
-                    {moment.caption}
-                  </p>
+                <div className="px-4 pb-4">
+                  {moment.caption && <ExpandableCaption text={moment.caption} />}
                   <div className="flex items-center gap-5">
                     <button
                       onClick={() => toggleLike(moment.id)}
@@ -515,7 +644,7 @@ export default function HomeFeed() {
                       data-testid={`button-like-${moment.id}`}
                     >
                       <Heart
-                        className="w-5 h-5"
+                        className="w-5 h-5 transition-colors"
                         style={{
                           color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)",
                           fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
@@ -528,7 +657,7 @@ export default function HomeFeed() {
                       )}
                     </button>
                     <Link
-                      href={`/club/${moment.clubId}`}
+                      href={`/club/${moment.clubId}?tab=moments`}
                       className="flex items-center gap-1.5 transition-transform active:scale-90"
                       style={{ textDecoration: "none" }}
                       data-testid={`button-comments-${moment.id}`}
@@ -540,22 +669,36 @@ export default function HomeFeed() {
                         </span>
                       )}
                     </Link>
-                    <button className="flex items-center gap-1.5 ml-auto" data-testid={`button-share-${moment.id}`}>
+                    <button
+                      onClick={() => handleShare(moment)}
+                      className="flex items-center gap-1.5 ml-auto transition-transform active:scale-90"
+                      data-testid={`button-share-${moment.id}`}
+                    >
                       <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
 
         {/* Discover New Clubs */}
         {discoverClubs.length > 0 && (
           <div data-testid="section-discover">
-            <h2 className="font-display font-bold text-xl mb-3" style={{ color: "var(--ink)" }}>
-              Discover New Clubs
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>
+                Discover New Clubs
+              </h2>
+              <Link
+                href="/explore"
+                className="flex items-center gap-1 text-[12px] font-bold"
+                style={{ color: "var(--terra)" }}
+                data-testid="link-explore-all"
+              >
+                See All <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {discoverClubs.map(club => (
                 <div
@@ -588,6 +731,25 @@ export default function HomeFeed() {
                   </Link>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Explore CTA for fully onboarded users */}
+        {user && userClubs.length >= 3 && discoverClubs.length === 0 && (
+          <div
+            className="rounded-[20px] p-5 flex items-center gap-4"
+            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+            data-testid="card-all-clubs-joined"
+          >
+            <Compass className="w-8 h-8 shrink-0" style={{ color: "var(--terra)" }} />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[14px] mb-0.5" style={{ color: "var(--ink)" }}>
+                You're in all the clubs!
+              </p>
+              <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
+                More clubs are launching soon. Check back later.
+              </p>
             </div>
           </div>
         )}

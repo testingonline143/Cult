@@ -377,9 +377,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/feed", async (_req, res) => {
+  app.get("/api/feed", async (req: any, res) => {
     try {
-      const moments = await storage.getFeedMoments(10);
+      const userId = req.user?.claims?.sub as string | undefined;
+      const moments = await storage.getFeedMoments(10, userId);
       res.json(moments);
     } catch (err) {
       console.error("Error fetching feed:", err);
