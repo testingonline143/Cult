@@ -89,12 +89,12 @@ interface UserDetail {
 }
 
 const TAB_ICONS: Record<string, React.ReactNode> = {
-  analytics: <BarChart3 className="w-4 h-4" />,
-  clubs: <Building2 className="w-4 h-4" />,
-  users: <Users className="w-4 h-4" />,
-  events: <Calendar className="w-4 h-4" />,
-  joins: <UserCheck className="w-4 h-4" />,
-  polls: <BarChart2 className="w-4 h-4" />,
+  analytics: <BarChart3 className="w-[18px] h-[18px]" />,
+  clubs: <Building2 className="w-[18px] h-[18px]" />,
+  users: <Users className="w-[18px] h-[18px]" />,
+  events: <Calendar className="w-[18px] h-[18px]" />,
+  joins: <UserCheck className="w-[18px] h-[18px]" />,
+  polls: <BarChart2 className="w-[18px] h-[18px]" />,
 };
 
 function downloadCSV(filename: string, rows: string[][], headers: string[]) {
@@ -122,8 +122,8 @@ function AdminSetupScreen({ userId }: { userId: string }) {
 
   const steps = [
     { num: "1", text: "Click the Copy button below to copy your Admin ID" },
-    { num: "2", text: 'Open the Secrets panel in Replit (the lock 🔒 icon in the left sidebar)' },
-    { num: "3", text: 'Create a new secret named ADMIN_USER_ID' },
+    { num: "2", text: "Open the Secrets panel in Replit (the lock icon in the left sidebar)" },
+    { num: "3", text: "Create a new secret named ADMIN_USER_ID" },
     { num: "4", text: "Paste your Admin ID as the value and save" },
     { num: "5", text: "Restart the app — you'll have full admin access" },
   ];
@@ -131,95 +131,51 @@ function AdminSetupScreen({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--cream)" }}>
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
         <div className="text-center space-y-3">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-            style={{ background: "var(--ink)" }}
-          >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "var(--ink)" }}>
             <Shield className="w-8 h-8" style={{ color: "var(--terra)" }} />
           </div>
-          <h1 className="font-display text-2xl font-bold" style={{ color: "var(--ink)" }}>
-            One Step to Admin Access
-          </h1>
+          <h1 className="font-display text-2xl font-bold" style={{ color: "var(--ink)" }}>One Step to Admin Access</h1>
           <p className="text-sm leading-relaxed" style={{ color: "var(--muted-warm)" }}>
             You're signed in. Now set your Admin ID as a secret so only you can access the dashboard.
           </p>
         </div>
-
-        {/* User ID box */}
-        <div
-          className="rounded-[18px] p-5 space-y-3"
-          style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-          data-testid="card-admin-id"
-        >
+        <div className="rounded-[18px] p-5 space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid="card-admin-id">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full" style={{ background: "#16a34a" }} />
             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Your Admin ID</span>
           </div>
           {userId ? (
             <>
-              <div
-                className="w-full px-4 py-3 rounded-xl font-mono text-sm break-all select-all"
-                style={{ background: "var(--cream)", color: "var(--ink)", border: "1.5px solid var(--warm-border)" }}
-                data-testid="text-admin-user-id"
-              >
-                {userId}
-              </div>
+              <div className="w-full px-4 py-3 rounded-xl font-mono text-sm break-all select-all" style={{ background: "var(--cream)", color: "var(--ink)", border: "1.5px solid var(--warm-border)" }} data-testid="text-admin-user-id">{userId}</div>
               <button
                 onClick={handleCopy}
                 className="w-full flex items-center justify-center gap-2 rounded-full py-3 text-sm font-bold transition-all"
-                style={copied
-                  ? { background: "#16a34a", color: "white" }
-                  : { background: "var(--terra)", color: "white" }
-                }
+                style={copied ? { background: "#16a34a", color: "white" } : { background: "var(--terra)", color: "white" }}
                 data-testid="button-copy-admin-id"
               >
                 {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy Admin ID</>}
               </button>
             </>
           ) : (
-            <div className="text-sm text-center py-2" style={{ color: "var(--muted-warm)" }}>
-              Loading your ID...
-            </div>
+            <div className="text-sm text-center py-2" style={{ color: "var(--muted-warm)" }}>Loading your ID...</div>
           )}
         </div>
-
-        {/* Steps */}
-        <div
-          className="rounded-[18px] p-5 space-y-3"
-          style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-        >
+        <div className="rounded-[18px] p-5 space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
           <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--terra)" }}>How to activate</p>
           {steps.map((step) => (
             <div key={step.num} className="flex items-start gap-3">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black text-white mt-0.5"
-                style={{ background: "var(--terra)" }}
-              >
-                {step.num}
-              </div>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black text-white mt-0.5" style={{ background: "var(--terra)" }}>{step.num}</div>
               <p className="text-sm leading-snug" style={{ color: "var(--ink)" }}>{step.text}</p>
             </div>
           ))}
         </div>
-
-        {/* Secret name highlight */}
-        <div
-          className="rounded-[18px] p-4 flex items-center gap-3"
-          style={{ background: "rgba(196,98,45,0.08)", border: "1.5px solid rgba(196,98,45,0.25)" }}
-        >
+        <div className="rounded-[18px] p-4 flex items-center gap-3" style={{ background: "rgba(196,98,45,0.08)", border: "1.5px solid rgba(196,98,45,0.25)" }}>
           <Shield className="w-4 h-4 shrink-0" style={{ color: "var(--terra)" }} />
-          <p className="text-xs" style={{ color: "var(--terra)" }}>
-            The secret name must be exactly: <span className="font-bold font-mono">ADMIN_USER_ID</span>
-          </p>
+          <p className="text-xs" style={{ color: "var(--terra)" }}>The secret name must be exactly: <span className="font-bold font-mono">ADMIN_USER_ID</span></p>
         </div>
-
-        {/* Sign out option */}
         <div className="text-center">
-          <a href="/api/logout" className="text-xs" style={{ color: "var(--muted-warm)" }}>
-            Not you? Sign out
-          </a>
+          <a href="/api/logout" className="text-xs" style={{ color: "var(--muted-warm)" }}>Not you? Sign out</a>
         </div>
       </div>
     </div>
@@ -230,7 +186,7 @@ export default function Admin() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"analytics" | "clubs" | "users" | "events" | "joins" | "polls">("analytics");
 
-  const { data: adminStatus, isLoading: statusLoading } = useQuery<{ configured: boolean }>({
+  const { data: adminStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; isCurrentUserAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
     enabled: isAuthenticated,
     retry: false,
@@ -238,10 +194,16 @@ export default function Admin() {
 
   const { data: pendingCountData } = useQuery<JoinRequest[]>({
     queryKey: ["/api/admin/join-requests"],
-    enabled: isAuthenticated && adminStatus?.configured === true,
+    enabled: isAuthenticated && adminStatus?.isCurrentUserAdmin === true,
     retry: false,
   });
   const pendingCount = (pendingCountData ?? []).filter((r: any) => r.status === "pending" && !r.markedDone).length;
+
+  const { data: analytics } = useQuery<AdminAnalytics>({
+    queryKey: ["/api/admin/analytics"],
+    enabled: isAuthenticated && adminStatus?.isCurrentUserAdmin === true,
+    retry: false,
+  });
 
   if (authLoading || (isAuthenticated && statusLoading)) {
     return (
@@ -261,20 +223,12 @@ export default function Admin() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--cream)" }}>
         <div className="w-full max-w-sm space-y-4 text-center">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-          >
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
             <Shield className="w-8 h-8" style={{ color: "var(--terra)" }} />
           </div>
           <h1 className="font-display text-2xl font-bold" style={{ color: "var(--terra)" }} data-testid="text-admin-title">Admin Dashboard</h1>
           <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Sign in to access the admin dashboard</p>
-          <a
-            href="/api/login?returnTo=/admin"
-            className="inline-block w-full rounded-full py-3 text-sm font-bold text-white text-center"
-            style={{ background: "var(--terra)" }}
-            data-testid="button-admin-login"
-          >
+          <a href="/api/login?returnTo=/admin" className="inline-block w-full rounded-full py-3 text-sm font-bold text-white text-center" style={{ background: "var(--terra)" }} data-testid="button-admin-login">
             Sign In
           </a>
         </div>
@@ -284,6 +238,21 @@ export default function Admin() {
 
   if (adminStatus?.configured === false) {
     return <AdminSetupScreen userId={user?.id || ""} />;
+  }
+
+  if (adminStatus?.isCurrentUserAdmin === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--cream)" }}>
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "rgba(220,38,38,0.1)" }}>
+            <ShieldAlert className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="font-display text-xl font-bold" data-testid="text-access-denied">Access Denied</h2>
+          <p className="text-sm" style={{ color: "var(--muted-warm)" }}>You don't have admin privileges.</p>
+          <Link href="/home" className="inline-block text-sm font-semibold" style={{ color: "var(--terra)" }} data-testid="link-go-home">Go Home</Link>
+        </div>
+      </div>
+    );
   }
 
   const tabs = [
@@ -300,60 +269,82 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--cream)" }}>
-      <div
-        className="sticky top-0 z-40 px-5 py-3 flex items-center justify-between"
-        style={{ background: "var(--ink)", borderBottom: "2px solid var(--terra)" }}
-      >
-        <div className="flex items-center gap-3">
-          {user?.profileImageUrl ? (
-            <img src={user.profileImageUrl} alt={displayName} className="w-9 h-9 rounded-full object-cover" style={{ border: "2px solid var(--terra)" }} />
-          ) : (
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "var(--terra)" }}>
-              {initials}
+      {/* Header */}
+      <div className="sticky top-0 z-40" style={{ background: "var(--ink)", borderBottom: "3px solid var(--terra)" }}>
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              {user?.profileImageUrl ? (
+                <img src={user.profileImageUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover shrink-0" style={{ border: "2px solid var(--terra)" }} />
+              ) : (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-base shrink-0" style={{ background: "var(--terra)" }}>
+                  {initials}
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Shield className="w-3 h-3" style={{ color: "var(--terra)" }} />
+                  <span className="text-[9px] font-black tracking-[2.5px] uppercase" style={{ color: "var(--terra)" }}>Admin Dashboard</span>
+                </div>
+                <p className="font-display font-bold text-white text-[15px] leading-none">{displayName}</p>
+              </div>
             </div>
-          )}
-          <div className="leading-tight">
-            <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5" style={{ color: "var(--terra)" }} />
-              <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>Admin Dashboard</span>
-            </div>
-            <p className="text-white font-semibold text-[13px]">{displayName}</p>
+            <Link href="/home" data-testid="link-admin-home">
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-all active:opacity-70" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                <ArrowLeft className="w-3.5 h-3.5 text-white" />
+                <span className="text-white text-xs font-semibold">Home</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Vitals strip */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "none" }}>
+            {[
+              { label: "Users", value: analytics?.totalUsers ?? "—", icon: <Users className="w-3 h-3" /> },
+              { label: "Clubs", value: analytics?.activeClubs ?? "—", icon: <Building2 className="w-3 h-3" /> },
+              { label: "Events", value: analytics?.totalEvents ?? "—", icon: <Calendar className="w-3 h-3" /> },
+              { label: "Moments", value: analytics?.totalMoments ?? "—", icon: <Camera className="w-3 h-3" /> },
+              ...(pendingCount > 0 ? [{ label: "Pending", value: pendingCount, icon: <UserCheck className="w-3 h-3" />, alert: true }] : []),
+            ].map((v, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0" style={{ background: (v as any).alert ? "rgba(229,62,62,0.25)" : "rgba(255,255,255,0.08)", border: `1px solid ${(v as any).alert ? "rgba(229,62,62,0.5)" : "rgba(255,255,255,0.12)"}` }}>
+                <span style={{ color: (v as any).alert ? "#fc8181" : "var(--terra)" }}>{v.icon}</span>
+                <span className="text-[10px] font-bold" style={{ color: (v as any).alert ? "#fc8181" : "rgba(255,255,255,0.7)" }}>{v.label}</span>
+                <span className="text-[10px] font-black text-white">{String(v.value)}</span>
+              </div>
+            ))}
           </div>
         </div>
-        <Link href="/home" data-testid="link-admin-home">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity active:opacity-70" style={{ background: "rgba(255,255,255,0.12)" }}>
-            <ArrowLeft className="w-4 h-4 text-white" />
-          </div>
-        </Link>
+
+        {/* Tab bar */}
+        <div className="flex border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="flex-1 flex flex-col items-center gap-1 py-2.5 relative transition-all"
+                style={{ borderBottom: isActive ? "2.5px solid var(--terra)" : "2.5px solid transparent" }}
+                data-testid={`tab-${tab.key}`}
+              >
+                <span style={{ color: isActive ? "var(--terra)" : "rgba(255,255,255,0.4)" }}>
+                  {TAB_ICONS[tab.key]}
+                </span>
+                <span className="text-[9px] font-black tracking-wide uppercase" style={{ color: isActive ? "var(--terra)" : "rgba(255,255,255,0.4)" }}>
+                  {tab.label}
+                </span>
+                {"badge" in tab && tab.badge > 0 && (
+                  <span className="absolute top-1.5 right-1/2 translate-x-3 min-w-[16px] h-4 flex items-center justify-center rounded-full text-white text-[8px] font-black px-1" style={{ background: "#e53e3e" }}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap relative"
-              style={activeTab === tab.key
-                ? { background: "var(--terra)", color: "white" }
-                : { background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }
-              }
-              data-testid={`tab-${tab.key}`}
-            >
-              {TAB_ICONS[tab.key]}
-              {tab.label}
-              {"badge" in tab && tab.badge > 0 && (
-                <span
-                  className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-white text-[9px] font-bold px-1"
-                  style={{ background: "#e53e3e" }}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
+      <div className="max-w-4xl mx-auto px-4 py-5 pb-24">
         {activeTab === "analytics" && <AnalyticsTab />}
         {activeTab === "clubs" && <ClubsMonitorTab />}
         {activeTab === "users" && <UsersTab />}
@@ -365,27 +356,18 @@ export default function Admin() {
   );
 }
 
-function AccessDenied() {
+function StatCard({ icon, label, value, color, sub }: { icon: React.ReactNode; label: string; value: number | string; color?: string; sub?: string }) {
   return (
-    <div className="text-center py-16 space-y-3">
-      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-        <ShieldAlert className="w-8 h-8 text-destructive" />
+    <div
+      className="rounded-[18px] p-4 relative overflow-hidden"
+      style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderLeft: `4px solid ${color || "var(--terra)"}` }}
+    >
+      <div className="absolute top-3 right-3 opacity-[0.07]">
+        <span style={{ color: color || "var(--terra)", fontSize: 36 }}>{icon}</span>
       </div>
-      <h2 className="font-display text-xl font-bold" data-testid="text-access-denied">Access Denied</h2>
-      <p className="text-sm" style={{ color: "var(--muted-warm)" }}>You don't have admin privileges.</p>
-      <Link href="/" className="inline-block text-sm font-semibold" style={{ color: "var(--terra)" }} data-testid="link-go-home">Go Home</Link>
-    </div>
-  );
-}
-
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color?: string }) {
-  return (
-    <div className="rounded-[18px] p-4 flex flex-col items-center gap-2" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--terra-pale)" }}>
-        <span style={{ color: "var(--terra)" }}>{icon}</span>
-      </div>
-      <div className="text-2xl font-bold font-mono" style={{ color: color || "var(--terra)" }}>{value}</div>
-      <div className="text-[11px] text-center" style={{ color: "var(--muted-warm)" }}>{label}</div>
+      <div className="text-3xl font-black font-mono leading-none mb-1" style={{ color: color || "var(--terra)" }}>{value}</div>
+      <div className="text-[11px] font-semibold" style={{ color: "var(--muted-warm)" }}>{label}</div>
+      {sub && <div className="text-[10px] mt-0.5" style={{ color: "var(--muted-warm2)" }}>{sub}</div>}
     </div>
   );
 }
@@ -411,78 +393,73 @@ function BroadcastModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(26,20,16,0.65)" }}>
-      <div
-        className="w-full max-w-md rounded-[24px] p-6 space-y-4 relative"
-        style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ background: "var(--cream)" }}
-          data-testid="button-close-broadcast"
-        >
-          <X className="w-4 h-4" style={{ color: "var(--ink)" }} />
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "var(--terra-pale)" }}>
-            <Megaphone className="w-5 h-5" style={{ color: "var(--terra)" }} />
-          </div>
-          <div>
-            <h2 className="font-display font-bold text-lg" style={{ color: "var(--ink)" }}>Send Broadcast</h2>
-            <p className="text-xs" style={{ color: "var(--muted-warm)" }}>Notify all platform users</p>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(26,20,16,0.7)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-md rounded-[28px] overflow-hidden shadow-2xl" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
+        <div className="px-6 pt-6 pb-4" style={{ background: "var(--ink)" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(196,98,45,0.25)" }}>
+                <Megaphone className="w-5 h-5" style={{ color: "var(--terra)" }} />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-white text-lg">Send Broadcast</h2>
+                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>Notify all platform users</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }} data-testid="button-close-broadcast">
+              <X className="w-4 h-4 text-white" />
+            </button>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="p-6 space-y-4">
           <div>
-            <label className="text-xs font-semibold mb-1 block" style={{ color: "var(--muted-warm)" }}>Title *</label>
+            <label className="text-xs font-bold uppercase tracking-wider mb-2 block" style={{ color: "var(--muted-warm)" }}>Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. New city going live!"
-              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-              style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
+              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
+              style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
               data-testid="input-broadcast-title"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-1 block" style={{ color: "var(--muted-warm)" }}>Message *</label>
+            <label className="text-xs font-bold uppercase tracking-wider mb-2 block" style={{ color: "var(--muted-warm)" }}>Message *</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Write your announcement..."
               rows={3}
-              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none resize-none"
-              style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
+              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none resize-none transition-all"
+              style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
               data-testid="input-broadcast-message"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-1 block" style={{ color: "var(--muted-warm)" }}>Link URL (optional)</label>
+            <label className="text-xs font-bold uppercase tracking-wider mb-2 block" style={{ color: "var(--muted-warm)" }}>Link URL <span className="normal-case tracking-normal font-normal">(optional)</span></label>
             <input
               type="text"
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-              style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
+              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
+              style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
               data-testid="input-broadcast-link"
             />
           </div>
+          <button
+            onClick={() => broadcastMutation.mutate()}
+            disabled={broadcastMutation.isPending || title.trim().length < 2 || message.trim().length < 5}
+            className="w-full rounded-full py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-send-broadcast"
+          >
+            <Send className="w-4 h-4" />
+            {broadcastMutation.isPending ? "Sending..." : "Send to All Users"}
+          </button>
         </div>
-
-        <button
-          onClick={() => broadcastMutation.mutate()}
-          disabled={broadcastMutation.isPending || title.trim().length < 2 || message.trim().length < 5}
-          className="w-full rounded-full py-3 text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
-          style={{ background: "var(--terra)" }}
-          data-testid="button-send-broadcast"
-        >
-          <Send className="w-4 h-4" />
-          {broadcastMutation.isPending ? "Sending..." : "Send to All Users"}
-        </button>
       </div>
     </div>
   );
@@ -501,47 +478,63 @@ function UserDetailDrawer({ userId, user: userRow, onClose }: { userId: string; 
     return { bg: "rgba(201,168,76,0.12)", color: "var(--gold)" };
   };
 
+  const initials = (userRow.firstName || userRow.email || "?").charAt(0).toUpperCase();
+
   return (
     <>
-      <div className="fixed inset-0 z-40" style={{ background: "rgba(26,20,16,0.4)" }} onClick={onClose} />
+      <div className="fixed inset-0 z-40" style={{ background: "rgba(26,20,16,0.5)", backdropFilter: "blur(2px)" }} onClick={onClose} />
       <div
-        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm overflow-y-auto"
-        style={{ background: "var(--warm-white)", borderLeft: "1.5px solid var(--warm-border)" }}
+        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm overflow-y-auto shadow-2xl"
+        style={{ background: "var(--warm-white)" }}
         data-testid="drawer-user-detail"
       >
-        <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ background: "var(--warm-white)", borderBottom: "1px solid var(--warm-border)" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "var(--terra)" }}>
-              {(userRow.firstName || userRow.email || "?").charAt(0).toUpperCase()}
+        {/* Drawer header */}
+        <div className="px-5 pt-6 pb-5" style={{ background: "var(--ink)" }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-lg shrink-0" style={{ background: "var(--terra)" }}>
+                {initials}
+              </div>
+              <div>
+                <p className="font-display font-bold text-white text-base leading-tight">{userRow.firstName || "No Name"}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{userRow.email || "No email"}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-sm" style={{ color: "var(--ink)" }}>{userRow.firstName || "No Name"}</p>
-              <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>{userRow.email || "No email"}</p>
-            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }} data-testid="button-close-drawer">
+              <X className="w-4 h-4 text-white" />
+            </button>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--cream)" }} data-testid="button-close-drawer">
-            <X className="w-4 h-4" style={{ color: "var(--ink)" }} />
-          </button>
+          <div className="flex items-center gap-2">
+            {userRow.city && (
+              <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}>
+                <MapPin className="w-3 h-3" />{userRow.city}
+              </span>
+            )}
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold" style={{ background: "rgba(196,98,45,0.3)", color: "var(--terra)" }}>
+              {userRow.clubCount} club{userRow.clubCount !== 1 ? "s" : ""}
+            </span>
+            <span className="text-[11px] px-2.5 py-1 rounded-full capitalize" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}>
+              {userRow.role || "user"}
+            </span>
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="p-5 space-y-3">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
-          </div>
+          <div className="p-5 space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
         ) : !detail ? null : (
           <div className="p-5 space-y-6">
             {/* Clubs */}
             <div>
-              <h3 className="text-xs font-bold tracking-wider uppercase mb-2 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
-                <Building2 className="w-3.5 h-3.5" /> Clubs ({detail.clubs.length})
+              <h3 className="text-[11px] font-black tracking-wider uppercase mb-3 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
+                <Building2 className="w-3.5 h-3.5" /> Clubs Joined ({detail.clubs.length})
               </h3>
               {detail.clubs.length === 0 ? (
-                <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No clubs joined</p>
+                <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No clubs joined yet</p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {detail.clubs.map((c) => (
-                    <div key={c.clubId} className="flex items-center gap-2 p-2 rounded-xl" style={{ background: "var(--cream)" }}>
-                      <span className="text-lg">{c.clubEmoji}</span>
+                    <div key={c.clubId} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "var(--cream)", border: "1px solid var(--warm-border)" }}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-lg" style={{ background: "var(--warm-white)" }}>{c.clubEmoji}</div>
                       <div>
                         <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>{c.clubName}</p>
                         {c.joinedAt && <p className="text-[10px]" style={{ color: "var(--muted-warm)" }}>Joined {new Date(c.joinedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>}
@@ -554,20 +547,20 @@ function UserDetailDrawer({ userId, user: userRow, onClose }: { userId: string; 
 
             {/* Events */}
             <div>
-              <h3 className="text-xs font-bold tracking-wider uppercase mb-2 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
+              <h3 className="text-[11px] font-black tracking-wider uppercase mb-3 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
                 <Calendar className="w-3.5 h-3.5" /> Events RSVPed ({detail.events.length})
               </h3>
               {detail.events.length === 0 ? (
-                <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No RSVPs</p>
+                <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No RSVPs yet</p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {detail.events.map((e) => (
-                    <div key={e.id} className="flex items-start justify-between p-2 rounded-xl" style={{ background: "var(--cream)" }}>
+                    <div key={e.id} className="flex items-start justify-between p-3 rounded-xl" style={{ background: "var(--cream)", border: "1px solid var(--warm-border)" }}>
                       <div>
                         <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>{e.title}</p>
                         <p className="text-[10px]" style={{ color: "var(--muted-warm)" }}>{e.clubName}</p>
                       </div>
-                      <p className="text-[10px] shrink-0 mt-0.5" style={{ color: "var(--muted-warm)" }}>{new Date(e.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+                      <p className="text-[10px] shrink-0 mt-0.5 font-semibold" style={{ color: "var(--terra)" }}>{new Date(e.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
                     </div>
                   ))}
                 </div>
@@ -577,12 +570,12 @@ function UserDetailDrawer({ userId, user: userRow, onClose }: { userId: string; 
             {/* Moments */}
             {detail.moments.length > 0 && (
               <div>
-                <h3 className="text-xs font-bold tracking-wider uppercase mb-2 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
+                <h3 className="text-[11px] font-black tracking-wider uppercase mb-3 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
                   <Camera className="w-3.5 h-3.5" /> Moments ({detail.moments.length})
                 </h3>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {detail.moments.map((m) => (
-                    <div key={m.id} className="p-2 rounded-xl" style={{ background: "var(--cream)" }}>
+                    <div key={m.id} className="p-3 rounded-xl" style={{ background: "var(--cream)", border: "1px solid var(--warm-border)" }}>
                       <p className="text-[12px]" style={{ color: "var(--ink)" }}>{m.caption || "No caption"}</p>
                       {m.createdAt && <p className="text-[10px] mt-0.5" style={{ color: "var(--muted-warm)" }}>{formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}</p>}
                     </div>
@@ -593,17 +586,17 @@ function UserDetailDrawer({ userId, user: userRow, onClose }: { userId: string; 
 
             {/* Join History */}
             <div>
-              <h3 className="text-xs font-bold tracking-wider uppercase mb-2 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
+              <h3 className="text-[11px] font-black tracking-wider uppercase mb-3 flex items-center gap-1.5" style={{ color: "var(--terra)" }}>
                 <UserCheck className="w-3.5 h-3.5" /> Join History ({detail.joinRequests.length})
               </h3>
               {detail.joinRequests.length === 0 ? (
                 <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No requests</p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {detail.joinRequests.map((r, i) => {
                     const ss = statusColor(r.status);
                     return (
-                      <div key={i} className="flex items-center justify-between p-2 rounded-xl" style={{ background: "var(--cream)" }}>
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl" style={{ background: "var(--cream)", border: "1px solid var(--warm-border)" }}>
                         <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>{r.clubName}</p>
                         <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: ss.bg, color: ss.color }}>{r.status}</span>
                       </div>
@@ -616,6 +609,18 @@ function UserDetailDrawer({ userId, user: userRow, onClose }: { userId: string; 
         )}
       </div>
     </>
+  );
+}
+
+function SectionEmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc?: string }) {
+  return (
+    <div className="text-center py-14 space-y-3">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "var(--terra-pale)" }}>
+        <span style={{ color: "var(--terra)" }}>{icon}</span>
+      </div>
+      <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>{title}</h3>
+      {desc && <p className="text-sm" style={{ color: "var(--muted-warm)" }}>{desc}</p>}
+    </div>
   );
 }
 
@@ -640,25 +645,27 @@ function AnalyticsTab() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-4 gap-3">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <Skeleton key={i} className="h-24 rounded-[18px]" />)}
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-[18px]" />)}
         </div>
       </div>
     );
   }
 
-  if (error) return <AccessDenied />;
+  if (error) return (
+    <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" desc="You don't have admin privileges." />
+  );
   if (!analytics) return null;
 
-  const stats = [
-    { label: "Total Users", value: analytics.totalUsers, icon: <Users className="w-4 h-4" /> },
-    { label: "Total Clubs", value: analytics.totalClubs, icon: <Building2 className="w-4 h-4" /> },
-    { label: "Active Clubs", value: analytics.activeClubs, icon: <Activity className="w-4 h-4" />, color: "#16a34a" },
-    { label: "Total Events", value: analytics.totalEvents, icon: <Calendar className="w-4 h-4" /> },
-    { label: "Total RSVPs", value: analytics.totalRsvps, icon: <CheckCircle2 className="w-4 h-4" /> },
-    { label: "Check-ins", value: analytics.totalCheckins, icon: <Zap className="w-4 h-4" />, color: "#16a34a" },
-    { label: "Moments", value: analytics.totalMoments, icon: <Camera className="w-4 h-4" /> },
-    { label: "Comments", value: analytics.totalComments, icon: <MessageSquare className="w-4 h-4" /> },
+  const statsRow1 = [
+    { label: "Total Users", value: analytics.totalUsers, icon: <Users className="w-6 h-6" /> },
+    { label: "Active Clubs", value: analytics.activeClubs, icon: <Building2 className="w-6 h-6" />, color: "#16a34a" },
+    { label: "Total Events", value: analytics.totalEvents, icon: <Calendar className="w-6 h-6" /> },
+    { label: "Total RSVPs", value: analytics.totalRsvps, icon: <CheckCircle2 className="w-6 h-6" /> },
+    { label: "Check-ins", value: analytics.totalCheckins, icon: <Zap className="w-6 h-6" />, color: "#C9A84C" },
+    { label: "Moments", value: analytics.totalMoments, icon: <Camera className="w-6 h-6" /> },
+    { label: "Comments", value: analytics.totalComments, icon: <MessageSquare className="w-6 h-6" /> },
+    { label: "All Clubs", value: analytics.totalClubs, icon: <Activity className="w-6 h-6" /> },
   ];
 
   return (
@@ -669,53 +676,68 @@ function AnalyticsTab() {
       <div className="flex justify-end">
         <button
           onClick={() => setBroadcastOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all"
-          style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1.5px solid rgba(196,98,45,0.3)" }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95"
+          style={{ background: "var(--terra)", color: "white" }}
           data-testid="button-open-broadcast"
         >
           <Megaphone className="w-4 h-4" />
-          Send Broadcast
+          Broadcast
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} />
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {statsRow1.map((stat) => (
+          <StatCard key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} color={(stat as any).color} />
         ))}
       </div>
 
-      {/* This Week strip */}
-      <div className="rounded-[18px] p-4" style={{ background: "var(--ink)" }}>
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="w-4 h-4" style={{ color: "var(--terra)" }} />
-          <span className="text-[11px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>This Week</span>
-        </div>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-2xl font-black text-white font-mono">+{analytics.newUsersThisWeek}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-warm2)" }}>New Users</p>
+      {/* This Week */}
+      <div className="rounded-[20px] p-5 relative overflow-hidden" style={{ background: "var(--ink)" }}>
+        <div
+          className="absolute inset-0 opacity-5"
+          style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--terra) 0, var(--terra) 1px, transparent 0, transparent 50%)", backgroundSize: "12px 12px" }}
+        />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4" style={{ color: "var(--terra)" }} />
+            <span className="text-[10px] font-black tracking-[2.5px] uppercase" style={{ color: "var(--terra)" }}>This Week</span>
           </div>
-          <div>
-            <p className="text-2xl font-black text-white font-mono">+{analytics.newJoinsThisWeek}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-warm2)" }}>New Members</p>
-          </div>
-          <div>
-            <p className="text-2xl font-black text-white font-mono">+{analytics.newEventsThisWeek}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-warm2)" }}>New Events</p>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            {[
+              { value: analytics.newUsersThisWeek, label: "New Users" },
+              { value: analytics.newJoinsThisWeek, label: "New Members" },
+              { value: analytics.newEventsThisWeek, label: "New Events" },
+            ].map((item) => (
+              <div key={item.label}>
+                <p className="text-4xl font-black text-white font-mono leading-none">+{item.value}</p>
+                <p className="text-[11px] mt-1.5 font-medium" style={{ color: "var(--muted-warm2)" }}>{item.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Growth Chart */}
       {growth && growth.length > 0 && (
-        <div className="rounded-[18px] p-5" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid="card-growth-chart">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4" style={{ color: "var(--terra)" }} />
-            <h3 className="text-sm font-semibold" style={{ color: "var(--ink)" }}>8-Week Growth</h3>
-            <div className="ml-auto flex items-center gap-3 text-[10px]" style={{ color: "var(--muted-warm)" }}>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--terra)" }} />Users</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--gold)" }} />Events</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#3D6B45" }} />Moments</span>
+        <div className="rounded-[20px] p-5" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid="card-growth-chart">
+          <div className="mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>Platform Growth</h3>
+                <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>Last 8 weeks activity</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-3">
+              {[
+                { label: "Users", color: "#C4622D" },
+                { label: "Events", color: "#C9A84C" },
+                { label: "Moments", color: "#3D6B45" },
+              ].map((l) => (
+                <span key={l.label} className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: l.color + "18", color: l.color }}>
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: l.color }} />{l.label}
+                </span>
+              ))}
             </div>
           </div>
           <ResponsiveContainer width="100%" height={180}>
@@ -738,7 +760,7 @@ function AnalyticsTab() {
               <YAxis tick={{ fontSize: 10, fill: "#8A7A6A" }} tickLine={false} axisLine={false} allowDecimals={false} />
               <Tooltip
                 contentStyle={{ background: "#FDFAF5", border: "1px solid #E8E0D4", borderRadius: 12, fontSize: 11 }}
-                labelStyle={{ color: "#1A1410", fontWeight: 600 }}
+                labelStyle={{ color: "#1A1410", fontWeight: 700 }}
               />
               <Area type="monotone" dataKey="users" stroke="#C4622D" strokeWidth={2} fill="url(#colorUsers)" dot={false} />
               <Area type="monotone" dataKey="events" stroke="#C9A84C" strokeWidth={2} fill="url(#colorEvents)" dot={false} />
@@ -750,46 +772,46 @@ function AnalyticsTab() {
 
       {/* City breakdown */}
       {analytics.cityCounts.length > 0 && (
-        <div className="rounded-[18px] p-5" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid="card-city-breakdown">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <div className="rounded-[20px] p-5" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid="card-city-breakdown">
+          <h3 className="font-display font-bold text-base mb-4 flex items-center gap-2" style={{ color: "var(--ink)" }}>
             <MapPin className="w-4 h-4" style={{ color: "var(--terra)" }} />
             Clubs by City
           </h3>
-          <div className="space-y-2">
-            {analytics.cityCounts.map((city) => (
-              <div key={city.city} className="flex items-center justify-between">
-                <span className="text-sm">{city.city}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.round((city.count / Math.max(...analytics.cityCounts.map(c => c.count))) * 100)}%`,
-                        background: "var(--terra)",
-                      }}
-                    />
+          <div className="space-y-3">
+            {analytics.cityCounts.map((city) => {
+              const pct = Math.round((city.count / Math.max(...analytics.cityCounts.map(c => c.count))) * 100);
+              return (
+                <div key={city.city}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: "var(--ink)" }}>
+                      <MapPin className="w-3 h-3" style={{ color: "var(--muted-warm)" }} />{city.city}
+                    </span>
+                    <span className="text-xs font-black font-mono" style={{ color: "var(--terra)" }}>{city.count} clubs · {pct}%</span>
                   </div>
-                  <span className="text-xs font-bold font-mono w-6 text-right" style={{ color: "var(--terra)" }}>{city.count}</span>
+                  <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: `linear-gradient(90deg, var(--terra), var(--terra-light))` }} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Recent Activity */}
+      {/* Platform Pulse */}
       {feed && (
         <div>
-          <h3 className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Recent Activity</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-display font-bold text-lg" style={{ color: "var(--ink)" }}>Platform Pulse</h3>
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#16a34a" }} />
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-[18px] p-4" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <UserCheck className="w-4 h-4" style={{ color: "var(--terra)" }} />
-                <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "var(--terra)" }}>Recent Joins</span>
-              </div>
-              <div className="space-y-2">
-                {feed.recentJoins.length === 0 && <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No joins yet</p>}
-                {feed.recentJoins.map((j, i) => (
+            {[
+              {
+                icon: <UserCheck className="w-3.5 h-3.5" />,
+                label: "Recent Joins",
+                items: feed.recentJoins,
+                renderItem: (j: any, i: number) => (
                   <div key={i} className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-[13px] font-semibold leading-tight" style={{ color: "var(--ink)" }}>{j.name}</p>
@@ -797,46 +819,48 @@ function AnalyticsTab() {
                     </div>
                     {j.createdAt && <span className="text-[10px] shrink-0 mt-0.5" style={{ color: "var(--muted-warm)" }}>{formatDistanceToNow(new Date(j.createdAt), { addSuffix: true })}</span>}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[18px] p-4" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Building2 className="w-4 h-4" style={{ color: "var(--terra)" }} />
-                <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "var(--terra)" }}>New Clubs</span>
-              </div>
-              <div className="space-y-2">
-                {feed.recentClubs.length === 0 && <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No clubs yet</p>}
-                {feed.recentClubs.map((c, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="text-xl shrink-0">{c.emoji}</span>
+                ),
+                empty: "No joins yet",
+              },
+              {
+                icon: <Building2 className="w-3.5 h-3.5" />,
+                label: "New Clubs",
+                items: feed.recentClubs,
+                renderItem: (c: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-base" style={{ background: "var(--cream)" }}>{c.emoji}</div>
                     <div>
                       <p className="text-[13px] font-semibold leading-tight" style={{ color: "var(--ink)" }}>{c.name}</p>
                       <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>{c.city}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[18px] p-4" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar className="w-4 h-4" style={{ color: "var(--terra)" }} />
-                <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "var(--terra)" }}>New Events</span>
-              </div>
-              <div className="space-y-2">
-                {feed.recentEvents.length === 0 && <p className="text-xs" style={{ color: "var(--muted-warm)" }}>No events yet</p>}
-                {feed.recentEvents.map((e, i) => (
+                ),
+                empty: "No clubs yet",
+              },
+              {
+                icon: <Calendar className="w-3.5 h-3.5" />,
+                label: "New Events",
+                items: feed.recentEvents,
+                renderItem: (e: any, i: number) => (
                   <div key={i}>
                     <p className="text-[13px] font-semibold leading-tight" style={{ color: "var(--ink)" }}>{e.title}</p>
-                    <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
-                      {e.clubName} · {format(new Date(e.startsAt), "d MMM")}
-                    </p>
+                    <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>{e.clubName} · {format(new Date(e.startsAt), "d MMM")}</p>
                   </div>
-                ))}
+                ),
+                empty: "No events yet",
+              },
+            ].map((section) => (
+              <div key={section.label} className="rounded-[18px] p-4" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderLeft: "4px solid var(--terra)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span style={{ color: "var(--terra)" }}>{section.icon}</span>
+                  <span className="text-[10px] font-black tracking-widest uppercase" style={{ color: "var(--terra)" }}>{section.label}</span>
+                </div>
+                <div className="space-y-2.5">
+                  {section.items.length === 0 && <p className="text-xs" style={{ color: "var(--muted-warm)" }}>{section.empty}</p>}
+                  {section.items.map((item, i) => section.renderItem(item, i))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
@@ -845,9 +869,9 @@ function AnalyticsTab() {
 }
 
 const HEALTH_OPTIONS = [
-  { status: "green", label: "Very Active", dot: "#16a34a" },
-  { status: "yellow", label: "Growing", dot: "#C9A84C" },
-  { status: "red", label: "Inactive", dot: "#dc2626" },
+  { status: "green", label: "Very Active", color: "#16a34a" },
+  { status: "yellow", label: "Growing", color: "#C9A84C" },
+  { status: "red", label: "Inactive", color: "#dc2626" },
 ];
 
 function ClubsMonitorTab() {
@@ -882,8 +906,8 @@ function ClubsMonitorTab() {
     onError: () => { toast({ title: "Failed to update health", variant: "destructive" }); },
   });
 
-  if (isLoading) return <div className="space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 rounded-[18px]" />)}</div>;
-  if (error) return <AccessDenied />;
+  if (isLoading) return <div className="space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-[18px]" />)}</div>;
+  if (error) return <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" />;
 
   const q = searchQuery.toLowerCase().trim();
   const filtered = q
@@ -893,7 +917,7 @@ function ClubsMonitorTab() {
   const activeClubs = clubs.filter(c => c.isActive !== false);
   const inactiveClubs = clubs.filter(c => c.isActive === false);
 
-  const healthDot = (status: string | null) => {
+  const healthColor = (status: string | null) => {
     if (status === "green") return "#16a34a";
     if (status === "yellow") return "#C9A84C";
     if (status === "red") return "#dc2626";
@@ -903,116 +927,124 @@ function ClubsMonitorTab() {
   return (
     <div className="space-y-5" data-testid="list-admin-clubs">
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={<Building2 className="w-4 h-4" />} label="Total Clubs" value={clubs.length} />
-        <StatCard icon={<Activity className="w-4 h-4" />} label="Active" value={activeClubs.length} color="#16a34a" />
-        <StatCard icon={<Ban className="w-4 h-4" />} label="Deactivated" value={inactiveClubs.length} color="#dc2626" />
+        <StatCard icon={<Building2 className="w-6 h-6" />} label="Total" value={clubs.length} />
+        <StatCard icon={<Activity className="w-6 h-6" />} label="Active" value={activeClubs.length} color="#16a34a" />
+        <StatCard icon={<Ban className="w-6 h-6" />} label="Paused" value={inactiveClubs.length} color="#dc2626" />
       </div>
 
       <div className="flex items-center gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-warm)" }} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-warm)" }} />
           <input
             type="text"
             placeholder="Search clubs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-full text-sm focus:outline-none"
-            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+            className="w-full pl-10 pr-4 py-3 rounded-full text-sm focus:outline-none"
+            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
             data-testid="input-search-clubs"
           />
         </div>
-        <span className="text-xs whitespace-nowrap" style={{ color: "var(--muted-warm)" }}>{filtered.length} clubs</span>
+        <span className="text-xs font-semibold whitespace-nowrap px-3 py-2 rounded-full" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}>{filtered.length}</span>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {filtered.map((club) => {
           const foundingPct = club.foundingTotal && club.foundingTotal > 0
             ? Math.round(((club.foundingTaken ?? 0) / club.foundingTotal) * 100)
             : null;
+          const hColor = healthColor(club.healthStatus);
 
           return (
             <div
               key={club.id}
-              className={`p-4 rounded-[18px] transition-all hover:border-[rgba(196,98,45,0.3)] relative ${club.isActive === false ? "opacity-50" : ""}`}
+              className={`rounded-[18px] transition-all ${club.isActive === false ? "opacity-50" : ""}`}
               style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
               data-testid={`row-admin-club-${club.id}`}
             >
-              <div className="flex items-center gap-3">
-                <Link href={`/club/${club.id}`} className="text-2xl shrink-0">{club.emoji}</Link>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Link href={`/club/${club.id}`}>
-                      <span className="font-semibold text-sm hover:underline" style={{ color: "var(--ink)" }}>{club.name}</span>
-                    </Link>
-                    {/* Health indicator */}
-                    <button
-                      onClick={() => setHealthPickerId(healthPickerId === club.id ? null : club.id)}
-                      className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full transition-all hover:opacity-80"
-                      style={{ background: "var(--cream)" }}
-                      data-testid={`button-health-${club.id}`}
-                      title="Change health status"
-                    >
-                      <span className="w-2 h-2 rounded-full inline-block" style={{ background: healthDot(club.healthStatus) }} />
-                      <span style={{ color: "var(--muted-warm)" }}>{club.healthLabel || "Unknown"}</span>
-                    </button>
-                    {club.isActive === false && (
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-destructive/20 text-destructive rounded-full">Deactivated</span>
-                    )}
-                    <span className="text-xs" style={{ color: "var(--muted-warm)" }}>· {club.category}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5 text-xs flex-wrap" style={{ color: "var(--muted-warm)" }}>
-                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {club.organizerName}</span>
-                    <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> {club.memberCount} members</span>
-                    <span>{club.city}</span>
-                  </div>
-                  {foundingPct !== null && (
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${foundingPct}%`, background: foundingPct >= 100 ? "#16a34a" : foundingPct >= 50 ? "var(--gold)" : "var(--terra)" }} />
-                      </div>
-                      <span className="text-[10px] font-semibold" style={{ color: "var(--muted-warm)" }}>{club.foundingTaken}/{club.foundingTotal} founding</span>
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <Link href={`/club/${club.id}`}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: club.bgColor || "var(--terra-pale)" }}>
+                      {club.emoji}
                     </div>
-                  )}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <Link href={`/club/${club.id}`}>
+                        <span className="font-bold text-[15px] hover:underline" style={{ color: "var(--ink)" }}>{club.name}</span>
+                      </Link>
+                      {/* Health pill */}
+                      <button
+                        onClick={() => setHealthPickerId(healthPickerId === club.id ? null : club.id)}
+                        className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all"
+                        style={{ background: hColor + "18", color: hColor, border: `1px solid ${hColor}44` }}
+                        data-testid={`button-health-${club.id}`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: hColor }} />
+                        {club.healthLabel || "Unknown"}
+                      </button>
+                      {club.isActive === false && (
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(220,38,38,0.1)", color: "#dc2626" }}>Paused</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] flex-wrap" style={{ color: "var(--muted-warm)" }}>
+                      <span>{club.category}</span>
+                      <span>·</span>
+                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{club.memberCount}</span>
+                      <span>·</span>
+                      <span>{club.organizerName}</span>
+                      <span>·</span>
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{club.city}</span>
+                    </div>
+                    {foundingPct !== null && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${foundingPct}%`, background: foundingPct >= 100 ? "#16a34a" : foundingPct >= 50 ? "#C9A84C" : "var(--terra)" }} />
+                        </div>
+                        <span className="text-[10px] font-semibold" style={{ color: "var(--muted-warm)" }}>{club.foundingTaken}/{club.foundingTotal} founding</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="shrink-0">
+                    {club.isActive === false ? (
+                      <button onClick={() => activateMutation.mutate(club.id)} disabled={activateMutation.isPending} className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "rgba(22,163,74,0.12)", color: "#16a34a", border: "1px solid rgba(22,163,74,0.3)" }} data-testid={`button-activate-${club.id}`}>Activate</button>
+                    ) : (
+                      <button onClick={() => deactivateMutation.mutate(club.id)} disabled={deactivateMutation.isPending} className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.25)" }} data-testid={`button-deactivate-${club.id}`}>Pause</button>
+                    )}
+                  </div>
                 </div>
-                <div className="shrink-0">
-                  {club.isActive === false ? (
-                    <button onClick={() => activateMutation.mutate(club.id)} disabled={activateMutation.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "var(--terra-pale)", color: "var(--terra)" }} data-testid={`button-activate-${club.id}`}>Activate</button>
-                  ) : (
-                    <button onClick={() => deactivateMutation.mutate(club.id)} disabled={deactivateMutation.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap bg-destructive/10 text-destructive" data-testid={`button-deactivate-${club.id}`}>Deactivate</button>
-                  )}
-                </div>
-              </div>
 
-              {/* Health picker inline */}
-              {healthPickerId === club.id && (
-                <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px dashed var(--warm-border)" }}>
-                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Set Health:</span>
-                  {HEALTH_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.status}
-                      onClick={() => healthMutation.mutate({ id: club.id, status: opt.status, label: opt.label })}
-                      disabled={healthMutation.isPending}
-                      className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all"
-                      style={{
-                        background: club.healthStatus === opt.status ? opt.dot + "22" : "var(--cream)",
-                        color: club.healthStatus === opt.status ? opt.dot : "var(--muted-warm)",
-                        border: `1.5px solid ${club.healthStatus === opt.status ? opt.dot : "transparent"}`,
-                      }}
-                      data-testid={`button-set-health-${club.id}-${opt.status}`}
-                    >
-                      <span className="w-2 h-2 rounded-full inline-block" style={{ background: opt.dot }} />
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                {/* Health picker */}
+                {healthPickerId === club.id && (
+                  <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px dashed var(--warm-border)" }}>
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Set:</span>
+                    {HEALTH_OPTIONS.map((opt) => {
+                      const isSelected = club.healthStatus === opt.status;
+                      return (
+                        <button
+                          key={opt.status}
+                          onClick={() => healthMutation.mutate({ id: club.id, status: opt.status, label: opt.label })}
+                          disabled={healthMutation.isPending}
+                          className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full transition-all"
+                          style={{ background: isSelected ? opt.color + "22" : "var(--cream)", color: isSelected ? opt.color : "var(--muted-warm)", border: `1.5px solid ${isSelected ? opt.color : "transparent"}` }}
+                          data-testid={`button-set-health-${club.id}-${opt.status}`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: opt.color }} />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12" style={{ color: "var(--muted-warm)" }} data-testid="text-no-clubs">No clubs found</div>
+        <SectionEmptyState icon={<Building2 className="w-6 h-6" />} title="No clubs found" desc="Try a different search term" />
       )}
     </div>
   );
@@ -1037,30 +1069,24 @@ function UsersTab() {
   });
 
   if (isLoading) return <div className="space-y-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 rounded-[18px]" />)}</div>;
-  if (error) return <AccessDenied />;
+  if (error) return <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" />;
 
   const q = searchQuery.toLowerCase().trim();
   const filteredUsers = q ? allUsers.filter(u => (u.firstName || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q)) : allUsers;
 
-  const roleStyles: Record<string, { bg: string; color: string }> = {
-    admin: { bg: "var(--terra)", color: "white" },
-    organiser: { bg: "var(--terra-pale)", color: "var(--terra)" },
-    user: { bg: "var(--cream)", color: "var(--muted-warm)" },
-  };
+  const avatarColors = ["#C4622D", "#3D6B45", "#C9A84C", "#6B3D8A", "#2D7DC4", "#C43D4A"];
+  const getAvatarColor = (name: string) => avatarColors[(name.charCodeAt(0) || 0) % avatarColors.length];
 
   const handleExportCSV = () => {
     const headers = ["ID", "Name", "Email", "City", "Role", "Clubs", "Joined"];
     const rows = allUsers.map(u => [
-      u.id,
-      u.firstName || "",
-      u.email || "",
-      u.city || "",
-      u.role || "user",
-      String(u.clubCount),
-      u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN") : "",
+      u.id, u.firstName || "", u.email || "", u.city || "", u.role || "user",
+      String(u.clubCount), u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN") : "",
     ]);
     downloadCSV("cultfam_users.csv", rows, headers);
   };
+
+  const roles = ["user", "organiser", "admin"] as const;
 
   return (
     <div className="space-y-4" data-testid="section-admin-users">
@@ -1070,21 +1096,21 @@ function UsersTab() {
 
       <div className="flex items-center gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-warm)" }} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-warm)" }} />
           <input
             type="text"
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-full text-sm focus:outline-none"
-            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+            className="w-full pl-10 pr-4 py-3 rounded-full text-sm focus:outline-none"
+            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
             data-testid="input-search-users"
           />
         </div>
-        <span className="text-xs whitespace-nowrap" style={{ color: "var(--muted-warm)" }}>{filteredUsers.length} users</span>
+        <span className="text-xs font-semibold whitespace-nowrap px-3 py-2 rounded-full" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}>{filteredUsers.length}</span>
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all"
+          className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-bold transition-all"
           style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}
           data-testid="button-export-users-csv"
         >
@@ -1095,44 +1121,52 @@ function UsersTab() {
 
       <div className="space-y-2">
         {filteredUsers.map((u) => {
-          const rs = roleStyles[u.role || "user"] || roleStyles.user;
+          const avatarColor = getAvatarColor(u.firstName || u.email || "A");
+          const currentRole = u.role || "user";
           return (
             <div
               key={u.id}
-              className="flex items-center gap-4 p-4 rounded-[18px] hover:border-[rgba(196,98,45,0.3)] transition-all cursor-pointer"
+              className="rounded-[18px] p-4 cursor-pointer transition-all"
               style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
               data-testid={`row-admin-user-${u.id}`}
               onClick={() => setSelectedUser(u)}
             >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-white" style={{ background: "var(--terra)" }}>
-                {(u.firstName || u.email || "?").charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm" style={{ color: "var(--ink)" }} data-testid={`text-user-name-${u.id}`}>{u.firstName || "No Name"}</span>
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: rs.bg, color: rs.color }}>{u.role || "user"}</span>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-black text-base text-white" style={{ background: avatarColor }}>
+                  {(u.firstName || u.email || "?").charAt(0).toUpperCase()}
                 </div>
-                <div className="flex items-center gap-3 mt-0.5 text-xs flex-wrap" style={{ color: "var(--muted-warm)" }}>
-                  {u.email && <span>{u.email}</span>}
-                  {u.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{u.city}</span>}
-                  <span>{u.clubCount} clubs</span>
-                  {u.createdAt && <span>Joined {new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[15px]" style={{ color: "var(--ink)" }} data-testid={`text-user-name-${u.id}`}>{u.firstName || "No Name"}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap text-[11px]" style={{ color: "var(--muted-warm)" }}>
+                    {u.email && <span className="truncate max-w-[140px]">{u.email}</span>}
+                    {u.city && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{u.city}</span>}
+                    <span>{u.clubCount} club{u.clubCount !== 1 ? "s" : ""}</span>
+                    {u.createdAt && <span>{new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}</span>}
+                  </div>
                 </div>
-              </div>
-              <div className="shrink-0 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <select
-                  value={u.role || "user"}
-                  onChange={(e) => roleMutation.mutate({ userId: u.id, role: e.target.value })}
-                  disabled={roleMutation.isPending}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full focus:outline-none cursor-pointer"
-                  style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
-                  data-testid={`select-role-${u.id}`}
-                >
-                  <option value="user">User</option>
-                  <option value="organiser">Organiser</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "var(--muted-warm)" }} />
+                {/* Role toggle buttons */}
+                <div className="shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  {roles.map((role) => {
+                    const isActive = currentRole === role;
+                    const roleLabel = role === "organiser" ? "Org" : role.charAt(0).toUpperCase() + role.slice(1);
+                    return (
+                      <button
+                        key={role}
+                        onClick={() => !isActive && roleMutation.mutate({ userId: u.id, role })}
+                        disabled={roleMutation.isPending}
+                        className="text-[10px] font-black px-2 py-1 rounded-full transition-all whitespace-nowrap"
+                        style={isActive
+                          ? { background: role === "admin" ? "var(--terra)" : role === "organiser" ? "var(--terra-pale)" : "var(--cream)", color: role === "admin" ? "white" : "var(--terra)", border: `1.5px solid ${role === "admin" ? "var(--terra)" : "rgba(196,98,45,0.3)"}` }
+                          : { background: "transparent", color: "var(--muted-warm2)", border: "1.5px solid transparent" }
+                        }
+                        data-testid={`button-role-${role}-${u.id}`}
+                      >
+                        {roleLabel}
+                      </button>
+                    );
+                  })}
+                  <ChevronRight className="w-4 h-4" style={{ color: "var(--muted-warm)" }} />
+                </div>
               </div>
             </div>
           );
@@ -1140,9 +1174,7 @@ function UsersTab() {
       </div>
 
       {filteredUsers.length === 0 && (
-        <div className="text-center py-12" style={{ color: "var(--muted-warm)" }} data-testid="text-no-users">
-          {searchQuery ? "No users match your search" : "No users yet"}
-        </div>
+        <SectionEmptyState icon={<Users className="w-6 h-6" />} title={searchQuery ? "No users match" : "No users yet"} desc={searchQuery ? "Try a different search" : undefined} />
       )}
     </div>
   );
@@ -1180,8 +1212,8 @@ function EventsTab() {
   });
 
   if (isLoading) return <div className="space-y-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 rounded-[18px]" />)}</div>;
-  if (error) return <AccessDenied />;
-  if (allEvents.length === 0) return <div className="text-center py-12" style={{ color: "var(--muted-warm)" }} data-testid="text-no-events">No events yet</div>;
+  if (error) return <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" />;
+  if (allEvents.length === 0) return <SectionEmptyState icon={<Calendar className="w-6 h-6" />} title="No events yet" desc="Events will appear here once clubs start organising" />;
 
   const now = new Date();
   const q = searchQuery.toLowerCase().trim();
@@ -1189,26 +1221,26 @@ function EventsTab() {
 
   return (
     <div className="space-y-4" data-testid="section-admin-events">
-      <div className="grid grid-cols-3 gap-3 mb-2">
-        <StatCard icon={<Calendar className="w-4 h-4" />} label="Total Events" value={allEvents.length} />
-        <StatCard icon={<Activity className="w-4 h-4" />} label="Upcoming" value={allEvents.filter(e => new Date(e.startsAt) > now && !e.isCancelled).length} color="#16a34a" />
-        <StatCard icon={<CheckCircle2 className="w-4 h-4" />} label="Total RSVPs" value={allEvents.reduce((sum, e) => sum + e.rsvpCount, 0)} />
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard icon={<Calendar className="w-6 h-6" />} label="Total" value={allEvents.length} />
+        <StatCard icon={<Activity className="w-6 h-6" />} label="Upcoming" value={allEvents.filter(e => new Date(e.startsAt) > now && !e.isCancelled).length} color="#16a34a" />
+        <StatCard icon={<CheckCircle2 className="w-6 h-6" />} label="RSVPs" value={allEvents.reduce((sum, e) => sum + e.rsvpCount, 0)} />
       </div>
 
       <div className="flex items-center gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-warm)" }} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-warm)" }} />
           <input
             type="text"
             placeholder="Search events or clubs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-full text-sm focus:outline-none"
-            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+            className="w-full pl-10 pr-4 py-3 rounded-full text-sm focus:outline-none"
+            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
             data-testid="input-search-events"
           />
         </div>
-        <span className="text-xs whitespace-nowrap" style={{ color: "var(--muted-warm)" }}>{filtered.length} events</span>
+        <span className="text-xs font-semibold whitespace-nowrap px-3 py-2 rounded-full" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}>{filtered.length}</span>
       </div>
 
       <div className="space-y-2">
@@ -1216,55 +1248,71 @@ function EventsTab() {
           const d = new Date(event.startsAt);
           const isPast = d < now;
           const attendanceRate = event.rsvpCount > 0 ? Math.round((event.checkedInCount / event.rsvpCount) * 100) : 0;
+          const capacityPct = event.maxCapacity > 0 ? Math.round((event.rsvpCount / event.maxCapacity) * 100) : 0;
+
+          const borderColor = event.isCancelled ? "#dc2626" : isPast ? "var(--warm-border)" : "#16a34a";
 
           return (
             <div
               key={event.id}
-              className={`rounded-[18px] transition-all hover:border-[rgba(196,98,45,0.3)] ${event.isCancelled ? "opacity-50" : isPast ? "opacity-70" : ""}`}
-              style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+              className={`rounded-[18px] transition-all ${event.isCancelled ? "opacity-60" : isPast ? "opacity-80" : ""}`}
+              style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderLeft: `4px solid ${borderColor}` }}
               data-testid={`row-admin-event-${event.id}`}
             >
-              <Link href={`/event/${event.id}`} className="block p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl shrink-0">{event.clubEmoji}</div>
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  {/* Date chip */}
+                  <div className="shrink-0 w-11 flex flex-col items-center justify-center rounded-xl py-1.5" style={{ background: "var(--terra-pale)", minHeight: 44 }}>
+                    <span className="text-[18px] font-black leading-none" style={{ color: "var(--terra)" }}>{format(d, "d")}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "var(--terra)" }}>{format(d, "MMM")}</span>
+                  </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm" style={{ color: "var(--ink)" }}>{event.title}</span>
-                      {event.isCancelled && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-destructive/20 text-destructive rounded-full flex items-center gap-0.5"><Ban className="w-2.5 h-2.5" /> Cancelled</span>}
-                      {!event.isCancelled && isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--muted-warm)" }}>Past</span>}
-                      {!event.isCancelled && !isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(22,163,74,0.12)", color: "#16a34a" }}>Upcoming</span>}
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-xs flex-wrap" style={{ color: "var(--muted-warm)" }}>
-                      <span>{event.clubName}</span>
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · {d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{event.rsvpCount}/{event.maxCapacity}</span>
+                    <Link href={`/event/${event.id}`}>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-bold text-[14px] hover:underline" style={{ color: "var(--ink)" }}>{event.title}</span>
+                        {event.isCancelled && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(220,38,38,0.1)", color: "#dc2626" }}>Cancelled</span>}
+                        {!event.isCancelled && !isPast && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(22,163,74,0.1)", color: "#16a34a" }}>Live</span>}
+                        {!event.isCancelled && isPast && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--muted-warm)" }}>Past</span>}
+                      </div>
+                    </Link>
+                    <p className="text-[11px] mb-2" style={{ color: "var(--muted-warm)" }}>
+                      {event.clubEmoji} {event.clubName} · {format(d, "h:mm a")}
+                    </p>
+                    {/* RSVP bar */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(capacityPct, 100)}%`, background: capacityPct >= 90 ? "#dc2626" : capacityPct >= 60 ? "#C9A84C" : "#16a34a" }} />
+                      </div>
+                      <span className="text-[10px] font-semibold shrink-0" style={{ color: "var(--muted-warm)" }}>{event.rsvpCount}/{event.maxCapacity}</span>
                     </div>
                   </div>
-                  <div className="shrink-0 text-right flex items-center gap-2" onClick={(e) => e.preventDefault()}>
+
+                  <div className="shrink-0 flex flex-col items-end gap-2">
                     {isPast && event.rsvpCount > 0 && (
-                      <div>
-                        <div className="text-sm font-bold font-mono" style={{ color: "var(--terra)" }}>{attendanceRate}%</div>
-                        <div className="text-[10px]" style={{ color: "var(--muted-warm)" }}>{event.checkedInCount}/{event.rsvpCount}</div>
+                      <div className="text-right">
+                        <div className="text-[20px] font-black leading-none font-mono" style={{ color: attendanceRate >= 70 ? "#16a34a" : "var(--terra)" }}>{attendanceRate}%</div>
+                        <div className="text-[9px]" style={{ color: "var(--muted-warm)" }}>attended</div>
                       </div>
                     )}
                     {event.isCancelled && (
-                      <button onClick={() => restoreEventMutation.mutate(event.id)} disabled={restoreEventMutation.isPending} className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "var(--terra-pale)", color: "var(--terra)" }} data-testid={`button-restore-event-${event.id}`}>
+                      <button onClick={() => restoreEventMutation.mutate(event.id)} disabled={restoreEventMutation.isPending} className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "rgba(22,163,74,0.1)", color: "#16a34a", border: "1px solid rgba(22,163,74,0.3)" }} data-testid={`button-restore-event-${event.id}`}>
                         <RotateCcw className="w-3 h-3" /> Restore
                       </button>
                     )}
                     {!isPast && !event.isCancelled && (
                       confirmingCancel === event.id ? (
                         <div className="flex items-center gap-1">
-                          <button onClick={() => cancelEventMutation.mutate(event.id)} disabled={cancelEventMutation.isPending} className="text-[10px] font-semibold px-2 py-1 rounded-full bg-destructive/10 text-destructive whitespace-nowrap" data-testid={`button-confirm-cancel-event-${event.id}`}>{cancelEventMutation.isPending ? "..." : "Confirm"}</button>
-                          <button onClick={() => setConfirmingCancel(null)} className="text-[10px] font-semibold px-2 py-1 rounded-full whitespace-nowrap" style={{ background: "var(--cream)", color: "var(--muted-warm)" }} data-testid={`button-undo-cancel-event-${event.id}`}>Back</button>
+                          <button onClick={() => cancelEventMutation.mutate(event.id)} disabled={cancelEventMutation.isPending} className="text-[10px] font-bold px-2.5 py-1.5 rounded-full whitespace-nowrap" style={{ background: "rgba(220,38,38,0.1)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.3)" }} data-testid={`button-confirm-cancel-event-${event.id}`}>{cancelEventMutation.isPending ? "..." : "Confirm"}</button>
+                          <button onClick={() => setConfirmingCancel(null)} className="text-[10px] font-bold px-2.5 py-1.5 rounded-full whitespace-nowrap" style={{ background: "var(--cream)", color: "var(--muted-warm)" }} data-testid={`button-undo-cancel-event-${event.id}`}>Back</button>
                         </div>
                       ) : (
-                        <button onClick={() => setConfirmingCancel(event.id)} className="text-[10px] font-semibold px-2 py-1 rounded-full bg-destructive/10 text-destructive whitespace-nowrap" data-testid={`button-cancel-event-${event.id}`}>Cancel</button>
+                        <button onClick={() => setConfirmingCancel(event.id)} className="text-[10px] font-bold px-2.5 py-1.5 rounded-full whitespace-nowrap" style={{ background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.2)" }} data-testid={`button-cancel-event-${event.id}`}>Cancel</button>
                       )
                     )}
                   </div>
                 </div>
-              </Link>
+              </div>
             </div>
           );
         })}
@@ -1308,23 +1356,20 @@ function JoinRequestsTab() {
   });
 
   if (isLoading) return <div className="space-y-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-[18px]" />)}</div>;
-  if (error) return <AccessDenied />;
-  if (requests.length === 0) return <div className="text-center py-12" style={{ color: "var(--muted-warm)" }} data-testid="text-no-join-requests">No join requests yet</div>;
+  if (error) return <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" />;
+  if (requests.length === 0) return <SectionEmptyState icon={<UserCheck className="w-6 h-6" />} title="No join requests yet" desc="When users apply to join clubs, they'll appear here" />;
 
   const handleExportCSV = () => {
     const headers = ["Name", "Phone", "Club", "Status", "Date"];
     const rows = (requests as any[]).map(r => [
-      r.name || "",
-      r.phone || "",
-      r.clubName || "",
-      r.status || "",
+      r.name || "", r.phone || "", r.clubName || "", r.status || "",
       r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN") : "",
     ]);
     downloadCSV("cultfam_join_requests.csv", rows, headers);
   };
 
-  const pending = (requests as any[]).filter(r => r.status === "pending");
-  const rest = (requests as any[]).filter(r => r.status !== "pending");
+  const pending = (requests as any[]).filter(r => r.status === "pending" && !r.markedDone);
+  const rest = (requests as any[]).filter(r => r.status !== "pending" || r.markedDone);
 
   const statusStyle = (status: string) => {
     if (status === "approved") return { bg: "rgba(22,163,74,0.12)", color: "#16a34a" };
@@ -1334,41 +1379,76 @@ function JoinRequestsTab() {
 
   const renderRequest = (req: any) => {
     const ss = statusStyle(req.status);
+    const isPending = req.status === "pending" && !req.markedDone;
+
     return (
-      <div key={req.id} className={`p-4 rounded-[18px] transition-all ${req.markedDone ? "opacity-40" : ""}`} style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid={`row-join-request-${req.id}`}>
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-white" style={{ background: "var(--terra)" }}>
-            {(req.name || "?").charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm" style={{ color: "var(--ink)" }} data-testid={`text-join-name-${req.id}`}>{req.name}</span>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: ss.bg, color: ss.color }}>{req.status}</span>
-              {req.markedDone && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--muted-warm)" }}>Done</span>}
+      <div
+        key={req.id}
+        className={`rounded-[18px] transition-all ${req.markedDone ? "opacity-40" : ""}`}
+        style={{
+          background: "var(--warm-white)",
+          border: "1.5px solid var(--warm-border)",
+          borderLeft: isPending ? "4px solid var(--terra)" : "1.5px solid var(--warm-border)",
+        }}
+        data-testid={`row-join-request-${req.id}`}
+      >
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "var(--terra)" }}>
+              {(req.name || "?").charAt(0).toUpperCase()}
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-xs flex-wrap" style={{ color: "var(--muted-warm)" }}>
-              <span data-testid={`text-join-phone-${req.id}`}>{req.phone}</span>
-              <span>·</span>
-              <span className="font-medium" style={{ color: "var(--terra)" }} data-testid={`text-join-club-${req.id}`}>{req.clubName}</span>
-              <span>·</span>
-              <span>{req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <span className="font-bold text-[14px]" style={{ color: "var(--ink)" }} data-testid={`text-join-name-${req.id}`}>{req.name}</span>
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: ss.bg, color: ss.color }}>{req.status}</span>
+                {req.markedDone && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--muted-warm)" }}>Done</span>}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap text-[11px]" style={{ color: "var(--muted-warm)" }}>
+                <span data-testid={`text-join-phone-${req.id}`}>{req.phone}</span>
+                <span>·</span>
+                <span className="font-semibold" style={{ color: "var(--terra)" }} data-testid={`text-join-club-${req.id}`}>{req.clubName}</span>
+                <span>·</span>
+                <span>{req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}</span>
+              </div>
             </div>
           </div>
-          <div className="shrink-0 flex flex-col gap-1.5 items-end">
-            {req.status === "pending" && (
-              <>
-                <button onClick={() => approveMutation.mutate({ id: req.id, clubId: req.clubId })} disabled={approveMutation.isPending} className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "rgba(22,163,74,0.12)", color: "#16a34a" }} data-testid={`button-approve-${req.id}`}>
-                  <CheckCircle2 className="w-3 h-3" /> Approve
-                </button>
-                <button onClick={() => rejectMutation.mutate(req.id)} disabled={rejectMutation.isPending} className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap bg-destructive/10 text-destructive" data-testid={`button-reject-${req.id}`}>
-                  <XCircle className="w-3 h-3" /> Reject
-                </button>
-              </>
-            )}
-            {!req.markedDone && req.status !== "pending" && (
-              <button onClick={() => markDoneMutation.mutate(req.id)} disabled={markDoneMutation.isPending} className="text-[11px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: "var(--terra-pale)", color: "var(--terra)" }} data-testid={`button-mark-done-${req.id}`}>Mark Done</button>
-            )}
-          </div>
+
+          {isPending && (
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={() => approveMutation.mutate({ id: req.id, clubId: req.clubId })}
+                disabled={approveMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: "rgba(22,163,74,0.12)", color: "#16a34a", border: "1.5px solid rgba(22,163,74,0.3)" }}
+                data-testid={`button-approve-${req.id}`}
+              >
+                <CheckCircle2 className="w-4 h-4" /> Approve
+              </button>
+              <button
+                onClick={() => rejectMutation.mutate(req.id)}
+                disabled={rejectMutation.isPending}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "1.5px solid rgba(220,38,38,0.3)" }}
+                data-testid={`button-reject-${req.id}`}
+              >
+                <XCircle className="w-4 h-4" /> Reject
+              </button>
+            </div>
+          )}
+
+          {!req.markedDone && req.status !== "pending" && (
+            <div className="mt-3">
+              <button
+                onClick={() => markDoneMutation.mutate(req.id)}
+                disabled={markDoneMutation.isPending}
+                className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
+                style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
+                data-testid={`button-mark-done-${req.id}`}
+              >
+                Mark Done
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1379,7 +1459,7 @@ function JoinRequestsTab() {
       <div className="flex justify-end">
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all"
           style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--muted-warm)" }}
           data-testid="button-export-requests-csv"
         >
@@ -1391,15 +1471,15 @@ function JoinRequestsTab() {
       {pending.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>Pending</h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: "var(--terra)" }}>{pending.length}</span>
+            <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>Needs Action</h3>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "#e53e3e" }}>{pending.length}</span>
           </div>
           <div className="space-y-2">{pending.map(renderRequest)}</div>
         </div>
       )}
       {rest.length > 0 && (
         <div>
-          {pending.length > 0 && <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--ink)" }}>All Requests</h3>}
+          <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--muted-warm)" }}>All Requests</h3>
           <div className="space-y-2">{rest.map(renderRequest)}</div>
         </div>
       )}
@@ -1425,16 +1505,9 @@ function PollsTab() {
   });
 
   if (isLoading) return <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-[18px]" />)}</div>;
-  if (error) return <AccessDenied />;
+  if (error) return <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" />;
   if (polls.length === 0) {
-    return (
-      <div className="text-center py-16 space-y-3">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-          <Vote className="w-8 h-8" style={{ color: "var(--terra)" }} />
-        </div>
-        <p className="text-sm" style={{ color: "var(--muted-warm)" }} data-testid="text-no-polls">No polls created yet</p>
-      </div>
-    );
+    return <SectionEmptyState icon={<Vote className="w-6 h-6" />} title="No polls yet" desc="When clubs create polls, they'll appear here" />;
   }
 
   const openPolls = polls.filter(p => p.isOpen);
@@ -1444,54 +1517,51 @@ function PollsTab() {
     <div
       key={poll.id}
       className="rounded-[18px] p-5"
-      style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+      style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderLeft: poll.isOpen ? "4px solid #16a34a" : "1.5px solid var(--warm-border)" }}
       data-testid={`card-poll-${poll.id}`}
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-start gap-3">
-          <span className="text-xl shrink-0 mt-0.5">{poll.clubEmoji}</span>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: "var(--cream)" }}>{poll.clubEmoji}</div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--muted-warm)" }}>{poll.clubName}</p>
-            <p className="font-semibold text-sm" style={{ color: "var(--ink)" }}>{poll.question}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>{poll.clubName}</span>
+              {poll.isOpen && <span className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(22,163,74,0.1)", color: "#16a34a" }}>
+                <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: "#16a34a" }} />Open
+              </span>}
+              {!poll.isOpen && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--muted-warm)" }}>Closed</span>}
+            </div>
+            <p className="font-bold text-[14px]" style={{ color: "var(--ink)" }}>{poll.question}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
-            style={poll.isOpen
-              ? { background: "rgba(22,163,74,0.12)", color: "#16a34a" }
-              : { background: "var(--cream)", color: "var(--muted-warm)" }
-            }
+        {poll.isOpen && (
+          <button
+            onClick={() => closeMutation.mutate(poll.id)}
+            disabled={closeMutation.isPending}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap shrink-0"
+            style={{ background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.25)" }}
+            data-testid={`button-close-poll-${poll.id}`}
           >
-            {poll.isOpen ? "Open" : "Closed"}
-          </span>
-          {poll.isOpen && (
-            <button
-              onClick={() => closeMutation.mutate(poll.id)}
-              disabled={closeMutation.isPending}
-              className="text-[11px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap bg-destructive/10 text-destructive"
-              data-testid={`button-close-poll-${poll.id}`}
-            >
-              Close Poll
-            </button>
-          )}
-        </div>
+            Close
+          </button>
+        )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {poll.options.map((option, i) => {
           const count = poll.votes[i] ?? 0;
           const pct = poll.totalVotes > 0 ? Math.round((count / poll.totalVotes) * 100) : 0;
+          const isLeading = count === Math.max(...poll.votes) && count > 0;
           return (
             <div key={i}>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span style={{ color: "var(--ink)" }}>{option}</span>
-                <span className="font-bold font-mono" style={{ color: "var(--terra)" }}>{pct}% <span style={{ color: "var(--muted-warm)", fontWeight: 400 }}>({count})</span></span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium" style={{ color: isLeading ? "var(--ink)" : "var(--muted-warm)" }}>{option}</span>
+                <span className="text-xs font-black font-mono" style={{ color: "var(--terra)" }}>{pct}% <span className="font-normal" style={{ color: "var(--muted-warm)" }}>({count})</span></span>
               </div>
-              <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
+              <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
                 <div
                   className="h-full rounded-full transition-all"
-                  style={{ width: `${pct}%`, background: "var(--terra)" }}
+                  style={{ width: `${pct}%`, background: isLeading ? `linear-gradient(90deg, var(--terra), var(--gold))` : "rgba(196,98,45,0.35)" }}
                 />
               </div>
             </div>
@@ -1499,8 +1569,10 @@ function PollsTab() {
         })}
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid var(--warm-border)" }}>
-        <span className="text-xs" style={{ color: "var(--muted-warm)" }}>{poll.totalVotes} total votes</span>
+      <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid var(--warm-border)" }}>
+        <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--muted-warm)" }}>
+          <Users className="w-3 h-3" />{poll.totalVotes} vote{poll.totalVotes !== 1 ? "s" : ""}
+        </span>
         {poll.createdAt && <span className="text-xs" style={{ color: "var(--muted-warm)" }}>{formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}</span>}
       </div>
     </div>
@@ -1509,24 +1581,24 @@ function PollsTab() {
   return (
     <div className="space-y-6" data-testid="section-admin-polls">
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={<BarChart2 className="w-4 h-4" />} label="Total Polls" value={polls.length} />
-        <StatCard icon={<Activity className="w-4 h-4" />} label="Open" value={openPolls.length} color="#16a34a" />
-        <StatCard icon={<CheckCircle2 className="w-4 h-4" />} label="Closed" value={closedPolls.length} />
+        <StatCard icon={<BarChart2 className="w-6 h-6" />} label="Total" value={polls.length} />
+        <StatCard icon={<Activity className="w-6 h-6" />} label="Open" value={openPolls.length} color="#16a34a" />
+        <StatCard icon={<CheckCircle2 className="w-6 h-6" />} label="Closed" value={closedPolls.length} />
       </div>
 
       {openPolls.length > 0 && (
         <div>
-          <h3 className="font-display font-bold text-base mb-3 flex items-center gap-2" style={{ color: "var(--ink)" }}>
-            Open Polls
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: "#16a34a" }}>{openPolls.length}</span>
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>Open Polls</h3>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "#16a34a" }}>{openPolls.length}</span>
+          </div>
           <div className="space-y-3">{openPolls.map(renderPoll)}</div>
         </div>
       )}
 
       {closedPolls.length > 0 && (
         <div>
-          <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--ink)" }}>Closed Polls</h3>
+          <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--muted-warm)" }}>Closed Polls</h3>
           <div className="space-y-3">{closedPolls.map(renderPoll)}</div>
         </div>
       )}
