@@ -101,7 +101,8 @@ export interface IStorage {
   updateEvent(id: string, data: Partial<InsertEvent>): Promise<Event | undefined>;
   cancelEvent(id: string): Promise<Event | undefined>;
   getMembersPreview(clubId: string, limit?: number): Promise<{ userId: string | null; name: string; profileImageUrl: string | null }[]>;
-  getAdminAnalytics(): Promise<{ totalUsers: number; totalClubs: number; activeClubs: number; totalEvents: number; totalRsvps: number; totalCheckins: number; cityCounts: { city: string; count: number }[] }>;
+  getAdminAnalytics(): Promise<{ totalUsers: number; totalClubs: number; activeClubs: number; totalEvents: number; totalRsvps: number; totalCheckins: number; totalMoments: number; totalComments: number; newUsersThisWeek: number; newEventsThisWeek: number; newJoinsThisWeek: number; cityCounts: { city: string; count: number }[] }>;
+  getAdminActivityFeed(): Promise<{ recentJoins: { name: string; clubName: string; createdAt: Date | null }[]; recentClubs: { name: string; emoji: string; city: string; createdAt: Date | null }[]; recentEvents: { title: string; clubName: string; startsAt: Date }[] }>;
   getAllUsers(): Promise<{ id: string; email: string | null; firstName: string | null; city: string | null; role: string | null; createdAt: Date | null; clubCount: number }[]>;
   getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
@@ -865,12 +866,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminAnalytics() {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [userCount] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
     const [clubCount] = await db.select({ count: sql<number>`count(*)::int` }).from(clubs);
     const [activeCount] = await db.select({ count: sql<number>`count(*)::int` }).from(clubs).where(ne(clubs.isActive, false));
     const [eventCount] = await db.select({ count: sql<number>`count(*)::int` }).from(events);
     const [rsvpCount] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps);
     const [checkinCount] = await db.select({ count: sql<number>`count(*)::int` }).from(eventRsvps).where(eq(eventRsvps.checkedIn, true));
+    const [momentCount] = await db.select({ count: sql<number>`count(*)::int` }).from(clubMoments);
+    const [commentCount] = await db.select({ count: sql<number>`count(*)::int` }).from(momentComments);
+    const [newUsersRow] = await db.select({ count: sql<number>`count(*)::int` }).from(users).where(gte(users.createdAt, sevenDaysAgo));
+    const [newEventsRow] = await db.select({ count: sql<number>`count(*)::int` }).from(events).where(gte(events.createdAt, sevenDaysAgo));
+    const [newJoinsRow] = await db.select({ count: sql<number>`count(*)::int` }).from(joinRequests).where(and(eq(joinRequests.status, "approved"), gte(joinRequests.createdAt, sevenDaysAgo)));
 
     const cityRows = await db.select({
       city: clubs.city,
@@ -884,7 +891,38 @@ export class DatabaseStorage implements IStorage {
       totalEvents: eventCount.count,
       totalRsvps: rsvpCount.count,
       totalCheckins: checkinCount.count,
+      totalMoments: momentCount.count,
+      totalComments: commentCount.count,
+      newUsersThisWeek: newUsersRow.count,
+      newEventsThisWeek: newEventsRow.count,
+      newJoinsThisWeek: newJoinsRow.count,
       cityCounts: cityRows.map(r => ({ city: r.city, count: r.count })),
+    };
+  }
+
+  async getAdminActivityFeed() {
+    const recentJoinsRows = await db
+      .select({ name: joinRequests.name, clubName: clubs.name, createdAt: joinRequests.createdAt })
+      .from(joinRequests)
+      .innerJoin(clubs, eq(joinRequests.clubId, clubs.id))
+      .where(eq(joinRequests.status, "approved"))
+      .orderBy(desc(joinRequests.createdAt))
+      .limit(5);
+    const recentClubsRows = await db
+      .select({ name: clubs.name, emoji: clubs.emoji, city: clubs.city, createdAt: clubs.createdAt })
+      .from(clubs)
+      .orderBy(desc(clubs.createdAt))
+      .limit(3);
+    const recentEventsRows = await db
+      .select({ title: events.title, clubName: clubs.name, startsAt: events.startsAt })
+      .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .orderBy(desc(events.createdAt))
+      .limit(3);
+    return {
+      recentJoins: recentJoinsRows,
+      recentClubs: recentClubsRows,
+      recentEvents: recentEventsRows,
     };
   }
 

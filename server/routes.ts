@@ -263,6 +263,52 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/activity-feed", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const feed = await storage.getAdminActivityFeed();
+      res.json(feed);
+    } catch (err) {
+      console.error("Error fetching admin activity feed:", err);
+      res.status(500).json({ message: "Failed to fetch activity feed" });
+    }
+  });
+
+  app.post("/api/admin/join-requests/:id/approve", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { clubId } = req.body;
+      if (!clubId) return res.status(400).json({ message: "clubId required" });
+      const updated = await storage.approveJoinRequestWithFoundingCheck(req.params.id, clubId);
+      if (!updated) return res.status(404).json({ message: "Request not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error admin approving join request:", err);
+      res.status(500).json({ message: "Failed to approve request" });
+    }
+  });
+
+  app.post("/api/admin/join-requests/:id/reject", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.rejectJoinRequest(req.params.id);
+      if (!updated) return res.status(404).json({ message: "Request not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error admin rejecting join request:", err);
+      res.status(500).json({ message: "Failed to reject request" });
+    }
+  });
+
+  app.patch("/api/admin/events/:eventId/restore", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+      const updated = await storage.updateEvent(req.params.eventId, { isCancelled: false });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error restoring event:", err);
+      res.status(500).json({ message: "Failed to restore event" });
+    }
+  });
+
   app.post("/api/clubs/create", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

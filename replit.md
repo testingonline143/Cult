@@ -55,6 +55,11 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `PATCH /api/admin/clubs/:id/activate` — reactivate a club (admin only)
   - `GET /api/admin/join-requests` — list all join requests, newest first (admin only)
   - `PATCH /api/admin/join-requests/:id/done` — mark join request as done (admin only)
+  - `POST /api/admin/join-requests/:id/approve` — approve a join request directly (admin only, body: { clubId })
+  - `POST /api/admin/join-requests/:id/reject` — reject a join request (admin only)
+  - `GET /api/admin/analytics` — full platform analytics incl. moments/comments/weekly growth (admin only)
+  - `GET /api/admin/activity-feed` — recent joins, clubs, events activity (admin only)
+  - `PATCH /api/admin/events/:eventId/restore` — restore a cancelled event (admin only)
   - `PATCH /api/user/profile` — update authenticated user's name and bio
   - `GET /api/user/join-requests` — get authenticated user's join requests
   - `GET /api/user/events` — get authenticated user's RSVP'd events
