@@ -270,7 +270,7 @@ export default function Admin() {
           <h1 className="font-display text-2xl font-bold" style={{ color: "var(--terra)" }} data-testid="text-admin-title">Admin Dashboard</h1>
           <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Sign in to access the admin dashboard</p>
           <a
-            href="/api/login"
+            href="/api/login?returnTo=/admin"
             className="inline-block w-full rounded-full py-3 text-sm font-bold text-white text-center"
             style={{ background: "var(--terra)" }}
             data-testid="button-admin-login"

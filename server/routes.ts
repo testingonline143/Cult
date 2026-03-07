@@ -165,9 +165,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/status", isAuthenticated, async (_req, res) => {
+  app.get("/api/admin/status", isAuthenticated, async (req: any, res) => {
     const configured = !!(process.env.ADMIN_USER_ID && process.env.ADMIN_USER_ID.trim().length > 0);
-    res.json({ configured });
+    const isCurrentUserAdmin = configured && req.user?.claims?.sub === process.env.ADMIN_USER_ID;
+    res.json({ configured, isCurrentUserAdmin });
   });
 
   app.get("/api/admin/join-requests", isAuthenticated, isAdmin, async (_req, res) => {

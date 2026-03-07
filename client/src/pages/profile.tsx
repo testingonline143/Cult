@@ -279,12 +279,17 @@ function ProfileHeader({ user }: { user: User }) {
 function ProfileActions({ user }: { user: User }) {
   const [, navigate] = useLocation();
 
+  const { data: adminStatus } = useQuery<{ configured: boolean; isCurrentUserAdmin: boolean }>({
+    queryKey: ["/api/admin/status"],
+    retry: false,
+  });
+
   const handleRedoQuiz = () => {
     navigate("/onboarding");
   };
 
-  const isOrganiserOrAdmin = user.role === "organiser" || user.role === "admin";
-  const isAdmin = user.role === "admin";
+  const isAdmin = adminStatus?.isCurrentUserAdmin === true;
+  const isOrganiserOrAdmin = user.role === "organiser" || user.role === "admin" || isAdmin;
 
   return (
     <div className="space-y-3 mb-6">
