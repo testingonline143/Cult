@@ -83,7 +83,7 @@ export interface IStorage {
   updateScheduleEntry(id: string, data: { dayOfWeek?: string; startTime?: string; endTime?: string; activity?: string; location?: string }): Promise<ClubScheduleEntry | undefined>;
   deleteScheduleEntry(id: string): Promise<void>;
   getClubMoments(clubId: string): Promise<(ClubMoment & { commentCount: number })[]>;
-  createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string): Promise<ClubMoment>;
+  createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string, authorUserId?: string, authorName?: string): Promise<ClubMoment>;
   updateMoment(id: string, data: { caption?: string; emoji?: string }): Promise<ClubMoment | undefined>;
   deleteMoment(id: string): Promise<void>;
   getCommentsByMoment(momentId: string): Promise<MomentComment[]>;
@@ -107,7 +107,7 @@ export interface IStorage {
   getAllEventsAdmin(): Promise<{ id: string; title: string; clubId: string; clubName: string; clubEmoji: string; startsAt: Date; rsvpCount: number; checkedInCount: number; isCancelled: boolean | null; maxCapacity: number }[]>;
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
   getUserApprovedClubs(userId: string): Promise<Club[]>;
-  getFeedMoments(limit?: number, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean })[]>;
+  getFeedMoments(limit?: number, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean; authorName: string | null; authorUserId: string | null })[]>;
   becomeCreator(userId: string): Promise<void>;
   getClubAnalytics(clubId: string): Promise<{
     memberGrowth: { week: string; count: number }[];
@@ -749,8 +749,8 @@ export class DatabaseStorage implements IStorage {
     return rows.map(r => ({ ...r, commentCount: countMap[r.id] ?? 0 }));
   }
 
-  async createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string): Promise<ClubMoment> {
-    const [created] = await db.insert(clubMoments).values({ clubId, caption, emoji: emoji || null, imageUrl: imageUrl || null }).returning();
+  async createMoment(clubId: string, caption: string, emoji?: string, imageUrl?: string, authorUserId?: string, authorName?: string): Promise<ClubMoment> {
+    const [created] = await db.insert(clubMoments).values({ clubId, caption, emoji: emoji || null, imageUrl: imageUrl || null, authorUserId: authorUserId || null, authorName: authorName || null }).returning();
     return created;
   }
 
@@ -1048,7 +1048,7 @@ export class DatabaseStorage implements IStorage {
     return result.map(r => r.club);
   }
 
-  async getFeedMoments(limit = 10, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean })[]> {
+  async getFeedMoments(limit = 10, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean; authorName: string | null; authorUserId: string | null })[]> {
     const rows = await db
       .select({
         id: clubMoments.id,
@@ -1058,6 +1058,8 @@ export class DatabaseStorage implements IStorage {
         emoji: clubMoments.emoji,
         likesCount: clubMoments.likesCount,
         createdAt: clubMoments.createdAt,
+        authorUserId: clubMoments.authorUserId,
+        authorName: clubMoments.authorName,
         clubName: clubs.name,
         clubEmoji: clubs.emoji,
         clubLocation: clubs.location,

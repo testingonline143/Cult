@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Camera, CheckCircle2, XCircle, AlertTriangle, Users, Calendar, MapPin, Clock, Search, X, UserCheck } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, XCircle, AlertTriangle, Users, Calendar, MapPin, Clock, Search, X, UserCheck, Sun } from "lucide-react";
 import type { Event } from "@shared/schema";
 
 interface Attendee {
@@ -45,6 +45,19 @@ export default function ScanEvent() {
   const scannerRef = useRef<any>(null);
   const scannerDivRef = useRef<HTMLDivElement>(null);
   const processingRef = useRef(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchHidden, setTorchHidden] = useState(false);
+
+  const toggleTorch = async () => {
+    if (!scannerRef.current) return;
+    try {
+      const next = !torchOn;
+      await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: next }] });
+      setTorchOn(next);
+    } catch {
+      setTorchHidden(true);
+    }
+  };
 
   const { data: event, isLoading: eventLoading } = useQuery<Event>({
     queryKey: ["/api/events", eventId, "detail"],
@@ -162,6 +175,7 @@ export default function ScanEvent() {
       scannerRef.current = null;
     }
     setScanning(false);
+    setTorchOn(false);
   };
 
   useEffect(() => {
@@ -298,6 +312,21 @@ export default function ScanEvent() {
                 Start Camera Scanner
               </button>
             </div>
+          )}
+
+          {scanning && !torchHidden && (
+            <button
+              onClick={toggleTorch}
+              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all"
+              style={{
+                background: torchOn ? "var(--terra)" : "rgba(0,0,0,0.5)",
+                border: "1.5px solid rgba(255,255,255,0.3)",
+              }}
+              data-testid="button-torch-toggle"
+              title={torchOn ? "Turn off flashlight" : "Turn on flashlight"}
+            >
+              <Sun className="w-5 h-5 text-white" />
+            </button>
           )}
 
           {/* Scan result overlay */}

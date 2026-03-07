@@ -3,7 +3,8 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon, Loader2 } from "lucide-react";
+import { ImageUpload } from "@/components/image-upload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1151,7 +1152,9 @@ function getMomentIcon(caption: string) {
   return Activity;
 }
 
-type MomentWithCount = ClubMoment & { commentCount: number };
+type MomentWithCount = ClubMoment & { commentCount: number; authorName?: string | null; authorUserId?: string | null };
+
+const MOMENT_ICONS = ["🎉", "📸", "🏃", "🎵", "📚", "🌄", "⚽", "🎨", "🍜", "💪", "🧘", "🎭"];
 
 function MomentsTab({
   clubId,
@@ -1165,7 +1168,14 @@ function MomentsTab({
   isMember?: boolean;
 }) {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState("");
+  const [momentImageUrl, setMomentImageUrl] = useState<string | null>(null);
+
+  const canPost = isOwner || isOrganiser || isMember;
 
   const { data: moments = [], isLoading } = useQuery<MomentWithCount[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
@@ -1173,6 +1183,25 @@ function MomentsTab({
       const res = await fetch(`/api/clubs/${clubId}/moments`);
       if (!res.ok) return [];
       return res.json();
+    },
+  });
+
+  const postMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/moments`, {
+        caption: caption.trim(),
+        emoji: selectedEmoji || undefined,
+        imageUrl: momentImageUrl || undefined,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "moments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      setCaption("");
+      setSelectedEmoji("");
+      setMomentImageUrl(null);
+      setShowPostForm(false);
     },
   });
 
@@ -1194,44 +1223,14 @@ function MomentsTab({
     );
   }
 
-  if (moments.length === 0) {
+  if (moments.length === 0 && !canPost) {
     return (
       <div className="px-6 py-6">
-        {isOwner ? (
-          <div
-            className="rounded-2xl p-5 text-center space-y-3"
-            style={{ background: "var(--terra-pale)", border: "1.5px dashed var(--terra)" }}
-          >
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: "var(--terra)" }}>
-              <Camera className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-bold" style={{ color: "var(--ink)" }}>Share your club's first moment</p>
-              <p className="text-xs mt-1" style={{ color: "var(--ink3)" }}>Photos, milestones, recaps — your members are waiting</p>
-            </div>
-            <button
-              onClick={() => navigate("/organizer?tab=content")}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white"
-              style={{ background: "var(--terra)" }}
-              data-testid="button-add-moment-shortcut"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Post a Moment
-            </button>
-          </div>
-        ) : isMember ? (
-          <div className="text-center py-4">
-            <Sparkles className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-warm2)" }} />
-            <p className="text-sm font-semibold" style={{ color: "var(--ink3)" }}>Moments are on their way</p>
-            <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>Be the first to react when the organiser posts</p>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <Activity className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-warm2)" }} />
-            <p className="text-sm font-semibold" style={{ color: "var(--ink3)" }}>No moments yet</p>
-            <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>Join this club to be part of the conversation</p>
-          </div>
-        )}
+        <div className="text-center py-4">
+          <Activity className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-warm2)" }} />
+          <p className="text-sm font-semibold" style={{ color: "var(--ink3)" }}>No moments yet</p>
+          <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>Join this club to be part of the conversation</p>
+        </div>
       </div>
     );
   }
@@ -1240,8 +1239,8 @@ function MomentsTab({
     <div className="px-6 py-4 space-y-3" data-testid="section-moments">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Recent Moments</h2>
-          {isMember && (
+          <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Moments</h2>
+          {isMember && !isOrganiser && (
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
@@ -1258,22 +1257,80 @@ function MomentsTab({
             </span>
           )}
         </div>
-        {isOwner && (
+        {canPost && (
           <button
-            onClick={() => navigate("/organizer?tab=content")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white"
-            style={{ background: "var(--terra)" }}
-            data-testid="button-add-moment-shortcut"
+            onClick={() => setShowPostForm(p => !p)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white transition-all"
+            style={{ background: showPostForm ? "var(--ink)" : "var(--terra)" }}
+            data-testid="button-share-moment"
           >
-            <Plus className="w-3 h-3" />
-            Add Moment
+            {showPostForm ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {showPostForm ? "Cancel" : "Share a Moment"}
           </button>
         )}
       </div>
+
+      {showPostForm && canPost && (
+        <div
+          className="rounded-xl p-4 space-y-3"
+          style={{ background: "var(--warm-white)", border: "1.5px solid rgba(196,98,45,0.3)" }}
+          data-testid="form-post-moment"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--terra)" }}>
+            Share what happened
+          </p>
+          <textarea
+            value={caption}
+            onChange={e => setCaption(e.target.value)}
+            placeholder="Tell your clubmates about a recent meetup, milestone, or memory..."
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-lg border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:border-[var(--terra)] resize-none transition-colors"
+            data-testid="input-moment-caption"
+          />
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground mb-2">Add a vibe</p>
+            <div className="flex flex-wrap gap-2">
+              {MOMENT_ICONS.map(icon => (
+                <button
+                  key={icon}
+                  onClick={() => setSelectedEmoji(selectedEmoji === icon ? "" : icon)}
+                  className={`text-xl w-9 h-9 rounded-lg flex items-center justify-center transition-all ${selectedEmoji === icon ? "ring-2 ring-[var(--terra)] bg-[var(--terra-pale)]" : "bg-[var(--cream)]"}`}
+                  data-testid={`button-emoji-${icon}`}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          </div>
+          <ImageUpload value={momentImageUrl} onChange={setMomentImageUrl} label="Photo (optional)" />
+          <button
+            onClick={() => postMutation.mutate()}
+            disabled={postMutation.isPending || !caption.trim()}
+            className="w-full py-2.5 rounded-lg text-sm font-bold text-white disabled:opacity-50 transition-all"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-submit-moment"
+          >
+            {postMutation.isPending ? (
+              <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Posting...</span>
+            ) : "Post Moment"}
+          </button>
+        </div>
+      )}
+
+      {moments.length === 0 && canPost && (
+        <div className="text-center py-6">
+          <Camera className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-warm2)" }} />
+          <p className="text-sm font-semibold" style={{ color: "var(--ink3)" }}>No moments yet</p>
+          <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>Be the first to share a moment with your clubmates!</p>
+        </div>
+      )}
+
       {moments.map((moment) => {
         const timeAgo = getRelativeTime(moment.createdAt);
         const MomentIcon = getMomentIcon(moment.caption);
         const isExpanded = expandedComments.has(moment.id);
+        const isMyMoment = user && moment.authorUserId === user.id;
+        const authorDisplay = isMyMoment ? "You" : (moment.authorName || null);
         return (
           <div
             key={moment.id}
@@ -1281,6 +1338,19 @@ function MomentsTab({
             style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
             data-testid={`moment-${moment.id}`}
           >
+            {authorDisplay && (
+              <div className="px-3.5 pt-3 pb-1 flex items-center gap-2">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  style={{ background: isMyMoment ? "var(--terra)" : "var(--ink2)" }}
+                >
+                  {authorDisplay.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-[11px] font-semibold" style={{ color: "var(--ink3)" }}>
+                  {isMyMoment ? "You posted this" : `Posted by ${authorDisplay}`}
+                </span>
+              </div>
+            )}
             {moment.imageUrl && (
               <img
                 src={moment.imageUrl}

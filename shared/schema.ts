@@ -132,6 +132,8 @@ export const clubMoments = pgTable("club_moments", {
   emoji: text("emoji"),
   likesCount: integer("likes_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  authorUserId: varchar("author_user_id"),
+  authorName: text("author_name"),
 });
 
 export const momentLikes = pgTable("moment_likes", {

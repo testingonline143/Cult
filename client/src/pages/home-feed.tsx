@@ -22,6 +22,8 @@ interface FeedMoment extends ClubMoment {
   clubLocation: string;
   commentCount: number;
   userHasLiked: boolean;
+  authorName: string | null;
+  authorUserId: string | null;
 }
 
 
@@ -432,60 +434,121 @@ export default function HomeFeed() {
         )}
 
         {/* My Clubs */}
-        <div data-testid="section-my-clubs">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>My Clubs</h2>
-            <Link
-              href="/explore"
-              className="flex items-center gap-1 text-[12px] font-bold"
-              style={{ color: "var(--terra)" }}
-              data-testid="link-view-all-clubs"
-            >
-              View All <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+        {userClubs.length === 0 && user ? (
           <div
-            className="flex gap-4 overflow-x-auto pb-2"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            className="rounded-[20px] overflow-hidden"
+            style={{ background: "var(--ink)" }}
+            data-testid="card-find-your-tribe"
           >
-            {userClubs.length === 0 && !user ? (
-              <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Sign in to see your clubs</p>
-            ) : userClubs.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Join clubs to see them here</p>
-            ) : (
-              userClubs.map(club => (
-                <button
-                  key={club.id}
-                  onClick={() => navigate(`/club/${club.id}`)}
-                  className="flex flex-col items-center gap-2 shrink-0"
-                  style={{ minWidth: 64 }}
-                  data-testid={`club-avatar-${club.id}`}
+            <div className="p-5">
+              <p className="text-[10px] font-bold tracking-[2px] uppercase mb-2" style={{ color: "var(--terra-light)" }}>
+                🌟 Just Getting Started
+              </p>
+              <h2 className="font-display font-bold text-[22px] text-white leading-tight mb-1">
+                Find Your First Tribe
+              </h2>
+              <p className="text-[12px] mb-4" style={{ color: "var(--muted-warm2)" }}>
+                {allClubs.length > 0 ? `${allClubs.length} active clubs in Tirupati are waiting for you.` : "Discover hobby clubs in Tirupati."}
+              </p>
+              {allClubs.length > 0 && (
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                  {allClubs.slice(0, 5).map(club => (
+                    <button
+                      key={club.id}
+                      onClick={() => navigate(`/club/${club.id}`)}
+                      className="flex flex-col items-center gap-1.5 shrink-0"
+                      style={{ minWidth: 52 }}
+                      data-testid={`club-preview-${club.id}`}
+                    >
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
+                        style={{ background: club.bgColor || "rgba(255,255,255,0.12)", border: "2px solid rgba(196,98,45,0.5)" }}
+                      >
+                        {club.emoji}
+                      </div>
+                      <span className="text-[10px] font-semibold text-center leading-tight max-w-[48px] truncate text-white/70">
+                        {club.name.split(" ")[0]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 flex-wrap">
+                <Link
+                  href="/explore"
+                  className="inline-block rounded-full px-4 py-2 text-[12px] font-bold text-white"
+                  style={{ background: "var(--terra)" }}
+                  data-testid="button-explore-clubs-hero"
                 >
-                  <ClubAvatar emoji={club.emoji} color={club.bgColor || undefined} size={56} />
-                  <span className="text-[11px] font-semibold text-center leading-tight max-w-[60px] truncate" style={{ color: "var(--ink)" }}>
-                    {club.name.split(" ")[0]}
-                  </span>
-                </button>
-              ))
-            )}
-            <button
-              onClick={() => navigate("/explore")}
-              className="flex flex-col items-center gap-2 shrink-0"
-              style={{ minWidth: 56 }}
-              data-testid="button-discover-clubs"
-            >
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ background: "var(--warm-white)", border: "2px dashed var(--warm-border)" }}
-              >
-                <Plus className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                  Explore All Clubs →
+                </Link>
+                {!user?.quizCompleted && (
+                  <Link
+                    href="/onboarding"
+                    className="inline-block rounded-full px-4 py-2 text-[12px] font-bold"
+                    style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
+                    data-testid="button-take-quiz-hero"
+                  >
+                    Get Matched →
+                  </Link>
+                )}
               </div>
-              <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: "var(--muted-warm)" }}>
-                Discover
-              </span>
-            </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div data-testid="section-my-clubs">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>My Clubs</h2>
+              <Link
+                href="/explore"
+                className="flex items-center gap-1 text-[12px] font-bold"
+                style={{ color: "var(--terra)" }}
+                data-testid="link-view-all-clubs"
+              >
+                View All <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+            <div
+              className="flex gap-4 overflow-x-auto pb-2"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {!user ? (
+                <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Sign in to see your clubs</p>
+              ) : (
+                userClubs.map(club => (
+                  <button
+                    key={club.id}
+                    onClick={() => navigate(`/club/${club.id}`)}
+                    className="flex flex-col items-center gap-2 shrink-0"
+                    style={{ minWidth: 64 }}
+                    data-testid={`club-avatar-${club.id}`}
+                  >
+                    <ClubAvatar emoji={club.emoji} color={club.bgColor || undefined} size={56} />
+                    <span className="text-[11px] font-semibold text-center leading-tight max-w-[60px] truncate" style={{ color: "var(--ink)" }}>
+                      {club.name.split(" ")[0]}
+                    </span>
+                  </button>
+                ))
+              )}
+              <button
+                onClick={() => navigate("/explore")}
+                className="flex flex-col items-center gap-2 shrink-0"
+                style={{ minWidth: 56 }}
+                data-testid="button-discover-clubs"
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--warm-white)", border: "2px dashed var(--warm-border)" }}
+                >
+                  <Plus className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                </div>
+                <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: "var(--muted-warm)" }}>
+                  Discover
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Upcoming Event Card */}
         {upcomingEvent ? (
@@ -611,6 +674,14 @@ export default function HomeFeed() {
                       {moment.clubName}
                     </Link>
                     <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
+                      {moment.authorName ? (
+                        <span>
+                          <span style={{ color: "var(--terra)", fontWeight: 600 }}>
+                            {moment.authorUserId === user?.id ? "You" : moment.authorName}
+                          </span>
+                          {" · "}
+                        </span>
+                      ) : null}
                       {moment.createdAt
                         ? `${formatDistanceToNow(new Date(moment.createdAt))} ago`
                         : "Recently"

@@ -285,6 +285,17 @@ export async function registerRoutes(
       if (!clubId) return res.status(400).json({ message: "clubId required" });
       const updated = await storage.approveJoinRequestWithFoundingCheck(req.params.id, clubId);
       if (!updated) return res.status(404).json({ message: "Request not found" });
+      if (updated.userId) {
+        const club = await storage.getClub(updated.clubId);
+        await storage.createNotification({
+          userId: updated.userId,
+          type: "join_approved",
+          title: "Membership Approved!",
+          message: `You've been approved to join ${club?.name || updated.clubName}. Welcome aboard!`,
+          linkUrl: `/club/${updated.clubId}`,
+          isRead: false,
+        });
+      }
       res.json(updated);
     } catch (err) {
       console.error("Error admin approving join request:", err);
@@ -296,6 +307,17 @@ export async function registerRoutes(
     try {
       const updated = await storage.rejectJoinRequest(req.params.id as string);
       if (!updated) return res.status(404).json({ message: "Request not found" });
+      if (updated.userId) {
+        const club = await storage.getClub(updated.clubId);
+        await storage.createNotification({
+          userId: updated.userId,
+          type: "join_rejected",
+          title: "Membership Update",
+          message: `Your request to join ${club?.name || updated.clubName} was not approved at this time.`,
+          linkUrl: `/club/${updated.clubId}`,
+          isRead: false,
+        });
+      }
       res.json(updated);
     } catch (err) {
       console.error("Error admin rejecting join request:", err);
@@ -1478,14 +1500,21 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
-        return res.status(403).json({ message: "Not authorized" });
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      const isCreator = club.creatorUserId === userId;
+      const isCoOrganiser = Array.isArray(club.coOrganiserUserIds) && club.coOrganiserUserIds.includes(userId);
+      const joinStatus = await storage.getUserJoinStatus(req.params.id, userId);
+      const isApprovedMember = joinStatus.status === "approved";
+      if (!isCreator && !isCoOrganiser && !isApprovedMember) {
+        return res.status(403).json({ message: "Only approved club members can post moments" });
       }
       const { caption, emoji, imageUrl } = req.body;
       if (!caption) {
         return res.status(400).json({ message: "Caption is required" });
       }
-      const moment = await storage.createMoment(req.params.id, caption, emoji, imageUrl);
+      const user = await storage.getUser(userId);
+      const authorName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Member";
+      const moment = await storage.createMoment(req.params.id, caption, emoji, imageUrl, userId, authorName);
       res.status(201).json(moment);
     } catch (err) {
       console.error("Error creating moment:", err);
@@ -1497,12 +1526,15 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
-        return res.status(403).json({ message: "Not authorized" });
-      }
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      const isCreator = club.creatorUserId === userId;
+      const isCoOrganiser = Array.isArray(club.coOrganiserUserIds) && club.coOrganiserUserIds.includes(userId);
       const moments = await storage.getClubMoments(req.params.id);
-      if (!moments.some(m => m.id === req.params.momentId)) {
-        return res.status(404).json({ message: "Moment not found in this club" });
+      const moment = moments.find(m => m.id === req.params.momentId);
+      if (!moment) return res.status(404).json({ message: "Moment not found in this club" });
+      const isMomentAuthor = moment.authorUserId === userId;
+      if (!isCreator && !isCoOrganiser && !isMomentAuthor) {
+        return res.status(403).json({ message: "Not authorized" });
       }
       const { caption, emoji } = req.body;
       if (!caption || !caption.trim()) {
@@ -1520,12 +1552,15 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
-        return res.status(403).json({ message: "Not authorized" });
-      }
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      const isCreator = club.creatorUserId === userId;
+      const isCoOrganiser = Array.isArray(club.coOrganiserUserIds) && club.coOrganiserUserIds.includes(userId);
       const moments = await storage.getClubMoments(req.params.id);
-      if (!moments.some(m => m.id === req.params.momentId)) {
-        return res.status(404).json({ message: "Moment not found in this club" });
+      const moment = moments.find(m => m.id === req.params.momentId);
+      if (!moment) return res.status(404).json({ message: "Moment not found in this club" });
+      const isMomentAuthor = moment.authorUserId === userId;
+      if (!isCreator && !isCoOrganiser && !isMomentAuthor) {
+        return res.status(403).json({ message: "Not authorized" });
       }
       await storage.deleteMoment(req.params.momentId);
       res.json({ success: true });

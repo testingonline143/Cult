@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement, ClubPoll } from "@shared/schema";
 
@@ -147,6 +147,7 @@ export default function Organizer() {
 }
 
 function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void }) {
+  const { toast } = useToast();
   const healthColors: Record<string, string> = {
     green: "text-[var(--green-accent)] bg-[var(--green-accent)]/10",
     yellow: "text-chart-4 bg-chart-4/10",
@@ -171,11 +172,31 @@ function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; set
     },
   });
 
+  const { data: clubMomentsData = [] } = useQuery<{ id: string }[]>({
+    queryKey: ["/api/clubs", club.id, "moments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/moments`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const pendingCount = pendingData?.count ?? 0;
   const now = new Date();
   const nextEvent = clubEvents
     .filter(e => !e.isCancelled && new Date(e.startsAt) > now)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0] || null;
+
+  const hasEvent = clubEvents.length > 0;
+  const hasMoment = clubMomentsData.length > 0;
+  const showChecklist = !hasEvent || !hasMoment;
+
+  const clubLink = `${window.location.origin}/club/${club.id}`;
+  const copyClubLink = () => {
+    navigator.clipboard.writeText(clubLink).then(() => {
+      toast({ description: "Club link copied!" });
+    });
+  };
 
   return (
     <div className="space-y-4" data-testid="section-club-overview">
@@ -225,6 +246,91 @@ function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; set
           <div className="text-xs text-muted-foreground mt-1">City</div>
         </div>
       </div>
+
+      {showChecklist && (
+        <div
+          className="rounded-md p-5 space-y-4"
+          style={{ background: "var(--ink)", borderRadius: 18 }}
+          data-testid="card-getting-started"
+        >
+          <div>
+            <p className="text-[10px] font-bold tracking-[2px] uppercase mb-1" style={{ color: "var(--terra-light)" }}>Your club is live!</p>
+            <h3 className="font-display text-lg font-bold text-white leading-tight">Get Your Club Going</h3>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>Complete these steps to launch properly</p>
+          </div>
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--terra)" }}>
+                <Check className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="text-sm text-white/70 line-through">Club created</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: hasEvent ? "var(--terra)" : "rgba(255,255,255,0.15)" }}
+              >
+                {hasEvent ? <Check className="w-3.5 h-3.5 text-white" /> : <Calendar className="w-3.5 h-3.5 text-white/60" />}
+              </div>
+              {hasEvent ? (
+                <span className="text-sm text-white/50 line-through">Create your first event</span>
+              ) : (
+                <button
+                  onClick={() => setActiveTab("events")}
+                  className="text-sm font-semibold text-white underline underline-offset-2"
+                  data-testid="checklist-create-event"
+                >
+                  Create your first event →
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: hasMoment ? "var(--terra)" : "rgba(255,255,255,0.15)" }}
+              >
+                {hasMoment ? <Check className="w-3.5 h-3.5 text-white" /> : <Camera className="w-3.5 h-3.5 text-white/60" />}
+              </div>
+              {hasMoment ? (
+                <span className="text-sm text-white/50 line-through">Post your first moment</span>
+              ) : (
+                <button
+                  onClick={() => setActiveTab("content")}
+                  className="text-sm font-semibold text-white underline underline-offset-2"
+                  data-testid="checklist-post-moment"
+                >
+                  Post your first moment →
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.15)" }}>
+                <Link2 className="w-3.5 h-3.5 text-white/60" />
+              </div>
+              <button
+                onClick={copyClubLink}
+                className="text-sm font-semibold text-white underline underline-offset-2"
+                data-testid="checklist-copy-link"
+              >
+                Share your club link
+              </button>
+            </div>
+          </div>
+          <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <span className="text-[10px] font-mono truncate flex-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+              {clubLink}
+            </span>
+            <button
+              onClick={copyClubLink}
+              className="text-[10px] font-bold shrink-0"
+              style={{ color: "var(--terra-light)" }}
+              data-testid="button-copy-club-link"
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2" data-testid="section-quick-actions">
         <h3 className="font-display text-sm font-bold text-[var(--terra)] uppercase tracking-wider">Quick Actions</h3>
@@ -902,6 +1008,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
   const [locationText, setLocationText] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("20");
   const [recurrenceRule, setRecurrenceRule] = useState("none");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [createError, setCreateError] = useState("");
   const [duplicatingFrom, setDuplicatingFrom] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
@@ -952,6 +1059,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
     setLocationText("");
     setMaxCapacity("20");
     setRecurrenceRule("none");
+    setCoverImageUrl(null);
     setCreateError("");
     setDuplicatingFrom(null);
   };
@@ -969,6 +1077,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
       locationText: locationText.trim(),
       maxCapacity: parseInt(maxCapacity) || 20,
       ...(recurrenceRule !== "none" ? { recurrenceRule } : {}),
+      ...(coverImageUrl ? { coverImageUrl } : {}),
     } as any);
   };
 
@@ -1095,6 +1204,7 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
               <p className="text-[11px] text-muted-foreground mt-1.5">We'll create 4 instances automatically</p>
             )}
           </div>
+          <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} label="Cover Photo (optional)" />
           {createError && <p className="text-xs text-destructive font-medium text-center" data-testid="text-event-error">{createError}</p>}
           <button
             onClick={handleCreate}
