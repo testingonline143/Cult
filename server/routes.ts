@@ -9,6 +9,7 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import type { RequestHandler } from "express";
+import { isCrawler, readHtmlTemplate, buildOgHtml, buildClubSvg, buildEventSvg } from "./og";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -1807,6 +1808,105 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error removing co-organiser:", err);
       res.status(500).json({ message: "Failed to remove co-organiser" });
+    }
+  });
+
+  app.get("/api/og-image/club/:id", async (req, res) => {
+    try {
+      const club = await storage.getClub(req.params.id as string);
+      if (!club) return res.status(404).send("Not found");
+      const svg = buildClubSvg({
+        emoji: club.emoji,
+        name: club.name,
+        category: club.category,
+        shortDesc: club.shortDesc,
+        organizerName: club.organizerName ?? undefined,
+      });
+      res.set({
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=86400",
+      });
+      res.send(svg);
+    } catch (err) {
+      console.error("Error generating club OG image:", err);
+      res.status(500).send("Error");
+    }
+  });
+
+  app.get("/api/og-image/event/:id", async (req, res) => {
+    try {
+      const event = await storage.getEvent(req.params.id as string);
+      if (!event) return res.status(404).send("Not found");
+      let clubName: string | undefined;
+      let clubEmoji: string | undefined;
+      if (event.clubId) {
+        const club = await storage.getClub(event.clubId);
+        clubName = club?.name;
+        clubEmoji = club?.emoji;
+      }
+      const svg = buildEventSvg({
+        title: event.title,
+        startsAt: new Date(event.startsAt),
+        locationText: event.locationText,
+        clubName,
+        clubEmoji,
+      });
+      res.set({
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=86400",
+      });
+      res.send(svg);
+    } catch (err) {
+      console.error("Error generating event OG image:", err);
+      res.status(500).send("Error");
+    }
+  });
+
+  app.get("/club/:id", async (req, res, next) => {
+    try {
+      if (!isCrawler(req.headers["user-agent"])) return next();
+      const club = await storage.getClub(req.params.id as string);
+      if (!club) return next();
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const template = await readHtmlTemplate();
+      const html = buildOgHtml(template, {
+        title: `${club.emoji} ${club.name} | CultFam Tirupati`,
+        description: club.shortDesc,
+        imageUrl: `${baseUrl}/api/og-image/club/${club.id}`,
+        url: `${baseUrl}/club/${club.id}`,
+        type: "website",
+      });
+      res.status(200).set("Content-Type", "text/html").end(html);
+    } catch (err) {
+      console.error("Error serving club OG page:", err);
+      next();
+    }
+  });
+
+  app.get("/event/:id", async (req, res, next) => {
+    try {
+      if (!isCrawler(req.headers["user-agent"])) return next();
+      const event = await storage.getEvent(req.params.id as string);
+      if (!event) return next();
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const d = new Date(event.startsAt);
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dateStr = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+      const fallbackDesc = event.description
+        ?? `${dateStr} at ${event.locationText}`;
+      const template = await readHtmlTemplate();
+      const html = buildOgHtml(template, {
+        title: `${event.title} | CultFam`,
+        description: fallbackDesc.slice(0, 200),
+        imageUrl: `${baseUrl}/api/og-image/event/${event.id}`,
+        url: `${baseUrl}/event/${event.id}`,
+        type: "website",
+      });
+      res.status(200).set("Content-Type", "text/html").end(html);
+    } catch (err) {
+      console.error("Error serving event OG page:", err);
+      next();
     }
   });
 
