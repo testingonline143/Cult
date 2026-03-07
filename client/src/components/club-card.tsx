@@ -11,6 +11,16 @@ const HEALTH_STYLES: Record<string, { dot: string; bg: string; text: string }> =
   red: { dot: "bg-red-400", bg: "bg-red-500/10", text: "text-red-500" },
 };
 
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  Trekking: "linear-gradient(135deg, #E8D5B8, #C4A882)",
+  Cycling: "linear-gradient(135deg, #B8D4E8, #82A8C4)",
+  Photography: "linear-gradient(135deg, #D4B8E8, #A882C4)",
+  Fitness: "linear-gradient(135deg, #B8E8C8, #82C498)",
+  Books: "linear-gradient(135deg, #E8D8B8, #C4B082)",
+  Art: "linear-gradient(135deg, #E8B8B8, #C48282)",
+  Arts: "linear-gradient(135deg, #E8B8B8, #C48282)",
+};
+
 interface ClubCardProps {
   club: Club & { recentJoins?: number };
   index: number;
@@ -49,7 +59,7 @@ export function ClubCard({ club, index }: ClubCardProps) {
         <div className="p-5 pb-0 flex justify-between items-start">
           <div
             className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center text-[26px]"
-            style={{ backgroundColor: club.bgColor || undefined }}
+            style={{ background: CATEGORY_GRADIENTS[club.category] || club.bgColor || "var(--warm-white)" }}
           >
             {club.emoji}
           </div>

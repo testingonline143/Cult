@@ -202,6 +202,15 @@ export const pollVotes = pgTable("poll_votes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const kudos = pgTable("kudos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  giverId: varchar("giver_id").notNull(),
+  receiverId: varchar("receiver_id").notNull(),
+  kudoType: text("kudo_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [uniqueIndex("kudos_giver_event_unique").on(t.eventId, t.giverId)]);
+
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
@@ -217,6 +226,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export const insertClubAnnouncementSchema = createInsertSchema(clubAnnouncements).omit({ id: true, createdAt: true });
 export const insertClubPollSchema = createInsertSchema(clubPolls).omit({ id: true, createdAt: true });
 export const insertPollVoteSchema = createInsertSchema(pollVotes).omit({ id: true, createdAt: true });
+export const insertKudoSchema = createInsertSchema(kudos).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -248,6 +258,8 @@ export type ClubPoll = typeof clubPolls.$inferSelect;
 export type InsertClubPoll = z.infer<typeof insertClubPollSchema>;
 export type PollVote = typeof pollVotes.$inferSelect;
 export type InsertPollVote = z.infer<typeof insertPollVoteSchema>;
+export type Kudo = typeof kudos.$inferSelect;
+export type InsertKudo = z.infer<typeof insertKudoSchema>;
 
 export const CATEGORIES = [
   "Trekking",

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck, Medal } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -68,6 +68,7 @@ export default function Profile() {
         <ProfileActions user={user} />
         <UserEvents userId={user.id} />
         <JoinedClubs userId={user.id} />
+        <KudosReceived />
         <AttendanceSection />
       </div>
     </div>
@@ -554,12 +555,16 @@ function JoinedClubs({ userId }: { userId: string }) {
 
       {approvedClubs.length === 0 && pendingClubs.length === 0 ? (
         <div className="text-center py-12 glass-card rounded-2xl" data-testid="text-no-joined-clubs">
-          <div className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center mx-auto mb-3">
-            <Users className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground">You haven't joined any clubs yet.</p>
-          <Link href="/explore" className="text-sm hover:underline mt-2 inline-block" style={{ color: 'var(--terra)' }} data-testid="link-explore-clubs">
-            Explore clubs
+          <div className="text-5xl mb-3">🏕️</div>
+          <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--ink)" }}>No clubs yet</h3>
+          <p className="text-sm mb-4" style={{ color: "var(--muted-warm)" }}>Find a hobby community and join your first club.</p>
+          <Link
+            href="/explore"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
+            style={{ background: "var(--terra)" }}
+            data-testid="link-explore-clubs"
+          >
+            Explore Clubs
           </Link>
         </div>
       ) : (
@@ -701,7 +706,7 @@ function AttendanceSection() {
   if (isLoading || stats.length === 0) return null;
 
   return (
-    <div className="mt-8" data-testid="section-attendance">
+    <div className="mt-8 pb-2" data-testid="section-attendance">
       <div className="flex items-center gap-2 mb-4">
         <BarChart3 className="w-4 h-4" style={{ color: 'var(--terra)' }} />
         <h2 className="font-display text-lg font-bold text-foreground" data-testid="text-attendance-title">
@@ -735,6 +740,59 @@ function AttendanceSection() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function KudosReceived() {
+  const { user } = useAuth();
+  const { data: kudos = [], isLoading } = useQuery<{ id: string; kudoType: string; eventTitle: string; createdAt: string | null }[]>({
+    queryKey: ["/api/user/kudos"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/kudos", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  if (isLoading || !user) return null;
+
+  return (
+    <div className="mt-8" data-testid="section-kudos-received">
+      <div className="flex items-center gap-2 mb-4">
+        <Medal className="w-4 h-4" style={{ color: 'var(--terra)' }} />
+        <h2 className="font-display text-lg font-bold text-foreground" data-testid="text-kudos-title">
+          Kudos Received
+        </h2>
+        {kudos.length > 0 && (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+            {kudos.length}
+          </span>
+        )}
+      </div>
+      {kudos.length === 0 ? (
+        <div className="glass-card rounded-2xl p-6 text-center" data-testid="text-no-kudos">
+          <span className="text-3xl block mb-2">🏅</span>
+          <p className="text-sm font-semibold text-foreground mb-1">No kudos yet</p>
+          <p className="text-xs text-muted-foreground">Attend events to earn kudos from fellow members.</p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2" data-testid="list-kudos">
+          {kudos.map((kudo) => (
+            <div
+              key={kudo.id}
+              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold"
+              style={{ background: 'rgba(251,191,36,0.12)', color: '#92400e', border: '1px solid rgba(251,191,36,0.4)' }}
+              data-testid={`badge-kudo-${kudo.id}`}
+            >
+              <Medal className="w-3.5 h-3.5 shrink-0" />
+              <span>{kudo.kudoType}</span>
+              <span className="text-[11px] opacity-70 truncate max-w-[120px]">· {kudo.eventTitle}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

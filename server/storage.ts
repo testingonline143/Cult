@@ -10,9 +10,10 @@ import {
   type ClubAnnouncement, type InsertClubAnnouncement,
   type ClubPoll, type InsertClubPoll,
   type PollVote,
+  type Kudo,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
   clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications,
-  clubAnnouncements, clubPolls, pollVotes, momentLikes, eventComments,
+  clubAnnouncements, clubPolls, pollVotes, momentLikes, eventComments, kudos,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
@@ -148,6 +149,10 @@ export interface IStorage {
   broadcastNotification(title: string, message: string, linkUrl?: string): Promise<number>;
   getWeeklyGrowth(): Promise<{ week: string; users: number; events: number; moments: number }[]>;
   updateClubHealth(clubId: string, status: string, label: string): Promise<void>;
+  createKudo(data: { eventId: string; giverId: string; receiverId: string; kudoType: string }): Promise<Kudo>;
+  hasGivenKudo(eventId: string, giverId: string): Promise<boolean>;
+  getKudosByReceiver(userId: string): Promise<(Kudo & { eventTitle: string; eventStartsAt: Date })[]>;
+  getEventAttendeesForKudo(eventId: string, excludeUserId: string): Promise<{ userId: string; userName: string | null }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1482,6 +1487,43 @@ export class DatabaseStorage implements IStorage {
 
   async updateClubHealth(clubId: string, status: string, label: string): Promise<void> {
     await db.update(clubs).set({ healthStatus: status, healthLabel: label }).where(eq(clubs.id, clubId));
+  }
+
+  async createKudo(data: { eventId: string; giverId: string; receiverId: string; kudoType: string }): Promise<Kudo> {
+    const [kudo] = await db.insert(kudos).values(data).returning();
+    return kudo;
+  }
+
+  async hasGivenKudo(eventId: string, giverId: string): Promise<boolean> {
+    const [row] = await db.select({ id: kudos.id }).from(kudos)
+      .where(and(eq(kudos.eventId, eventId), eq(kudos.giverId, giverId)));
+    return !!row;
+  }
+
+  async getKudosByReceiver(userId: string): Promise<(Kudo & { eventTitle: string; eventStartsAt: Date })[]> {
+    const rows = await db.select({
+      id: kudos.id, eventId: kudos.eventId, giverId: kudos.giverId,
+      receiverId: kudos.receiverId, kudoType: kudos.kudoType, createdAt: kudos.createdAt,
+      eventTitle: events.title, eventStartsAt: events.startsAt,
+    }).from(kudos)
+      .innerJoin(events, eq(kudos.eventId, events.id))
+      .where(eq(kudos.receiverId, userId))
+      .orderBy(desc(kudos.createdAt));
+    return rows as any;
+  }
+
+  async getEventAttendeesForKudo(eventId: string, excludeUserId: string): Promise<{ userId: string; userName: string | null }[]> {
+    const rows = await db.select({
+      userId: eventRsvps.userId,
+      userName: users.firstName,
+    }).from(eventRsvps)
+      .leftJoin(users, eq(eventRsvps.userId, users.id))
+      .where(and(
+        eq(eventRsvps.eventId, eventId),
+        eq(eventRsvps.checkedIn, true),
+        ne(eventRsvps.userId, excludeUserId),
+      ));
+    return rows.map(r => ({ userId: r.userId, userName: r.userName }));
   }
 }
 

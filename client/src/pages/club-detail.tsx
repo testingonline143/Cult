@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon, Loader2 } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon, Loader2, Crown } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -303,7 +303,10 @@ function ClubDetailContent({ club }: { club: Club }) {
     { id: "moments", label: "Moments" },
     ...(hasImages ? [{ id: "gallery", label: "Gallery" }] : []),
     { id: "about", label: "About" },
+    { id: "values", label: "Values" },
+    { id: "perks", label: "Perks" },
     { id: "faqs", label: "FAQs" },
+    { id: "leaders", label: "Leaders" },
     { id: "members", label: "Members" },
     ...(isAuthenticated ? [{ id: "polls", label: "Polls" }] : []),
   ];
@@ -701,6 +704,126 @@ function ClubDetailContent({ club }: { club: Club }) {
 
       {activeTab === "polls" && isAuthenticated && (
         <PollsTab clubId={club.id} />
+      )}
+
+      {activeTab === "values" && (
+        <div className="px-6 py-4 space-y-4" data-testid="tab-values">
+          <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">What we stand for</h2>
+          {club.highlights && club.highlights.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {club.highlights.map((item: string, i: number) => {
+                const parts = item.split(" ");
+                const emoji = parts[0];
+                const label = parts.slice(1).join(" ");
+                return (
+                  <div
+                    key={i}
+                    className="rounded-2xl p-4 flex flex-col items-start gap-2"
+                    style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                    data-testid={`card-value-${i}`}
+                  >
+                    <span className="text-2xl">{emoji}</span>
+                    <span className="font-display text-sm font-bold text-[var(--ink)] leading-tight">{label || item}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <span className="text-4xl mb-3">✨</span>
+              <p className="text-sm font-semibold text-[var(--ink)] mb-1">Values coming soon</p>
+              <p className="text-xs text-[var(--muted-warm)]">The organiser hasn't added values yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "perks" && (
+        <div className="px-6 py-4 space-y-3" data-testid="tab-perks">
+          <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Member perks</h2>
+          {club.highlights && club.highlights.length > 0 ? (
+            <div className="space-y-2">
+              {club.highlights.map((item: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-2xl p-4"
+                  style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+                  data-testid={`card-perk-${i}`}
+                >
+                  <span className="text-[var(--gold)] text-lg shrink-0">⭐</span>
+                  <span className="text-sm text-[var(--ink)] leading-relaxed font-medium">{item}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <span className="text-4xl mb-3">🎁</span>
+              <p className="text-sm font-semibold text-[var(--ink)] mb-1">Perks coming soon</p>
+              <p className="text-xs text-[var(--muted-warm)]">The organiser hasn't listed member perks yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "leaders" && (
+        <div className="px-6 py-4 space-y-4" data-testid="tab-leaders">
+          <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Club Leaders</h2>
+          {club.organizerName ? (
+            <div
+              className="rounded-2xl p-5 flex flex-col items-center gap-4 text-center"
+              style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
+              data-testid="card-organiser"
+            >
+              <div className="relative">
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold"
+                  style={{ background: 'var(--terra-pale)', border: '2.5px solid var(--terra)', color: 'var(--terra)' }}
+                >
+                  {club.organizerAvatar || club.organizerName.charAt(0).toUpperCase()}
+                </div>
+                <div
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--gold)', border: '2px solid var(--cream)' }}
+                >
+                  <Crown className="w-3.5 h-3.5 text-white" />
+                </div>
+              </div>
+              <div>
+                <div className="font-display text-lg font-black text-[var(--ink)]">{club.organizerName}</div>
+                <div
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full mt-1"
+                  style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}
+                >
+                  <Crown className="w-3 h-3" /> Club Leader
+                </div>
+              </div>
+              {club.organizerYears && (
+                <p className="text-xs text-[var(--muted-warm)]">{club.organizerYears}</p>
+              )}
+              {club.organizerResponse && (
+                <p className="text-xs text-[var(--muted-warm)]">💬 {club.organizerResponse}</p>
+              )}
+              {club.whatsappNumber && (
+                <a
+                  href={`https://wa.me/${club.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${club.organizerName}! I'd love to connect about ${club.name} on CultFam.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold transition-all active:scale-[0.98]"
+                  style={{ background: 'rgba(37,211,102,0.12)', border: '1.5px solid rgba(37,211,102,0.35)', color: '#1A8A3A' }}
+                  data-testid="button-whatsapp-leader"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp Talk
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <span className="text-4xl mb-3">👑</span>
+              <p className="text-sm font-semibold text-[var(--ink)] mb-1">Leader info not available</p>
+            </div>
+          )}
+        </div>
       )}
 
       {isAuthenticated && ratingsData?.hasJoined && (

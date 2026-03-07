@@ -455,6 +455,23 @@ export async function registerRoutes(
         await storage.updateUserRole(userId, "organiser");
       }
 
+      const existingRequest = await storage.hasExistingJoinRequest(club.id, userId);
+      if (!existingRequest) {
+        const creatorName = currentUser
+          ? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") || organizerName
+          : organizerName;
+        const joinReq = await storage.createJoinRequest({
+          clubId: club.id,
+          clubName: club.name,
+          name: creatorName,
+          phone: "organiser",
+          userId,
+          status: "pending",
+          isFoundingMember: true,
+        });
+        await storage.approveJoinRequestWithFoundingCheck(joinReq.id, club.id);
+      }
+
       res.status(201).json({ success: true, message: "Club created and live!", club });
     } catch (err) {
       console.error("Error creating club:", err);
@@ -2141,6 +2158,80 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error serving event OG page:", err);
       next();
+    }
+  });
+
+  app.get("/api/events/:id/attendees-for-kudo", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const attendees = await storage.getEventAttendeesForKudo(id, userId);
+      res.json(attendees);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch attendees" });
+    }
+  });
+
+  app.get("/api/events/:id/kudos/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const hasGiven = await storage.hasGivenKudo(id, userId);
+      res.json({ hasGiven });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to check kudo status" });
+    }
+  });
+
+  app.post("/api/events/:id/kudos", isAuthenticated, async (req: any, res) => {
+    try {
+      const giverId = req.user.claims.sub;
+      const { id: eventId } = req.params;
+      const { receiverId, kudoType } = req.body;
+
+      if (!receiverId || !kudoType) {
+        return res.status(400).json({ message: "receiverId and kudoType are required" });
+      }
+      const validTypes = ["Most Welcoming", "Most Energetic", "Best Conversation", "Always On Time"];
+      if (!validTypes.includes(kudoType)) {
+        return res.status(400).json({ message: "Invalid kudo type" });
+      }
+
+      const event = await storage.getEvent(eventId);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+
+      const alreadyGiven = await storage.hasGivenKudo(eventId, giverId);
+      if (alreadyGiven) return res.status(409).json({ message: "You have already given a kudo for this event" });
+
+      const giver = await storage.getUser(giverId);
+      const kudo = await storage.createKudo({ eventId, giverId, receiverId, kudoType });
+
+      await storage.createNotification({
+        userId: receiverId,
+        type: "kudo",
+        title: "You received a kudo! 🏅",
+        message: `Someone at ${event.title} gave you a "${kudoType}" kudo.`,
+        linkUrl: `/profile`,
+        isRead: false,
+      });
+
+      res.status(201).json(kudo);
+    } catch (err: any) {
+      if (err?.code === "23505") {
+        return res.status(409).json({ message: "You have already given a kudo for this event" });
+      }
+      console.error("Error creating kudo:", err);
+      res.status(500).json({ message: "Failed to create kudo" });
+    }
+  });
+
+  app.get("/api/user/kudos", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userKudos = await storage.getKudosByReceiver(userId);
+      res.json(userKudos);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch kudos" });
     }
   });
 

@@ -118,18 +118,27 @@ export default function Notifications() {
             ))}
           </div>
         ) : !notifications || notifications.length === 0 ? (
-          <div className="text-center py-16">
-            <Bell
-              className="w-12 h-12 mx-auto mb-3"
-              style={{ color: "var(--muted-warm)", opacity: 0.5 }}
-            />
-            <p
-              className="text-sm"
-              style={{ color: "var(--muted-warm)" }}
-              data-testid="text-no-notifications"
+          <div className="text-center py-16" data-testid="text-no-notifications">
+            <div className="text-5xl mb-4">🔔</div>
+            <h3
+              className="text-lg font-semibold mb-1"
+              style={{ color: "var(--ink)", fontFamily: "var(--font-body, Outfit, sans-serif)" }}
             >
-              No notifications yet
+              All caught up!
+            </h3>
+            <p
+              className="text-sm mb-5"
+              style={{ color: "var(--muted-warm)", fontFamily: "var(--font-body, Outfit, sans-serif)" }}
+            >
+              Notifications about events, approvals, and kudos will show up here.
             </p>
+            <a
+              href="/explore"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white"
+              style={{ background: "var(--terra)" }}
+            >
+              Explore Clubs
+            </a>
           </div>
         ) : (
           <div className="space-y-2">

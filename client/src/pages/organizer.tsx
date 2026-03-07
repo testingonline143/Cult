@@ -4,6 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
+import { BottomNav } from "@/components/bottom-nav";
 import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement, ClubPoll } from "@shared/schema";
@@ -143,6 +144,7 @@ export default function Organizer() {
         {activeTab === "edit" && user?.id === club.creatorUserId && <EditClub club={club} />}
         {activeTab === "announcements" && <AnnouncementsManager clubId={club.id} />}
       </div>
+      <BottomNav />
     </div>
   );
 }
@@ -225,13 +227,13 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
           <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-overview-members">{club.memberCount}</div>
-          <div className="text-xs text-muted-foreground mt-1">Members</div>
+          <div className="text-xs text-muted-foreground mt-1">Total Members</div>
         </div>
         <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
-          <div className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-md ${healthColors[club.healthStatus] || healthColors.green}`} data-testid="text-overview-health">
-            {club.healthLabel}
+          <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-overview-events">
+            {clubEvents.filter(e => !e.isCancelled).length}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">Health Status</div>
+          <div className="text-xs text-muted-foreground mt-1">Total Events</div>
         </div>
         <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
           <div className="text-2xl font-bold text-[var(--terra)] font-mono" data-testid="text-overview-founding">
@@ -240,11 +242,10 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
           <div className="text-xs text-muted-foreground mt-1">Founding Spots</div>
         </div>
         <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md p-4 text-center" style={{ borderRadius: 18 }}>
-          <div className="flex items-center justify-center gap-1">
-            <MapPin className="w-4 h-4 text-[var(--terra)]" />
-            <span className="text-sm font-bold text-[var(--terra)] truncate" data-testid="text-overview-city">{club.city || club.location || "—"}</span>
+          <div className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-md ${healthColors[club.healthStatus] || healthColors.green}`} data-testid="text-overview-health">
+            {club.healthLabel}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">City</div>
+          <div className="text-xs text-muted-foreground mt-1">Health Status</div>
         </div>
       </div>
 
@@ -459,19 +460,25 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId, isCreator }: { active
   };
 
   return (
-    <div className="flex gap-2 mb-6 overflow-x-auto flex-wrap">
+    <div
+      className="flex mb-6 overflow-x-auto -mx-4 px-4"
+      style={{ borderBottom: "1.5px solid var(--warm-border)", scrollbarWidth: "none" }}
+    >
       {allTabs.map((tab) => (
         <button
           key={tab}
           onClick={() => setActiveTab(tab)}
-          className={`px-4 py-2 rounded-md text-sm font-semibold transition-all whitespace-nowrap inline-flex items-center gap-1.5 ${activeTab === tab ? "bg-[var(--terra)] text-white shadow-[var(--warm-shadow)]" : "bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground"}`}
-          style={{ borderRadius: 18 }}
+          className={`px-4 py-2.5 text-sm font-semibold transition-all whitespace-nowrap inline-flex items-center gap-1.5 border-b-2 -mb-px shrink-0 ${
+            activeTab === tab
+              ? "border-[var(--terra)] text-[var(--terra)]"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
           data-testid={`tab-organizer-${tab}`}
         >
           {tabLabels[tab]}
           {tab === "requests" && pendingCount > 0 && (
             <span
-              className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${activeTab === tab ? "bg-white text-[var(--terra)]" : "bg-[var(--terra)] text-white"}`}
+              className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-[var(--terra)] text-white"
               data-testid="badge-pending-requests"
             >
               {pendingCount}
