@@ -1353,18 +1353,17 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clubs/:id/moments", isAuthenticated, upload.single("photo"), async (req: any, res) => {
+  app.post("/api/clubs/:id/moments", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
       if (!club || club.creatorUserId !== userId) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const { caption, emoji } = req.body;
+      const { caption, emoji, imageUrl } = req.body;
       if (!caption) {
         return res.status(400).json({ message: "Caption is required" });
       }
-      const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
       const moment = await storage.createMoment(req.params.id, caption, emoji, imageUrl);
       res.status(201).json(moment);
     } catch (err) {
@@ -1536,6 +1535,7 @@ export async function registerRoutes(
       if (req.body.startsAt) updateData.startsAt = new Date(req.body.startsAt);
       if (req.body.endsAt !== undefined) updateData.endsAt = req.body.endsAt ? new Date(req.body.endsAt) : null;
       if (req.body.maxCapacity) updateData.maxCapacity = parseInt(req.body.maxCapacity);
+      if (req.body.coverImageUrl !== undefined) updateData.coverImageUrl = req.body.coverImageUrl;
       const updated = await storage.updateEvent(req.params.eventId, updateData);
       res.json({ success: true, event: updated });
     } catch (err) {

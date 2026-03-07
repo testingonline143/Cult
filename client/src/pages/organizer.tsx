@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Camera, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement, ClubPoll } from "@shared/schema";
 
@@ -1220,6 +1220,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
   });
   const [editLocationText, setEditLocationText] = useState(event.locationText);
   const [editMaxCapacity, setEditMaxCapacity] = useState(String(event.maxCapacity));
+  const [editCoverImageUrl, setEditCoverImageUrl] = useState<string | null>(event.coverImageUrl ?? null);
   const [editError, setEditError] = useState("");
 
   const d = new Date(event.startsAt);
@@ -1239,7 +1240,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
   });
 
   const editMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number }) => {
+    mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number; coverImageUrl: string | null }) => {
       const res = await apiRequest("PATCH", `/api/clubs/${clubId}/events/${event.id}`, data);
       return res.json();
     },
@@ -1273,6 +1274,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
       startsAt: editStartsAt,
       locationText: editLocationText.trim(),
       maxCapacity: parseInt(editMaxCapacity) || 20,
+      coverImageUrl: editCoverImageUrl,
     });
   };
 
@@ -1334,6 +1336,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
 
       {showEditForm && (
         <div className="mb-3 p-3 rounded-md bg-[var(--cream)] border-[1.5px] border-[var(--warm-border)] space-y-3" data-testid={`form-edit-event-${event.id}`}>
+          <ImageUpload value={editCoverImageUrl} onChange={setEditCoverImageUrl} label="Event Cover Photo" />
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Event Title</label>
             <input
@@ -2032,9 +2035,7 @@ function MomentsManager({ clubId }: { clubId: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("");
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [momentImageUrl, setMomentImageUrl] = useState<string | null>(null);
 
   const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
@@ -2047,16 +2048,11 @@ function MomentsManager({ clubId }: { clubId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: { caption: string; emoji?: string }) => {
-      const formData = new FormData();
-      formData.append("caption", data.caption);
-      if (data.emoji) formData.append("emoji", data.emoji);
-      if (selectedImage) formData.append("photo", selectedImage);
-      const res = await fetch(`/api/clubs/${clubId}/moments`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/moments`, {
+        caption: data.caption,
+        emoji: data.emoji,
+        imageUrl: momentImageUrl ?? undefined,
       });
-      if (!res.ok) throw new Error("Failed to create moment");
       return res.json();
     },
     onSuccess: () => {
@@ -2089,8 +2085,7 @@ function MomentsManager({ clubId }: { clubId: string }) {
   const resetForm = () => {
     setCaption("");
     setSelectedIcon("");
-    setSelectedImage(null);
-    setImagePreview("");
+    setMomentImageUrl(null);
     setEditingId(null);
     setShowForm(false);
   };
@@ -2098,8 +2093,7 @@ function MomentsManager({ clubId }: { clubId: string }) {
   const startEdit = (moment: ClubMoment) => {
     setCaption(moment.caption);
     setSelectedIcon(moment.emoji || "");
-    setSelectedImage(null);
-    setImagePreview("");
+    setMomentImageUrl(null);
     setEditingId(moment.id);
     setShowForm(true);
   };
@@ -2164,47 +2158,7 @@ function MomentsManager({ clubId }: { clubId: string }) {
             />
           </div>
           {!editingId && (
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Photo (optional)</label>
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                data-testid="input-moment-photo"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setSelectedImage(file);
-                  setImagePreview(URL.createObjectURL(file));
-                }}
-              />
-              {imagePreview ? (
-                <div className="relative rounded-[12px] overflow-hidden border-[1.5px] border-[var(--warm-border)]">
-                  <img src={imagePreview} alt="preview" className="w-full object-cover" style={{ maxHeight: 160 }} />
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedImage(null); setImagePreview(""); }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(0,0,0,0.55)" }}
-                    data-testid="button-remove-image"
-                  >
-                    <X className="w-3.5 h-3.5 text-white" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => imageInputRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 rounded-[12px] py-5 text-sm font-medium"
-                  style={{ border: "2px dashed var(--warm-border)", color: "var(--muted-warm)" }}
-                  data-testid="button-pick-image"
-                >
-                  <Camera className="w-4 h-4" />
-                  Tap to add photo
-                </button>
-              )}
-            </div>
+            <ImageUpload value={momentImageUrl} onChange={setMomentImageUrl} label="Photo (optional)" />
           )}
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Icon (optional)</label>
