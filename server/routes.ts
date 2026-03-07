@@ -413,6 +413,19 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/upload/image", isAuthenticated, upload.single("file"), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "No image file provided" });
+      }
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ success: true, url });
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      res.status(500).json({ success: false, message: "Failed to upload image" });
+    }
+  });
+
   app.post("/api/user/photo", isAuthenticated, upload.single("photo"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

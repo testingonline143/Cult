@@ -310,10 +310,19 @@ function ClubDetailContent({ club }: { club: Club }) {
   return (
     <div className="min-h-screen bg-background pb-32">
       <div className="relative h-72 w-full overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#E8D5B8] via-[#C4A882] to-[#A88860] flex items-center justify-center">
-          <span className="text-[90px] select-none relative z-[2]" data-testid="text-club-emoji">{club.emoji}</span>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--cream)]" style={{ top: '30%' }} />
+        {club.coverImageUrl ? (
+          <>
+            <img src={club.coverImageUrl} alt={club.name} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-[var(--cream)]" />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E8D5B8] via-[#C4A882] to-[#A88860] flex items-center justify-center">
+              <span className="text-[90px] select-none relative z-[2]" data-testid="text-club-emoji">{club.emoji}</span>
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--cream)]" style={{ top: '30%' }} />
+          </>
+        )}
 
         <button
           onClick={() => navigate("/explore")}

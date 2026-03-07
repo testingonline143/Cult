@@ -5,7 +5,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import { CATEGORIES, CITIES } from "@shared/schema";
 import type { Club } from "@shared/schema";
-import { LogIn, Loader2, Type, AlignLeft, Tag, Repeat, Link, PartyPopper, CalendarPlus, LayoutDashboard } from "lucide-react";
+import { LogIn, Loader2, Type, AlignLeft, Tag, Repeat, Link, PartyPopper, CalendarPlus, LayoutDashboard, Image } from "lucide-react";
+import { ImageUpload } from "@/components/image-upload";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -162,6 +163,7 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
   const [location, setLocation] = useState("");
   const [city, setCity] = useState("Tirupati");
   const [shortDesc, setShortDesc] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -179,6 +181,7 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
           organizerName,
           whatsappNumber,
           city,
+          coverImageUrl: coverImageUrl ?? undefined,
         }),
       });
       if (!res.ok) {
@@ -214,6 +217,8 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} label="Club Cover Photo" />
+
       <div>
         <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
           <Type className="w-3.5 h-3.5" />
@@ -381,6 +386,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
   const [locationText, setLocationText] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("");
   const [recurrenceRule, setRecurrenceRule] = useState("none");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
 
   const effectiveClubId = selectedClubId || (myClubs.length === 1 ? myClubs[0].id : "");
 
@@ -397,6 +403,7 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
           locationText,
           maxCapacity: parseInt(maxCapacity) || 50,
           recurrenceRule: recurrenceRule !== "none" ? recurrenceRule : null,
+          coverImageUrl: coverImageUrl ?? undefined,
         }),
       });
       if (!res.ok) {
@@ -495,6 +502,8 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
           <span className="text-sm font-medium text-foreground">{myClubs[0].name}</span>
         </div>
       )}
+
+      <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} label="Event Cover Photo" />
 
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">

@@ -1,6 +1,7 @@
 import { db } from "./db";
-import { clubs, clubFaqs, clubScheduleEntries, clubMoments } from "@shared/schema";
+import { clubs, clubFaqs, clubScheduleEntries, clubMoments, users } from "@shared/schema";
 import { log } from "./index";
+import { eq, isNull } from "drizzle-orm";
 
 const SEED_CLUBS = [
   {
@@ -176,6 +177,17 @@ export async function seedDatabase() {
       if (existingFaqs.length === 0) {
         await seedClubContent();
       }
+
+      const unclaimedClubs = await db.select({ id: clubs.id }).from(clubs).where(isNull(clubs.creatorUserId));
+      if (unclaimedClubs.length > 0) {
+        const adminUsers = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+        if (adminUsers.length > 0) {
+          const adminId = adminUsers[0].id;
+          await db.update(clubs).set({ creatorUserId: adminId }).where(isNull(clubs.creatorUserId));
+          log(`Auto-assigned admin user as creator of ${unclaimedClubs.length} unclaimed clubs`, "seed");
+        }
+      }
+
       return;
     }
 

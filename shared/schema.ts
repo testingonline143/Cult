@@ -37,6 +37,7 @@ export const clubs = pgTable("clubs", {
   coOrganiserUserIds: text("co_organiser_user_ids").array(),
   joinQuestion1: text("join_question_1"),
   joinQuestion2: text("join_question_2"),
+  coverImageUrl: text("cover_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

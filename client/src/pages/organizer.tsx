@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
 import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Camera, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin } from "lucide-react";
+import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement, ClubPoll } from "@shared/schema";
 
 export default function Organizer() {
@@ -2743,6 +2744,7 @@ function EditClub({ club }: { club: Club }) {
   const [highlightsText, setHighlightsText] = useState((club.highlights || []).join("\n"));
   const [joinQuestion1, setJoinQuestion1] = useState((club as any).joinQuestion1 || "");
   const [joinQuestion2, setJoinQuestion2] = useState((club as any).joinQuestion2 || "");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(club.coverImageUrl ?? null);
   const [saved, setSaved] = useState(false);
 
   const updateMutation = useMutation({
@@ -2760,11 +2762,13 @@ function EditClub({ club }: { club: Club }) {
 
   const handleSave = () => {
     const highlights = highlightsText.split("\n").map(h => h.trim()).filter(Boolean);
-    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, healthStatus, highlights, joinQuestion1: joinQuestion1.trim() || null, joinQuestion2: joinQuestion2.trim() || null });
+    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, healthStatus, highlights, joinQuestion1: joinQuestion1.trim() || null, joinQuestion2: joinQuestion2.trim() || null, coverImageUrl: coverImageUrl ?? null });
   };
 
   return (
     <div className="space-y-4" data-testid="section-edit-club">
+      <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} label="Club Cover Photo" />
+
       <div className="space-y-3">
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Short Description</label>

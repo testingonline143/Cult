@@ -182,11 +182,18 @@ export default function EventDetail() {
   return (
     <div className="min-h-screen bg-background">
       <div className="relative h-64 w-full overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg, #2D1A0A 0%, #5A3018 40%, #3D200C 100%)' }}>
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 40% 50%, rgba(196,98,45,0.4) 0%, transparent 60%)' }} />
-          <span className="text-[80px] select-none relative z-[2]">{club?.emoji || ""}</span>
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, var(--cream) 100%)' }} />
-        </div>
+        {eventData.coverImageUrl ? (
+          <>
+            <img src={eventData.coverImageUrl} alt={eventData.title} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 40%, var(--cream) 100%)' }} />
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg, #2D1A0A 0%, #5A3018 40%, #3D200C 100%)' }}>
+            <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 40% 50%, rgba(196,98,45,0.4) 0%, transparent 60%)' }} />
+            <span className="text-[80px] select-none relative z-[2]">{club?.emoji || ""}</span>
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, var(--cream) 100%)' }} />
+          </div>
+        )}
 
         <button
           onClick={() => navigate(-1 as any)}
