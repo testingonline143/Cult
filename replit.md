@@ -60,6 +60,12 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/admin/analytics` — full platform analytics incl. moments/comments/weekly growth (admin only)
   - `GET /api/admin/activity-feed` — recent joins, clubs, events activity (admin only)
   - `PATCH /api/admin/events/:eventId/restore` — restore a cancelled event (admin only)
+  - `GET /api/admin/users/:id/detail` — user detail: clubs, events, moments, join history (admin only)
+  - `GET /api/admin/polls` — all club polls platform-wide with vote counts (admin only)
+  - `PATCH /api/admin/polls/:id/close` — close any poll (admin only)
+  - `POST /api/admin/broadcast` — send notification to all users (body: title, message, linkUrl?) (admin only)
+  - `GET /api/admin/growth` — 8-week new users/events/moments per week (admin only)
+  - `PATCH /api/admin/clubs/:id/health` — override club healthStatus and healthLabel (admin only)
   - `PATCH /api/user/profile` — update authenticated user's name and bio
   - `GET /api/user/join-requests` — get authenticated user's join requests
   - `GET /api/user/events` — get authenticated user's RSVP'd events

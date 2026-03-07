@@ -137,6 +137,17 @@ export interface IStorage {
   getEventComments(eventId: string): Promise<EventComment[]>;
   createEventComment(eventId: string, userId: string, userName: string, userImageUrl: string | null, text: string): Promise<EventComment>;
   approveJoinRequestWithFoundingCheck(requestId: string, clubId: string): Promise<JoinRequest | undefined>;
+  getUserAdminDetail(userId: string): Promise<{
+    clubs: { clubId: string; clubName: string; clubEmoji: string; joinedAt: Date | null }[];
+    events: { id: string; title: string; startsAt: Date; clubName: string }[];
+    moments: { id: string; caption: string | null; createdAt: Date | null }[];
+    joinRequests: { clubName: string; status: string; createdAt: Date | null }[];
+  }>;
+  getAllPollsAdmin(): Promise<{ id: string; clubId: string; clubName: string; clubEmoji: string; question: string; options: string[]; isOpen: boolean | null; createdAt: Date | null; votes: number[]; totalVotes: number }[]>;
+  closePollAdmin(pollId: string): Promise<void>;
+  broadcastNotification(title: string, message: string, linkUrl?: string): Promise<number>;
+  getWeeklyGrowth(): Promise<{ week: string; users: number; events: number; moments: number }[]>;
+  updateClubHealth(clubId: string, status: string, label: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1354,6 +1365,121 @@ export class DatabaseStorage implements IStorage {
     await db.update(clubs).set({
       coOrganiserUserIds: sql`array_remove(coalesce(${clubs.coOrganiserUserIds}, ARRAY[]::text[]), ${userId})`
     }).where(eq(clubs.id, clubId));
+  }
+
+  async getUserAdminDetail(userId: string) {
+    const userClubs = await db
+      .select({ clubId: joinRequests.clubId, clubName: clubs.name, clubEmoji: clubs.emoji, joinedAt: joinRequests.createdAt })
+      .from(joinRequests)
+      .innerJoin(clubs, eq(joinRequests.clubId, clubs.id))
+      .where(and(eq(joinRequests.userId, userId), eq(joinRequests.status, "approved")))
+      .orderBy(desc(joinRequests.createdAt));
+
+    const userEvents = await db
+      .select({ id: events.id, title: events.title, startsAt: events.startsAt, clubName: clubs.name })
+      .from(eventRsvps)
+      .innerJoin(events, eq(eventRsvps.eventId, events.id))
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .where(eq(eventRsvps.userId, userId))
+      .orderBy(desc(events.startsAt))
+      .limit(10);
+
+    const userClubIds = userClubs.map(c => c.clubId);
+    const userMoments = userClubIds.length > 0
+      ? await db
+          .select({ id: clubMoments.id, caption: clubMoments.caption, createdAt: clubMoments.createdAt })
+          .from(clubMoments)
+          .where(sql`${clubMoments.clubId} = ANY(${userClubIds})`)
+          .orderBy(desc(clubMoments.createdAt))
+          .limit(5)
+      : [];
+
+    const userJoinRequests = await db
+      .select({ clubName: clubs.name, status: joinRequests.status, createdAt: joinRequests.createdAt })
+      .from(joinRequests)
+      .innerJoin(clubs, eq(joinRequests.clubId, clubs.id))
+      .where(eq(joinRequests.userId, userId))
+      .orderBy(desc(joinRequests.createdAt));
+
+    return {
+      clubs: userClubs,
+      events: userEvents,
+      moments: userMoments,
+      joinRequests: userJoinRequests,
+    };
+  }
+
+  async getAllPollsAdmin() {
+    const allPolls = await db
+      .select({
+        id: clubPolls.id,
+        clubId: clubPolls.clubId,
+        clubName: clubs.name,
+        clubEmoji: clubs.emoji,
+        question: clubPolls.question,
+        options: clubPolls.options,
+        isOpen: clubPolls.isOpen,
+        createdAt: clubPolls.createdAt,
+      })
+      .from(clubPolls)
+      .innerJoin(clubs, eq(clubPolls.clubId, clubs.id))
+      .orderBy(desc(clubPolls.createdAt));
+
+    const result = await Promise.all(allPolls.map(async (poll) => {
+      const allVotes = await db.select().from(pollVotes).where(eq(pollVotes.pollId, poll.id));
+      const votes = poll.options.map((_, i) => allVotes.filter(v => v.optionIndex === i).length);
+      return { ...poll, votes, totalVotes: allVotes.length };
+    }));
+
+    return result;
+  }
+
+  async closePollAdmin(pollId: string): Promise<void> {
+    await db.update(clubPolls).set({ isOpen: false }).where(eq(clubPolls.id, pollId));
+  }
+
+  async broadcastNotification(title: string, message: string, linkUrl?: string): Promise<number> {
+    const allUsers = await db.select({ id: users.id }).from(users);
+    await Promise.all(allUsers.map(u =>
+      db.insert(notifications).values({
+        userId: u.id,
+        type: "broadcast",
+        title,
+        message,
+        linkUrl: linkUrl || null,
+        isRead: false,
+      })
+    ));
+    return allUsers.length;
+  }
+
+  async getWeeklyGrowth(): Promise<{ week: string; users: number; events: number; moments: number }[]> {
+    const weeks: { week: string; users: number; events: number; moments: number }[] = [];
+    const now = new Date();
+
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - i * 7);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+
+      const [uRow] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(users).where(and(gte(users.createdAt, weekStart), sql`${users.createdAt} < ${weekEnd}`));
+      const [eRow] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(events).where(and(gte(events.createdAt, weekStart), sql`${events.createdAt} < ${weekEnd}`));
+      const [mRow] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(clubMoments).where(and(gte(clubMoments.createdAt, weekStart), sql`${clubMoments.createdAt} < ${weekEnd}`));
+
+      const label = weekStart.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      weeks.push({ week: label, users: uRow.count, events: eRow.count, moments: mRow.count });
+    }
+
+    return weeks;
+  }
+
+  async updateClubHealth(clubId: string, status: string, label: string): Promise<void> {
+    await db.update(clubs).set({ healthStatus: status, healthLabel: label }).where(eq(clubs.id, clubId));
   }
 }
 

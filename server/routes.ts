@@ -288,7 +288,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/join-requests/:id/reject", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const updated = await storage.rejectJoinRequest(req.params.id);
+      const updated = await storage.rejectJoinRequest(req.params.id as string);
       if (!updated) return res.status(404).json({ message: "Request not found" });
       res.json(updated);
     } catch (err) {
@@ -306,6 +306,75 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error restoring event:", err);
       res.status(500).json({ message: "Failed to restore event" });
+    }
+  });
+
+  app.get("/api/admin/users/:id/detail", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const detail = await storage.getUserAdminDetail(req.params.id as string);
+      res.json(detail);
+    } catch (err) {
+      console.error("Error fetching user detail:", err);
+      res.status(500).json({ message: "Failed to fetch user detail" });
+    }
+  });
+
+  app.get("/api/admin/polls", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const polls = await storage.getAllPollsAdmin();
+      res.json(polls);
+    } catch (err) {
+      console.error("Error fetching admin polls:", err);
+      res.status(500).json({ message: "Failed to fetch polls" });
+    }
+  });
+
+  app.patch("/api/admin/polls/:id/close", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      await storage.closePollAdmin(req.params.id as string);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error closing poll:", err);
+      res.status(500).json({ message: "Failed to close poll" });
+    }
+  });
+
+  app.post("/api/admin/broadcast", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { title, message, linkUrl } = req.body;
+      if (!title || typeof title !== "string" || title.trim().length < 2) {
+        return res.status(400).json({ message: "Title is required (min 2 chars)" });
+      }
+      if (!message || typeof message !== "string" || message.trim().length < 5) {
+        return res.status(400).json({ message: "Message is required (min 5 chars)" });
+      }
+      const sent = await storage.broadcastNotification(title.trim(), message.trim(), linkUrl || undefined);
+      res.json({ sent });
+    } catch (err) {
+      console.error("Error broadcasting notification:", err);
+      res.status(500).json({ message: "Failed to send broadcast" });
+    }
+  });
+
+  app.get("/api/admin/growth", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const growth = await storage.getWeeklyGrowth();
+      res.json(growth);
+    } catch (err) {
+      console.error("Error fetching growth data:", err);
+      res.status(500).json({ message: "Failed to fetch growth data" });
+    }
+  });
+
+  app.patch("/api/admin/clubs/:id/health", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { status, label } = req.body;
+      if (!status || !label) return res.status(400).json({ message: "status and label required" });
+      await storage.updateClubHealth(req.params.id as string, status, label);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error updating club health:", err);
+      res.status(500).json({ message: "Failed to update club health" });
     }
   });
 
@@ -798,7 +867,7 @@ export async function registerRoutes(
       if (!clubs.some(c => c.id === request.clubId)) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const updated = await storage.rejectJoinRequest(req.params.id);
+      const updated = await storage.rejectJoinRequest(req.params.id as string);
       if (updated && updated.userId) {
         const club = await storage.getClub(updated.clubId);
         await storage.createNotification({
