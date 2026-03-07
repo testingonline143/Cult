@@ -22,6 +22,7 @@ export default function Create() {
   const params = new URLSearchParams(searchString);
   const initialTab = params.get("tab") === "event" ? "event" : "club";
   const preselectedClubId = params.get("clubId") || "";
+  const fromEventId = params.get("from") || "";
 
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -125,7 +126,7 @@ export default function Create() {
             <SignInPrompt message="Sign in to create a club" />
           )
         ) : isAuthenticated ? (
-          <EventForm preselectedClubId={eventClubId} />
+          <EventForm preselectedClubId={eventClubId} fromEventId={fromEventId} />
         ) : (
           <SignInPrompt message="Sign in to create an event" />
         )}
@@ -371,12 +372,23 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
   );
 }
 
-function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
+function EventForm({ preselectedClubId, fromEventId }: { preselectedClubId?: string; fromEventId?: string }) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
   const { data: myClubs = [], isLoading: clubsLoading } = useQuery<Club[]>({
     queryKey: ["/api/organizer/my-clubs"],
+  });
+
+  const { data: baseEvent } = useQuery<{ id: string; title: string; description: string | null; locationText: string; maxCapacity: number; recurrenceRule: string | null; startsAt: string; clubId: string }>({
+    queryKey: ["/api/events", fromEventId],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${fromEventId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data;
+    },
+    enabled: !!fromEventId,
   });
 
   const [selectedClubId, setSelectedClubId] = useState(preselectedClubId || "");
@@ -387,6 +399,24 @@ function EventForm({ preselectedClubId }: { preselectedClubId?: string }) {
   const [maxCapacity, setMaxCapacity] = useState("");
   const [recurrenceRule, setRecurrenceRule] = useState("none");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!baseEvent) return;
+    const base = new Date(baseEvent.startsAt);
+    if (baseEvent.recurrenceRule === "weekly") base.setDate(base.getDate() + 7);
+    else if (baseEvent.recurrenceRule === "biweekly") base.setDate(base.getDate() + 14);
+    else if (baseEvent.recurrenceRule === "monthly") base.setMonth(base.getMonth() + 1);
+    else base.setDate(base.getDate() + 7);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const nextDate = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+    setTitle(baseEvent.title);
+    setDescription(baseEvent.description || "");
+    setLocationText(baseEvent.locationText);
+    setMaxCapacity(String(baseEvent.maxCapacity));
+    setRecurrenceRule(baseEvent.recurrenceRule || "none");
+    setDateTime(nextDate);
+    if (!preselectedClubId) setSelectedClubId(baseEvent.clubId);
+  }, [baseEvent?.id]);
 
   const effectiveClubId = selectedClubId || (myClubs.length === 1 ? myClubs[0].id : "");
 

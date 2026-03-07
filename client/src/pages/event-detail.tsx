@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown, AlertCircle, MessageCircle, Send } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Event, Club, EventRsvp } from "@shared/schema";
+import type { Event, Club, EventRsvp, EventComment } from "@shared/schema";
 
 interface RsvpWithUser extends EventRsvp {
   userName: string | null;
@@ -55,6 +56,8 @@ export default function EventDetail() {
   const [justRsvpd, setJustRsvpd] = useState(false);
   const [justWaitlisted, setJustWaitlisted] = useState<number | null>(null);
   const [rsvpError, setRsvpError] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: eventData, isLoading, error } = useQuery<EventDetailResponse>({
     queryKey: ["/api/events", id],
@@ -73,6 +76,27 @@ export default function EventDetail() {
 
   const isClubCreator = eventData?.club?.creatorUserId === user?.id;
   const isClubMemberFromStatus = isClubCreator || joinStatusData?.status === "approved";
+
+  const { data: comments = [] } = useQuery<EventComment[]>({
+    queryKey: ["/api/events", id, "comments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${id}/comments`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const res = await apiRequest("POST", `/api/events/${id}/comments`, { text });
+      if (!res.ok) throw new Error("Failed to post comment");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", id, "comments"] });
+      setCommentText("");
+    },
+  });
 
   const rsvpMutation = useMutation({
     mutationFn: async () => {
@@ -376,6 +400,83 @@ export default function EventDetail() {
             </div>
           </div>
         )}
+
+        <div className="rounded-2xl p-4 mb-3" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="section-discussion">
+          <div className="flex items-center gap-2 mb-3">
+            <MessageCircle className="w-4 h-4" style={{ color: 'var(--terra)' }} />
+            <span className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--muted-warm)]">Discussion</span>
+            {comments.length > 0 && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>{comments.length}</span>
+            )}
+          </div>
+          {comments.length === 0 && (
+            <p className="text-[12px] text-[var(--muted-warm)] mb-3">No messages yet. Be the first to say something!</p>
+          )}
+          <div className="space-y-3 mb-3">
+            {comments.map((c) => {
+              const timeAgo = (() => {
+                const diffMs = Date.now() - new Date(c.createdAt!).getTime();
+                const diffM = Math.floor(diffMs / 60000);
+                if (diffM < 1) return "just now";
+                if (diffM < 60) return `${diffM}m ago`;
+                const diffH = Math.floor(diffM / 60);
+                if (diffH < 24) return `${diffH}h ago`;
+                return `${Math.floor(diffH / 24)}d ago`;
+              })();
+              return (
+                <div key={c.id} className="flex items-start gap-2.5" data-testid={`comment-${c.id}`}>
+                  <Avatar className="w-7 h-7 shrink-0">
+                    <AvatarImage src={c.userImageUrl || undefined} />
+                    <AvatarFallback className="text-[10px] font-bold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                      {c.userName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5 mb-0.5">
+                      <span className="text-[12px] font-semibold text-[var(--ink)]">{c.userName}</span>
+                      <span className="text-[10px] text-[var(--muted-warm)]">{timeAgo}</span>
+                    </div>
+                    <p className="text-[12px] text-[var(--ink3)] leading-relaxed break-words">{c.text}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {isAuthenticated && isClubMemberFromStatus ? (
+            <div className="flex items-end gap-2 pt-2" style={{ borderTop: '1px solid var(--warm-border)' }}>
+              <textarea
+                ref={commentInputRef}
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey && commentText.trim()) {
+                    e.preventDefault();
+                    commentMutation.mutate(commentText);
+                  }
+                }}
+                placeholder="Say something..."
+                rows={1}
+                maxLength={300}
+                className="flex-1 resize-none rounded-xl px-3 py-2 text-[13px] outline-none"
+                style={{ background: 'var(--cream)', border: '1.5px solid var(--warm-border)', color: 'var(--ink)', minHeight: 38 }}
+                data-testid="input-event-comment"
+              />
+              <button
+                onClick={() => { if (commentText.trim()) commentMutation.mutate(commentText); }}
+                disabled={!commentText.trim() || commentMutation.isPending}
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+                style={{ background: 'var(--terra)', color: 'white' }}
+                data-testid="button-send-event-comment"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          ) : isAuthenticated ? (
+            <p className="text-[11px] text-[var(--muted-warm)] text-center pt-2" style={{ borderTop: '1px solid var(--warm-border)' }}>Join the club to participate in the discussion</p>
+          ) : (
+            <Link href="/login" className="block text-[11px] text-center text-[var(--terra)] font-semibold pt-2" style={{ borderTop: '1px solid var(--warm-border)' }} data-testid="link-login-to-comment">Sign in to comment</Link>
+          )}
+        </div>
 
         {justRsvpd && !isPast && (
           <div className="rounded-2xl p-5 mb-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid rgba(196,98,45,0.3)' }} data-testid="card-rsvp-success">

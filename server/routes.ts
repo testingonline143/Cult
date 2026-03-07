@@ -721,9 +721,8 @@ export async function registerRoutes(
       if (!clubs.some(c => c.id === request.clubId)) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const updated = await storage.approveJoinRequest(req.params.id);
+      const updated = await storage.approveJoinRequestWithFoundingCheck(req.params.id, request.clubId);
       if (updated) {
-        await storage.incrementMemberCount(updated.clubId);
         if (updated.userId) {
           const club = await storage.getClub(updated.clubId);
           await storage.createNotification({
@@ -1611,19 +1610,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/clubs/:id/members", isAuthenticated, async (req: any, res) => {
+  app.get("/api/clubs/:id/members", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const club = await storage.getClub(req.params.id);
-      if (!club) return res.status(404).json({ message: "Club not found" });
-      const isOwner = club.creatorUserId === userId;
-      if (!isOwner) {
-        const joinStatus = await storage.getUserJoinStatus(req.params.id, userId);
-        if (joinStatus.status !== "approved") {
-          return res.status(403).json({ message: "Only club members can view the member directory" });
-        }
-      }
-      const members = await storage.getMemberDirectory(req.params.id);
+      const members = await storage.getPublicClubMembers(req.params.id);
       res.json(members);
     } catch (err) {
       console.error("Error fetching member directory:", err);
@@ -1872,6 +1861,81 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error generating event OG image:", err);
       res.status(500).send("Error");
+    }
+  });
+
+  app.post("/api/moments/:id/like", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.likeMoment(req.params.id, userId);
+      const moment = await storage.getMomentById(req.params.id);
+      res.json({ success: true, likesCount: moment?.likesCount ?? 0 });
+    } catch (err) {
+      console.error("Error liking moment:", err);
+      res.status(500).json({ message: "Failed to like moment" });
+    }
+  });
+
+  app.delete("/api/moments/:id/like", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.unlikeMoment(req.params.id, userId);
+      const moment = await storage.getMomentById(req.params.id);
+      res.json({ success: true, likesCount: moment?.likesCount ?? 0 });
+    } catch (err) {
+      console.error("Error unliking moment:", err);
+      res.status(500).json({ message: "Failed to unlike moment" });
+    }
+  });
+
+  app.get("/api/moments/:id/like-status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const liked = await storage.getMomentLikeStatus(req.params.id, userId);
+      res.json({ liked });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to get like status" });
+    }
+  });
+
+  app.get("/api/events/:id/comments", async (req, res) => {
+    try {
+      const comments = await storage.getEventComments(req.params.id);
+      res.json(comments);
+    } catch (err) {
+      console.error("Error fetching event comments:", err);
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/events/:id/comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { text } = req.body;
+      if (!text || typeof text !== "string" || text.trim().length === 0) {
+        return res.status(400).json({ message: "Comment text is required" });
+      }
+      if (text.trim().length > 300) {
+        return res.status(400).json({ message: "Comment too long (max 300 chars)" });
+      }
+      const user = await storage.getUser(userId);
+      const userName = user?.firstName || user?.email?.split("@")[0] || "Member";
+      const comment = await storage.createEventComment(req.params.id, userId, userName, user?.profileImageUrl ?? null, text.trim());
+      res.status(201).json(comment);
+    } catch (err) {
+      console.error("Error creating event comment:", err);
+      res.status(500).json({ message: "Failed to post comment" });
+    }
+  });
+
+  app.get("/api/user/founding-status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const foundingClubs = await storage.getUserFoundingClubs(userId);
+      res.json({ clubs: foundingClubs });
+    } catch (err) {
+      console.error("Error fetching founding status:", err);
+      res.status(500).json({ message: "Failed to fetch founding status" });
     }
   });
 

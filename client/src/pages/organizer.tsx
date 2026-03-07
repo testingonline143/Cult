@@ -1515,6 +1515,19 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
               <Copy className="w-2.5 h-2.5" />
               Duplicate
             </button>
+            {event.recurrenceRule && (
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams({ tab: "event", clubId, from: event.id });
+                  window.location.href = `/create?${params.toString()}`;
+                }}
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md text-white"
+                style={{ background: "var(--terra)" }}
+                data-testid={`button-schedule-next-${event.id}`}
+              >
+                ↻ Schedule Next
+              </button>
+            )}
           </div>
         </div>
       )}

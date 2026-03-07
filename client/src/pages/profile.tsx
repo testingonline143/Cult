@@ -83,6 +83,16 @@ function ProfileHeader({ user }: { user: User }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  const { data: attendanceStats = [] } = useQuery<{ clubId: string; attended: number }[]>({
+    queryKey: ["/api/user/attendance-stats"],
+  });
+  const totalAttended = attendanceStats.reduce((sum, s) => sum + s.attended, 0);
+
+  const { data: foundingData } = useQuery<{ clubs: { clubId: string; clubName: string; isFoundingMember: boolean | null }[] }>({
+    queryKey: ["/api/user/founding-status"],
+  });
+  const isAnyFoundingMember = foundingData?.clubs?.some(c => c.isFoundingMember);
+
   const photoMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
@@ -245,6 +255,19 @@ function ProfileHeader({ user }: { user: User }) {
               {user.email && <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-email">{user.email}</p>}
               {user.city && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap"><MapPin className="w-3 h-3" /> {user.city}</p>}
               {user.bio && <p className="text-sm text-foreground mt-2" data-testid="text-profile-bio">{user.bio}</p>}
+              <div className="flex items-center gap-2 flex-wrap mt-2">
+                {totalAttended > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.25)' }} data-testid="badge-attended-total">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {totalAttended} event{totalAttended === 1 ? "" : "s"} attended
+                  </span>
+                )}
+                {isAnyFoundingMember && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,0.15)', color: '#92400e', border: '1px solid rgba(251,191,36,0.4)' }} data-testid="badge-founding-member">
+                    ⚡ Founding Member
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -50,6 +50,7 @@ export const joinRequests = pgTable("join_requests", {
   userId: varchar("user_id"),
   status: text("status").notNull().default("pending"),
   markedDone: boolean("marked_done").default(false),
+  isFoundingMember: boolean("is_founding_member").default(false),
   answer1: text("answer_1"),
   answer2: text("answer_2"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -129,8 +130,16 @@ export const clubMoments = pgTable("club_moments", {
   caption: text("caption").notNull(),
   imageUrl: text("image_url"),
   emoji: text("emoji"),
+  likesCount: integer("likes_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const momentLikes = pgTable("moment_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  momentId: varchar("moment_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [uniqueIndex("moment_likes_unique").on(t.momentId, t.userId)]);
 
 export const momentComments = pgTable("moment_comments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -139,6 +148,16 @@ export const momentComments = pgTable("moment_comments", {
   userName: text("user_name").notNull(),
   userImageUrl: text("user_image_url"),
   content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const eventComments = pgTable("event_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  userImageUrl: text("user_image_url"),
+  text: text("text").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -191,6 +210,7 @@ export const insertClubFaqSchema = createInsertSchema(clubFaqs).omit({ id: true,
 export const insertClubScheduleEntrySchema = createInsertSchema(clubScheduleEntries).omit({ id: true, createdAt: true });
 export const insertClubMomentSchema = createInsertSchema(clubMoments).omit({ id: true, createdAt: true });
 export const insertMomentCommentSchema = createInsertSchema(momentComments).omit({ id: true, createdAt: true });
+export const insertEventCommentSchema = createInsertSchema(eventComments).omit({ id: true, createdAt: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 export const insertClubAnnouncementSchema = createInsertSchema(clubAnnouncements).omit({ id: true, createdAt: true });
 export const insertClubPollSchema = createInsertSchema(clubPolls).omit({ id: true, createdAt: true });
@@ -216,6 +236,8 @@ export type ClubMoment = typeof clubMoments.$inferSelect;
 export type InsertClubMoment = z.infer<typeof insertClubMomentSchema>;
 export type MomentComment = typeof momentComments.$inferSelect;
 export type InsertMomentComment = z.infer<typeof insertMomentCommentSchema>;
+export type EventComment = typeof eventComments.$inferSelect;
+export type InsertEventComment = z.infer<typeof insertEventCommentSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type ClubAnnouncement = typeof clubAnnouncements.$inferSelect;

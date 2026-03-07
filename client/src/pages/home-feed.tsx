@@ -68,6 +68,27 @@ export default function HomeFeed() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [likeCountOverrides, setLikeCountOverrides] = useState<Record<string, number>>({});
+
+  const likeMutation = useMutation({
+    mutationFn: (momentId: string) => apiRequest("POST", `/api/moments/${momentId}/like`),
+    onSuccess: async (res: Response, momentId: string) => {
+      const data = await res.json().catch(() => ({}));
+      if (typeof data.likesCount === "number") {
+        setLikeCountOverrides(prev => ({ ...prev, [momentId]: data.likesCount }));
+      }
+    },
+  });
+
+  const unlikeMutation = useMutation({
+    mutationFn: (momentId: string) => apiRequest("DELETE", `/api/moments/${momentId}/like`),
+    onSuccess: async (res: Response, momentId: string) => {
+      const data = await res.json().catch(() => ({}));
+      if (typeof data.likesCount === "number") {
+        setLikeCountOverrides(prev => ({ ...prev, [momentId]: data.likesCount }));
+      }
+    },
+  });
 
   const becomeCreatorMutation = useMutation({
     mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
@@ -137,11 +158,18 @@ export default function HomeFeed() {
   const initials = displayName.charAt(0).toUpperCase();
 
   function toggleLike(id: string) {
+    if (!user) return;
+    const isLiked = likedPosts.has(id);
     setLikedPosts(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+    if (isLiked) {
+      unlikeMutation.mutate(id);
+    } else {
+      likeMutation.mutate(id);
+    }
   }
 
   return (
@@ -493,6 +521,11 @@ export default function HomeFeed() {
                           fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
                         }}
                       />
+                      {((likeCountOverrides[moment.id] ?? moment.likesCount) > 0) && (
+                        <span className="text-[11px] font-semibold" style={{ color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)" }} data-testid={`text-likes-${moment.id}`}>
+                          {likeCountOverrides[moment.id] ?? moment.likesCount}
+                        </span>
+                      )}
                     </button>
                     <Link
                       href={`/club/${moment.clubId}`}

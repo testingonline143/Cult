@@ -73,6 +73,12 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `GET /api/clubs/:id/activity` — get club activity signals
   - `GET /api/activity/feed` — get recent platform-wide join activity
   - `GET /api/clubs-with-activity` — get all clubs with recentJoins count
+  - `GET /api/clubs/:id/members` — public list of approved members with foundingMember flag
+  - `POST /api/moments/:id/like` — like a moment (auth); `DELETE` — unlike
+  - `GET /api/moments/:id/like-status` — check like status for current user
+  - `GET /api/events/:id/comments` — public event discussion comments
+  - `POST /api/events/:id/comments` — post event comment (auth, max 300 chars)
+  - `GET /api/user/founding-status` — list clubs where user is a founding member
   - `GET /api/organizer/my-clubs` — get ALL clubs created by authenticated user (for multi-club support)
   - `GET /api/clubs/:id/ratings` — get average rating + user's existing rating (if authenticated)
   - `POST /api/clubs/:id/ratings` — submit/update 1-5 star rating with optional review (authenticated)

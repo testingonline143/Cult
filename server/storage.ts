@@ -5,13 +5,14 @@ import {
   type EventRsvp, type InsertEventRsvp,
   type ClubRating, type ClubFaq, type ClubScheduleEntry, type ClubMoment,
   type MomentComment,
+  type EventComment,
   type Notification, type InsertNotification,
   type ClubAnnouncement, type InsertClubAnnouncement,
   type ClubPoll, type InsertClubPoll,
   type PollVote,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
   clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications,
-  clubAnnouncements, clubPolls, pollVotes,
+  clubAnnouncements, clubPolls, pollVotes, momentLikes, eventComments,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
@@ -127,6 +128,14 @@ export interface IStorage {
   castVote(pollId: string, userId: string, optionIndex: number): Promise<void>;
   addCoOrganiser(clubId: string, userId: string): Promise<void>;
   removeCoOrganiser(clubId: string, userId: string): Promise<void>;
+  likeMoment(momentId: string, userId: string): Promise<void>;
+  unlikeMoment(momentId: string, userId: string): Promise<void>;
+  getMomentLikeStatus(momentId: string, userId: string): Promise<boolean>;
+  getPublicClubMembers(clubId: string): Promise<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: Date | null; isFoundingMember: boolean | null }[]>;
+  getUserFoundingClubs(userId: string): Promise<{ clubId: string; clubName: string; isFoundingMember: boolean | null }[]>;
+  getEventComments(eventId: string): Promise<EventComment[]>;
+  createEventComment(eventId: string, userId: string, userName: string, userImageUrl: string | null, text: string): Promise<EventComment>;
+  approveJoinRequestWithFoundingCheck(requestId: string, clubId: string): Promise<JoinRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -998,6 +1007,7 @@ export class DatabaseStorage implements IStorage {
         caption: clubMoments.caption,
         imageUrl: clubMoments.imageUrl,
         emoji: clubMoments.emoji,
+        likesCount: clubMoments.likesCount,
         createdAt: clubMoments.createdAt,
         clubName: clubs.name,
         clubEmoji: clubs.emoji,
@@ -1223,6 +1233,75 @@ export class DatabaseStorage implements IStorage {
     await db.update(clubs).set({
       coOrganiserUserIds: sql`array_append(coalesce(${clubs.coOrganiserUserIds}, ARRAY[]::text[]), ${userId})`
     }).where(eq(clubs.id, clubId));
+  }
+
+  async likeMoment(momentId: string, userId: string): Promise<void> {
+    try {
+      await db.insert(momentLikes).values({ momentId, userId });
+      await db.update(clubMoments).set({ likesCount: sql`${clubMoments.likesCount} + 1` }).where(eq(clubMoments.id, momentId));
+    } catch {
+      // Unique constraint violation = already liked, ignore
+    }
+  }
+
+  async unlikeMoment(momentId: string, userId: string): Promise<void> {
+    const deleted = await db.delete(momentLikes).where(and(eq(momentLikes.momentId, momentId), eq(momentLikes.userId, userId))).returning();
+    if (deleted.length > 0) {
+      await db.update(clubMoments).set({ likesCount: sql`GREATEST(${clubMoments.likesCount} - 1, 0)` }).where(eq(clubMoments.id, momentId));
+    }
+  }
+
+  async getMomentLikeStatus(momentId: string, userId: string): Promise<boolean> {
+    const [row] = await db.select().from(momentLikes).where(and(eq(momentLikes.momentId, momentId), eq(momentLikes.userId, userId)));
+    return !!row;
+  }
+
+  async getPublicClubMembers(clubId: string): Promise<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: Date | null; isFoundingMember: boolean | null }[]> {
+    const rows = await db.select({
+      userId: joinRequests.userId,
+      name: joinRequests.name,
+      profileImageUrl: users.profileImageUrl,
+      joinedAt: joinRequests.createdAt,
+      isFoundingMember: joinRequests.isFoundingMember,
+    }).from(joinRequests)
+      .leftJoin(users, eq(joinRequests.userId, users.id))
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")))
+      .orderBy(joinRequests.createdAt)
+      .limit(100);
+    return rows;
+  }
+
+  async getUserFoundingClubs(userId: string): Promise<{ clubId: string; clubName: string; isFoundingMember: boolean | null }[]> {
+    const rows = await db.select({
+      clubId: joinRequests.clubId,
+      clubName: joinRequests.clubName,
+      isFoundingMember: joinRequests.isFoundingMember,
+    }).from(joinRequests)
+      .where(and(eq(joinRequests.userId, userId), eq(joinRequests.status, "approved")));
+    return rows;
+  }
+
+  async getEventComments(eventId: string): Promise<EventComment[]> {
+    return db.select().from(eventComments).where(eq(eventComments.eventId, eventId)).orderBy(eventComments.createdAt);
+  }
+
+  async createEventComment(eventId: string, userId: string, userName: string, userImageUrl: string | null, text: string): Promise<EventComment> {
+    const [created] = await db.insert(eventComments).values({ eventId, userId, userName, userImageUrl, text }).returning();
+    return created;
+  }
+
+  async approveJoinRequestWithFoundingCheck(requestId: string, clubId: string): Promise<JoinRequest | undefined> {
+    const club = await this.getClub(clubId);
+    if (!club) return undefined;
+    const isFoundingMember = (club.foundingTaken ?? 0) < (club.foundingTotal ?? 20);
+    const [updated] = await db.update(joinRequests)
+      .set({ status: "approved", isFoundingMember })
+      .where(eq(joinRequests.id, requestId))
+      .returning();
+    if (updated) {
+      await this.incrementMemberCount(clubId);
+    }
+    return updated;
   }
 
   async removeCoOrganiser(clubId: string, userId: string): Promise<void> {

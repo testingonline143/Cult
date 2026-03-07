@@ -303,7 +303,7 @@ function ClubDetailContent({ club }: { club: Club }) {
     ...(hasImages ? [{ id: "gallery", label: "Gallery" }] : []),
     { id: "about", label: "About" },
     { id: "faqs", label: "FAQs" },
-    ...(isAuthenticated && isApprovedMember ? [{ id: "members", label: "Members" }] : []),
+    { id: "members", label: "Members" },
     ...(isAuthenticated ? [{ id: "polls", label: "Polls" }] : []),
   ];
 
@@ -430,7 +430,7 @@ function ClubDetailContent({ club }: { club: Club }) {
       {club.whatsappNumber && (
         <div className="px-6 mt-3" data-testid="section-whatsapp-cta">
           <a
-            href={`https://wa.me/${club.whatsappNumber.replace(/\D/g, '')}`}
+            href={`https://wa.me/${club.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I'd love to join ${club.name}. I found you on CultFam! 🙌`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2.5 w-full py-3 rounded-2xl text-sm font-bold transition-all active:scale-[0.98]"
@@ -690,7 +690,7 @@ function ClubDetailContent({ club }: { club: Club }) {
         <FaqsTab clubId={club.id} />
       )}
 
-      {activeTab === "members" && isAuthenticated && isApprovedMember && (
+      {activeTab === "members" && (
         <MembersTab clubId={club.id} />
       )}
 
@@ -1567,7 +1567,7 @@ function getRelativeTime(dateStr: string | Date | null): string {
 }
 
 function MembersTab({ clubId }: { clubId: string }) {
-  const { data: members = [], isLoading } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: string | null }[]>({
+  const { data: members = [], isLoading } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: string | null; isFoundingMember: boolean | null }[]>({
     queryKey: ["/api/clubs", clubId, "members"],
     queryFn: async () => {
       const res = await fetch(`/api/clubs/${clubId}/members`, { credentials: "include" });
@@ -1604,15 +1604,23 @@ function MembersTab({ clubId }: { clubId: string }) {
           {members.map((member, i) => {
             const inner = (
               <>
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
-                  <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
-                    {member.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={member.profileImageUrl || undefined} alt={member.name} />
+                    <AvatarFallback className="text-sm font-semibold" style={{ background: 'var(--terra-pale)', color: 'var(--terra)' }}>
+                      {member.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.isFoundingMember && (
+                    <span className="absolute -bottom-1 -right-1 text-[9px] bg-amber-400 text-amber-900 rounded-full px-1 font-bold leading-tight" title="Founding Member" data-testid={`badge-founding-${member.userId || i}`}>⚡</span>
+                  )}
+                </div>
                 <span className="text-[10px] text-[var(--ink3)] text-center truncate w-full font-medium" data-testid={`text-member-name-${member.userId || i}`}>
                   {member.name.split(' ')[0]}
                 </span>
+                {member.isFoundingMember && (
+                  <span className="text-[9px] font-bold text-amber-600 text-center w-full truncate">Founder</span>
+                )}
               </>
             );
             return member.userId ? (
