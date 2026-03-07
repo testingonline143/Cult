@@ -14,6 +14,7 @@ export default function Organizer() {
   const searchString = useSearch();
   const urlTab = new URLSearchParams(searchString).get("tab") as "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements" | null;
   const [activeTab, setActiveTab] = useState<"overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements">(urlTab || "overview");
+  const [contentInitialSection, setContentInitialSection] = useState<"faqs" | "schedule" | "moments" | "polls">("faqs");
   const [selectedClubIndex, setSelectedClubIndex] = useState(0);
 
   const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
@@ -134,11 +135,11 @@ export default function Organizer() {
 
         <RequestsTabBar activeTab={activeTab} setActiveTab={setActiveTab} clubId={club.id} isCreator={user?.id === club.creatorUserId} />
 
-        {activeTab === "overview" && <ClubOverview club={club} user={user} setActiveTab={setActiveTab} />}
+        {activeTab === "overview" && <ClubOverview club={club} user={user} setActiveTab={setActiveTab} setContentInitialSection={setContentInitialSection} />}
         {activeTab === "requests" && <OrganizerRequests clubId={club.id} club={club} />}
         {activeTab === "insights" && <OrganizerInsights clubId={club.id} />}
         {activeTab === "events" && <OrganizerEvents clubId={club.id} />}
-        {activeTab === "content" && <ContentManager clubId={club.id} />}
+        {activeTab === "content" && <ContentManager clubId={club.id} initialSection={contentInitialSection} />}
         {activeTab === "edit" && user?.id === club.creatorUserId && <EditClub club={club} />}
         {activeTab === "announcements" && <AnnouncementsManager clubId={club.id} />}
       </div>
@@ -146,7 +147,7 @@ export default function Organizer() {
   );
 }
 
-function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void }) {
+function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { club: Club; user: any; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void; setContentInitialSection?: (s: "faqs" | "schedule" | "moments" | "polls") => void }) {
   const { toast } = useToast();
   const healthColors: Record<string, string> = {
     green: "text-[var(--green-accent)] bg-[var(--green-accent)]/10",
@@ -295,7 +296,7 @@ function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; set
                 <span className="text-sm text-white/50 line-through">Post your first moment</span>
               ) : (
                 <button
-                  onClick={() => setActiveTab("content")}
+                  onClick={() => { setContentInitialSection?.("moments"); setActiveTab("content"); }}
                   className="text-sm font-semibold text-white underline underline-offset-2"
                   data-testid="checklist-post-moment"
                 >
@@ -399,7 +400,7 @@ function ClubOverview({ club, user, setActiveTab }: { club: Club; user: any; set
                     </div>
                   </div>
                   <Link
-                    href={`/scan-event?eventId=${nextEvent.id}`}
+                    href={`/scan/${nextEvent.id}`}
                     className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-[var(--terra)] text-white whitespace-nowrap shrink-0"
                     data-testid="link-scan-next-event"
                   >
@@ -1700,8 +1701,8 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
   );
 }
 
-function ContentManager({ clubId }: { clubId: string }) {
-  const [activeSection, setActiveSection] = useState<"faqs" | "schedule" | "moments" | "polls">("faqs");
+function ContentManager({ clubId, initialSection = "faqs" }: { clubId: string; initialSection?: "faqs" | "schedule" | "moments" | "polls" }) {
+  const [activeSection, setActiveSection] = useState<"faqs" | "schedule" | "moments" | "polls">(initialSection);
 
   const sections: { key: "faqs" | "schedule" | "moments" | "polls"; label: string }[] = [
     { key: "faqs", label: "FAQs" },

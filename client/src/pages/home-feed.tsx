@@ -651,106 +651,129 @@ export default function HomeFeed() {
               </Link>
             </div>
           ) : (
-            feedMoments.map((moment) => (
-              <div
-                key={moment.id}
-                className="rounded-[20px] overflow-hidden mb-4"
-                style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-                data-testid={`post-${moment.id}`}
-              >
-                <div className="flex items-center gap-3 p-4 pb-3">
-                  <div
-                    className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-xl"
-                    style={{ background: "var(--ink2)", border: "2px solid var(--terra)" }}
-                  >
-                    {moment.clubEmoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/club/${moment.clubId}`}
-                      className="font-bold text-[14px] leading-tight truncate block no-underline"
-                      style={{ color: "var(--ink)" }}
+            <>
+              {(userClubs.length === 0 ? feedMoments.slice(0, 4) : feedMoments).map((moment) => (
+                <div
+                  key={moment.id}
+                  className="rounded-[20px] overflow-hidden mb-4"
+                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+                  data-testid={`post-${moment.id}`}
+                >
+                  <div className="flex items-center gap-3 p-4 pb-3">
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-xl"
+                      style={{ background: "var(--ink2)", border: "2px solid var(--terra)" }}
                     >
-                      {moment.clubName}
-                    </Link>
-                    <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
-                      {moment.authorName ? (
-                        <span>
-                          <span style={{ color: "var(--terra)", fontWeight: 600 }}>
-                            {moment.authorUserId === user?.id ? "You" : moment.authorName}
+                      {moment.clubEmoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/club/${moment.clubId}`}
+                        className="font-bold text-[14px] leading-tight truncate block no-underline"
+                        style={{ color: "var(--ink)" }}
+                      >
+                        {moment.clubName}
+                      </Link>
+                      <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
+                        {moment.authorName ? (
+                          <span>
+                            <span style={{ color: "var(--terra)", fontWeight: 600 }}>
+                              {moment.authorUserId === user?.id ? "You" : moment.authorName}
+                            </span>
+                            {" · "}
                           </span>
-                          {" · "}
-                        </span>
-                      ) : null}
-                      {moment.createdAt
-                        ? `${formatDistanceToNow(new Date(moment.createdAt))} ago`
-                        : "Recently"
-                      }
-                      {moment.clubLocation ? ` · ${moment.clubLocation}` : ""}
-                    </p>
+                        ) : null}
+                        {moment.createdAt
+                          ? `${formatDistanceToNow(new Date(moment.createdAt))} ago`
+                          : "Recently"
+                        }
+                        {moment.clubLocation ? ` · ${moment.clubLocation}` : ""}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {moment.imageUrl ? (
-                  <div className="mx-4 rounded-[16px] overflow-hidden mb-3">
-                    <img
-                      src={moment.imageUrl}
-                      alt={moment.caption || ""}
-                      className="w-full object-cover"
-                      style={{ maxHeight: 260 }}
-                    />
-                  </div>
-                ) : moment.emoji ? (
-                  <div className="mx-4 mb-3 flex items-center gap-2 px-1">
-                    <span className="text-2xl">{moment.emoji}</span>
-                  </div>
-                ) : null}
-
-                <div className="px-4 pb-4">
-                  {moment.caption && <ExpandableCaption text={moment.caption} />}
-                  <div className="flex items-center gap-5">
-                    <button
-                      onClick={() => toggleLike(moment.id)}
-                      className="flex items-center gap-1.5 transition-transform active:scale-90"
-                      data-testid={`button-like-${moment.id}`}
-                    >
-                      <Heart
-                        className="w-5 h-5 transition-colors"
-                        style={{
-                          color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)",
-                          fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
-                        }}
+                  {moment.imageUrl ? (
+                    <div className="mx-4 rounded-[16px] overflow-hidden mb-3">
+                      <img
+                        src={moment.imageUrl}
+                        alt={moment.caption || ""}
+                        className="w-full object-cover"
+                        style={{ maxHeight: 260 }}
                       />
-                      {((likeCountOverrides[moment.id] ?? moment.likesCount) > 0) && (
-                        <span className="text-[11px] font-semibold" style={{ color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)" }} data-testid={`text-likes-${moment.id}`}>
-                          {likeCountOverrides[moment.id] ?? moment.likesCount}
-                        </span>
-                      )}
-                    </button>
-                    <Link
-                      href={`/club/${moment.clubId}?tab=moments`}
-                      className="flex items-center gap-1.5 transition-transform active:scale-90"
-                      style={{ textDecoration: "none" }}
-                      data-testid={`button-comments-${moment.id}`}
-                    >
-                      <MessageCircle className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
-                      {moment.commentCount > 0 && (
-                        <span className="text-[11px] font-semibold" style={{ color: "var(--muted-warm)" }}>
-                          {moment.commentCount}
-                        </span>
-                      )}
-                    </Link>
-                    <button
-                      onClick={() => handleShare(moment)}
-                      className="flex items-center gap-1.5 ml-auto transition-transform active:scale-90"
-                      data-testid={`button-share-${moment.id}`}
-                    >
-                      <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
-                    </button>
+                    </div>
+                  ) : moment.emoji ? (
+                    <div className="mx-4 mb-3 flex items-center gap-2 px-1">
+                      <span className="text-2xl">{{ fire: "🔥", star: "⭐" }[moment.emoji] ?? moment.emoji}</span>
+                    </div>
+                  ) : null}
+
+                  <div className="px-4 pb-4">
+                    {moment.caption && <ExpandableCaption text={moment.caption} />}
+                    <div className="flex items-center gap-5">
+                      <button
+                        onClick={() => toggleLike(moment.id)}
+                        className="flex items-center gap-1.5 transition-transform active:scale-90"
+                        data-testid={`button-like-${moment.id}`}
+                      >
+                        <Heart
+                          className="w-5 h-5 transition-colors"
+                          style={{
+                            color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)",
+                            fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
+                          }}
+                        />
+                        {((likeCountOverrides[moment.id] ?? moment.likesCount) > 0) && (
+                          <span className="text-[11px] font-semibold" style={{ color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)" }} data-testid={`text-likes-${moment.id}`}>
+                            {likeCountOverrides[moment.id] ?? moment.likesCount}
+                          </span>
+                        )}
+                      </button>
+                      <Link
+                        href={`/club/${moment.clubId}?tab=moments`}
+                        className="flex items-center gap-1.5 transition-transform active:scale-90"
+                        style={{ textDecoration: "none" }}
+                        data-testid={`button-comments-${moment.id}`}
+                      >
+                        <MessageCircle className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                        {moment.commentCount > 0 && (
+                          <span className="text-[11px] font-semibold" style={{ color: "var(--muted-warm)" }}>
+                            {moment.commentCount}
+                          </span>
+                        )}
+                      </Link>
+                      <button
+                        onClick={() => handleShare(moment)}
+                        className="flex items-center gap-1.5 ml-auto transition-transform active:scale-90"
+                        data-testid={`button-share-${moment.id}`}
+                      >
+                        <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+              {userClubs.length === 0 && feedMoments.length > 0 && (
+                <div
+                  className="rounded-[20px] p-5 flex flex-col items-center text-center gap-3 mb-4"
+                  style={{ background: "linear-gradient(135deg, var(--terra) 0%, var(--terra-light) 100%)" }}
+                  data-testid="card-join-nudge"
+                >
+                  <span className="text-3xl">🔒</span>
+                  <div>
+                    <p className="font-display font-bold text-[15px] text-white mb-1">There's more inside</p>
+                    <p className="text-[12px] text-white/80">Join a club to see all moments from your community</p>
+                  </div>
+                  <Link
+                    href="/explore"
+                    className="bg-white rounded-xl px-5 py-2.5 text-sm font-bold"
+                    style={{ color: "var(--terra)" }}
+                    data-testid="button-join-nudge-explore"
+                  >
+                    Explore Clubs →
+                  </Link>
+                </div>
+              )}
+            </>
           )}
         </div>
 

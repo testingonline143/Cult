@@ -1363,7 +1363,7 @@ function MomentsTab({
               {!moment.imageUrl && (
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
                   {moment.emoji ? (
-                    <span className="text-xl">{moment.emoji}</span>
+                    <span className="text-xl">{{ fire: "🔥", star: "⭐" }[moment.emoji] ?? moment.emoji}</span>
                   ) : (
                     <MomentIcon className="w-5 h-5 text-[var(--terra)]" />
                   )}
@@ -1372,7 +1372,7 @@ function MomentsTab({
               <div className="flex-1 min-w-0">
                 {moment.emoji && moment.imageUrl && (
                   <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-md mb-1.5 bg-[var(--terra-pale)] text-[var(--terra)]">
-                    {moment.emoji}
+                    {{ fire: "🔥", star: "⭐" }[moment.emoji] ?? moment.emoji}
                   </span>
                 )}
                 <p className="text-sm leading-relaxed" style={{ color: "var(--ink)" }}>{moment.caption}</p>

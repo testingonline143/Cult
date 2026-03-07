@@ -276,35 +276,35 @@ async function seedClubContent() {
     const now = new Date();
     const momentsData = [
       { club: "Tirumala Trekkers", moments: [
-        { caption: "First trek of the year! 42 people showed up at Alipiri Gate at 5:30 AM. Energy was unreal.", emoji: "fire", createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000) },
-        { caption: "Talakona waterfall trek completed. 28 km, 6 hours, zero injuries. Proud of this crew.", emoji: "star", createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
+        { caption: "First trek of the year! 42 people showed up at Alipiri Gate at 5:30 AM. Energy was unreal.", emoji: "🔥", createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000) },
+        { caption: "Talakona waterfall trek completed. 28 km, 6 hours, zero injuries. Proud of this crew.", emoji: "⭐", createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
         { caption: "Welcome to 12 new members who joined this month! Our biggest batch yet.", emoji: "heart", createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000) },
       ]},
       { club: "Tirupati Reads", moments: [
-        { caption: "Just finished discussing 'Maa Nanna Bali' by Sriramana. Heated debate on the ending — best session yet!", emoji: "star", createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) },
-        { caption: "New record: 31 members at Saturday's meetup. Had to pull extra chairs from the cafe!", emoji: "fire", createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000) },
+        { caption: "Just finished discussing 'Maa Nanna Bali' by Sriramana. Heated debate on the ending — best session yet!", emoji: "⭐", createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) },
+        { caption: "New record: 31 members at Saturday's meetup. Had to pull extra chairs from the cafe!", emoji: "🔥", createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000) },
       ]},
       { club: "Tirupati Cyclists", moments: [
-        { caption: "60 km Chandragiri Fort ride done! Beautiful sunrise views. 18 riders completed the route.", emoji: "fire", createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) },
-        { caption: "New personal best on the Ghat road route — average speed up to 22 km/h as a group!", emoji: "star", createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000) },
+        { caption: "60 km Chandragiri Fort ride done! Beautiful sunrise views. 18 riders completed the route.", emoji: "🔥", createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) },
+        { caption: "New personal best on the Ghat road route — average speed up to 22 km/h as a group!", emoji: "⭐", createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000) },
         { caption: "Donated 15 helmets to new members who couldn't afford one. Safety first, always.", emoji: "heart", createdAt: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000) },
       ]},
       { club: "Lens & Light Tirupati", moments: [
-        { caption: "Golden hour shoot at Govindaraja temple — captured some stunning shots. Gallery coming soon!", emoji: "star", createdAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000) },
-        { caption: "Our cafe exhibition at Brew & Bite was a hit! 40+ prints displayed, 8 sold.", emoji: "fire", createdAt: new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000) },
+        { caption: "Golden hour shoot at Govindaraja temple — captured some stunning shots. Gallery coming soon!", emoji: "⭐", createdAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000) },
+        { caption: "Our cafe exhibition at Brew & Bite was a hit! 40+ prints displayed, 8 sold.", emoji: "🔥", createdAt: new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000) },
       ]},
       { club: "Tirupati Fitness Tribe", moments: [
-        { caption: "Monday bootcamp hit 45 people today! Park was packed. Love this energy.", emoji: "fire", createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) },
+        { caption: "Monday bootcamp hit 45 people today! Park was packed. Love this energy.", emoji: "🔥", createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) },
         { caption: "Yoga Thursday was so peaceful. 30 members under the banyan tree at sunrise.", emoji: "heart", createdAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000) },
-        { caption: "Group ran 10 km together on Saturday. 5 members hit their first ever 10 km!", emoji: "star", createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000) },
+        { caption: "Group ran 10 km together on Saturday. 5 members hit their first ever 10 km!", emoji: "⭐", createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000) },
       ]},
       { club: "Telugu Writers Circle", moments: [
-        { caption: "Monthly anthology published! 14 poems and 3 short stories. Our best edition yet.", emoji: "star", createdAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000) },
+        { caption: "Monthly anthology published! 14 poems and 3 short stories. Our best edition yet.", emoji: "⭐", createdAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000) },
         { caption: "Open mic night was magical. First-time writers reading their work aloud — so much courage.", emoji: "heart", createdAt: new Date(now.getTime() - 13 * 24 * 60 * 60 * 1000) },
       ]},
       { club: "Tirupati Sketchers", moments: [
-        { caption: "Sketched the Balaji Nagar market chaos. 15 sketchers, 15 completely different perspectives.", emoji: "star", createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) },
-        { caption: "Watercolour workshop with guest artist from Hyderabad. Everyone learned wet-on-wet technique!", emoji: "fire", createdAt: new Date(now.getTime() - 9 * 24 * 60 * 60 * 1000) },
+        { caption: "Sketched the Balaji Nagar market chaos. 15 sketchers, 15 completely different perspectives.", emoji: "⭐", createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) },
+        { caption: "Watercolour workshop with guest artist from Hyderabad. Everyone learned wet-on-wet technique!", emoji: "🔥", createdAt: new Date(now.getTime() - 9 * 24 * 60 * 60 * 1000) },
       ]},
     ];
 

@@ -160,6 +160,18 @@ export default function ScanEvent() {
       );
 
       setScanning(true);
+
+      setTimeout(async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          const track = stream.getVideoTracks()[0];
+          const caps = track.getCapabilities?.() as any;
+          if (!caps?.torch) setTorchHidden(true);
+          track.stop();
+        } catch {
+          setTorchHidden(true);
+        }
+      }, 300);
     } catch (err: any) {
       console.error("Scanner error:", err);
       setScanResult({ type: "error", message: err?.message || "Camera access denied" });
