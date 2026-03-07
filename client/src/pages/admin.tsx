@@ -7,7 +7,7 @@ import {
   Shield, ShieldAlert, Users, Activity, Ban, BarChart3, Calendar, MapPin,
   Search, CheckCircle2, XCircle, Building2, UserCheck, ArrowLeft,
   TrendingUp, Camera, MessageSquare, Zap, RotateCcw, ChevronRight,
-  BarChart2, Megaphone, Download, X, Vote, Send,
+  BarChart2, Megaphone, Download, X, Vote, Send, Copy, Check,
 } from "lucide-react";
 import { Link } from "wouter";
 import { formatDistanceToNow, format } from "date-fns";
@@ -109,18 +109,141 @@ function downloadCSV(filename: string, rows: string[][], headers: string[]) {
   URL.revokeObjectURL(url);
 }
 
+function AdminSetupScreen({ userId }: { userId: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!userId) return;
+    navigator.clipboard.writeText(userId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
+
+  const steps = [
+    { num: "1", text: "Click the Copy button below to copy your Admin ID" },
+    { num: "2", text: 'Open the Secrets panel in Replit (the lock 🔒 icon in the left sidebar)' },
+    { num: "3", text: 'Create a new secret named ADMIN_USER_ID' },
+    { num: "4", text: "Paste your Admin ID as the value and save" },
+    { num: "5", text: "Restart the app — you'll have full admin access" },
+  ];
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--cream)" }}>
+      <div className="w-full max-w-md space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+            style={{ background: "var(--ink)" }}
+          >
+            <Shield className="w-8 h-8" style={{ color: "var(--terra)" }} />
+          </div>
+          <h1 className="font-display text-2xl font-bold" style={{ color: "var(--ink)" }}>
+            One Step to Admin Access
+          </h1>
+          <p className="text-sm leading-relaxed" style={{ color: "var(--muted-warm)" }}>
+            You're signed in. Now set your Admin ID as a secret so only you can access the dashboard.
+          </p>
+        </div>
+
+        {/* User ID box */}
+        <div
+          className="rounded-[18px] p-5 space-y-3"
+          style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+          data-testid="card-admin-id"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full" style={{ background: "#16a34a" }} />
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Your Admin ID</span>
+          </div>
+          {userId ? (
+            <>
+              <div
+                className="w-full px-4 py-3 rounded-xl font-mono text-sm break-all select-all"
+                style={{ background: "var(--cream)", color: "var(--ink)", border: "1.5px solid var(--warm-border)" }}
+                data-testid="text-admin-user-id"
+              >
+                {userId}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="w-full flex items-center justify-center gap-2 rounded-full py-3 text-sm font-bold transition-all"
+                style={copied
+                  ? { background: "#16a34a", color: "white" }
+                  : { background: "var(--terra)", color: "white" }
+                }
+                data-testid="button-copy-admin-id"
+              >
+                {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy Admin ID</>}
+              </button>
+            </>
+          ) : (
+            <div className="text-sm text-center py-2" style={{ color: "var(--muted-warm)" }}>
+              Loading your ID...
+            </div>
+          )}
+        </div>
+
+        {/* Steps */}
+        <div
+          className="rounded-[18px] p-5 space-y-3"
+          style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+        >
+          <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--terra)" }}>How to activate</p>
+          {steps.map((step) => (
+            <div key={step.num} className="flex items-start gap-3">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black text-white mt-0.5"
+                style={{ background: "var(--terra)" }}
+              >
+                {step.num}
+              </div>
+              <p className="text-sm leading-snug" style={{ color: "var(--ink)" }}>{step.text}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Secret name highlight */}
+        <div
+          className="rounded-[18px] p-4 flex items-center gap-3"
+          style={{ background: "rgba(196,98,45,0.08)", border: "1.5px solid rgba(196,98,45,0.25)" }}
+        >
+          <Shield className="w-4 h-4 shrink-0" style={{ color: "var(--terra)" }} />
+          <p className="text-xs" style={{ color: "var(--terra)" }}>
+            The secret name must be exactly: <span className="font-bold font-mono">ADMIN_USER_ID</span>
+          </p>
+        </div>
+
+        {/* Sign out option */}
+        <div className="text-center">
+          <a href="/api/logout" className="text-xs" style={{ color: "var(--muted-warm)" }}>
+            Not you? Sign out
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"analytics" | "clubs" | "users" | "events" | "joins" | "polls">("analytics");
 
+  const { data: adminStatus, isLoading: statusLoading } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/admin/status"],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
   const { data: pendingCountData } = useQuery<JoinRequest[]>({
     queryKey: ["/api/admin/join-requests"],
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && adminStatus?.configured === true,
     retry: false,
   });
   const pendingCount = (pendingCountData ?? []).filter((r: any) => r.status === "pending" && !r.markedDone).length;
 
-  if (authLoading) {
+  if (authLoading || (isAuthenticated && statusLoading)) {
     return (
       <div className="min-h-screen" style={{ background: "var(--cream)" }}>
         <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
@@ -157,6 +280,10 @@ export default function Admin() {
         </div>
       </div>
     );
+  }
+
+  if (adminStatus?.configured === false) {
+    return <AdminSetupScreen userId={user?.id || ""} />;
   }
 
   const tabs = [
