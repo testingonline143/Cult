@@ -472,7 +472,7 @@ function OrganizerInsights({ clubId }: { clubId: string }) {
       </div>
 
       {/* ── Section 2: Engagement Health ── */}
-      {analytics && (
+      {analytics && insights.totalEvents > 0 && (
         <div className="grid grid-cols-2 gap-3" data-testid="section-engagement-health">
           <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4" style={{ borderRadius: 18 }}>
             <div className="flex items-center gap-1.5 mb-2">
