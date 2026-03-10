@@ -2825,8 +2825,6 @@ function EditClub({ club }: { club: Club }) {
   const [whatsappNumber, setWhatsappNumber] = useState(club.whatsappNumber || "");
   const [schedule, setSchedule] = useState(club.schedule);
   const [location, setLocation] = useState(club.location);
-  const [healthStatus, setHealthStatus] = useState(club.healthStatus);
-  const [highlightsText, setHighlightsText] = useState((club.highlights || []).join("\n"));
   const [joinQuestion1, setJoinQuestion1] = useState((club as any).joinQuestion1 || "");
   const [joinQuestion2, setJoinQuestion2] = useState((club as any).joinQuestion2 || "");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(club.coverImageUrl ?? null);
@@ -2846,8 +2844,7 @@ function EditClub({ club }: { club: Club }) {
   });
 
   const handleSave = () => {
-    const highlights = highlightsText.split("\n").map(h => h.trim()).filter(Boolean);
-    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, healthStatus, highlights, joinQuestion1: joinQuestion1.trim() || null, joinQuestion2: joinQuestion2.trim() || null, coverImageUrl: coverImageUrl ?? null });
+    updateMutation.mutate({ shortDesc, fullDesc, organizerName, whatsappNumber, schedule, location, joinQuestion1: joinQuestion1.trim() || null, joinQuestion2: joinQuestion2.trim() || null, coverImageUrl: coverImageUrl ?? null });
   };
 
   return (
@@ -2919,39 +2916,6 @@ function EditClub({ club }: { club: Club }) {
             className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
             data-testid="input-edit-location"
           />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Health Status</label>
-          <div className="flex gap-2">
-            {(["green", "yellow", "red"] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setHealthStatus(status)}
-                className={`flex-1 py-2.5 rounded-md text-sm font-semibold transition-all border ${
-                  healthStatus === status
-                    ? status === "green" ? "bg-[var(--green-accent)]/20 text-[var(--green-accent)] border-[var(--green-accent)]/40"
-                    : status === "yellow" ? "bg-chart-4/20 text-chart-4 border-chart-4/40"
-                    : "bg-destructive/20 text-destructive border-destructive/40"
-                    : "bg-[var(--warm-white)] border-[var(--warm-border)] text-muted-foreground"
-                }`}
-                data-testid={`button-health-${status}`}
-              >
-                {status === "green" ? "Active" : status === "yellow" ? "Moderate" : "Low"}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Club Highlights</label>
-          <textarea
-            value={highlightsText}
-            onChange={(e) => setHighlightsText(e.target.value)}
-            rows={4}
-            placeholder={"One highlight per line, e.g.:\nWe've done 12 treks this year!\nOur community has 50+ active members"}
-            className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none"
-            data-testid="input-edit-highlights"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">One per line. These show on your club page.</p>
         </div>
         <div className="pt-2 border-t border-[var(--warm-border)]">
           <div className="flex items-center gap-1.5 mb-3">
