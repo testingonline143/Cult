@@ -16,7 +16,7 @@ interface EventWithRsvps extends Event {
 export default function Events() {
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [, navigate] = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<EventWithRsvps[]>({
@@ -59,17 +59,6 @@ export default function Events() {
         <h1 className="font-display italic text-3xl font-bold" style={{ color: "var(--ink)" }} data-testid="text-page-title">
           Event Schedule
         </h1>
-        {isOrganiser && (
-          <Link
-            href="/create?tab=event"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white shrink-0"
-            style={{ background: "var(--terra)" }}
-            data-testid="link-create-event-header"
-          >
-            <Plus className="w-4 h-4" />
-            Create
-          </Link>
-        )}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar" data-testid="filter-pills">
