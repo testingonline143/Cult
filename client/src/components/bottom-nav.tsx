@@ -5,13 +5,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Drawer } from "vaul";
 import { Link } from "wouter";
 
-const MAIN_TABS = [
-  { path: "/explore", label: "CLUBS", icon: Users },
-  { path: "/events", label: "EVENTS", icon: Calendar },
-  { path: "/home", label: "FEED", icon: Home },
-  { path: "/profile", label: "PROFILE", icon: User },
-];
-
 const TAB_PATHS = ["/home", "/explore", "/events", "/profile", "/organizer", "/notifications", "/create"];
 
 export function BottomNav() {
@@ -24,22 +17,51 @@ export function BottomNav() {
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
   const isCreator = !!user && (user.wantsToCreate === true || isOrganiser);
 
-  const tabs = isCreator
+  const leftTabs = [
+    { path: "/explore", label: "CLUBS", icon: Users },
+    { path: "/events", label: "EVENTS", icon: Calendar },
+  ];
+
+  const rightTabs = isOrganiser
     ? [
-        { path: "/explore", label: "CLUBS", icon: Users },
-        null,
-        { path: "/events", label: "EVENTS", icon: Calendar },
         { path: "/home", label: "FEED", icon: Home },
-        isOrganiser
-          ? { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard }
-          : { path: "/profile", label: "PROFILE", icon: User },
+        { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard },
       ]
     : [
-        { path: "/explore", label: "CLUBS", icon: Users },
-        { path: "/events", label: "EVENTS", icon: Calendar },
         { path: "/home", label: "FEED", icon: Home },
         { path: "/profile", label: "PROFILE", icon: User },
       ];
+
+  const renderTab = (tab: { path: string; label: string; icon: React.ElementType }, key: string) => {
+    const isActive = location === tab.path;
+    const Icon = tab.icon;
+    return (
+      <button
+        key={key}
+        onClick={() => navigate(tab.path)}
+        className="flex flex-col items-center gap-1 px-3 py-1 transition-colors relative flex-1"
+        data-testid={`tab-${tab.label.toLowerCase()}`}
+      >
+        <Icon
+          className="w-5 h-5"
+          style={{ opacity: isActive ? 1 : 0.4, color: isActive ? "var(--terra)" : "var(--ink)" }}
+        />
+        {isActive && (
+          <span className="w-1 h-1 rounded-full" style={{ background: "var(--terra)" }} />
+        )}
+        <span
+          className="font-bold tracking-wider uppercase"
+          style={{
+            fontSize: "9px",
+            letterSpacing: "1px",
+            color: isActive ? "var(--terra)" : "var(--muted-warm)",
+          }}
+        >
+          {tab.label}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <>
@@ -53,59 +75,31 @@ export function BottomNav() {
         }}
         data-testid="nav-bottom"
       >
-        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2 relative">
-          {tabs.map((tab, i) => {
-            if (tab === null) {
-              return (
-                <div key="fab-slot" className="flex flex-col items-center px-3 py-1 relative" style={{ width: 56 }}>
-                  <button
-                    onClick={() => setDrawerOpen(true)}
-                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                    style={{
-                      background: "var(--terra)",
-                      position: "absolute",
-                      bottom: 10,
-                      boxShadow: "0 4px 20px rgba(196,98,45,0.45)",
-                    }}
-                    data-testid="button-fab"
-                  >
-                    <Plus className="w-6 h-6 text-white" />
-                  </button>
-                </div>
-              );
-            }
+        <div className="flex items-center h-16 max-w-lg mx-auto px-2">
+          {/* Left tabs */}
+          {leftTabs.map((tab) => renderTab(tab, tab.path))}
 
-            const isActive = location === tab.path;
-            const Icon = tab.icon;
-            return (
+          {/* Centre FAB or empty space */}
+          <div className="flex flex-col items-center flex-1 relative" style={{ minWidth: 56 }}>
+            {isCreator ? (
               <button
-                key={tab.path}
-                onClick={() => navigate(tab.path)}
-                className="flex flex-col items-center gap-1 px-3 py-1 transition-colors relative"
-                data-testid={`tab-${tab.label.toLowerCase()}`}
+                onClick={() => setDrawerOpen(true)}
+                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                style={{
+                  background: "var(--terra)",
+                  position: "absolute",
+                  bottom: -4,
+                  boxShadow: "0 4px 20px rgba(196,98,45,0.45)",
+                }}
+                data-testid="button-fab"
               >
-                <div className="relative">
-                  <Icon
-                    className="w-5 h-5"
-                    style={{ opacity: isActive ? 1 : 0.4, color: isActive ? "var(--terra)" : "var(--ink)" }}
-                  />
-                </div>
-                {isActive && (
-                  <span className="w-1 h-1 rounded-full" style={{ background: "var(--terra)" }} />
-                )}
-                <span
-                  className="font-bold tracking-wider uppercase"
-                  style={{
-                    fontSize: "9px",
-                    letterSpacing: "1px",
-                    color: isActive ? "var(--terra)" : "var(--muted-warm)",
-                  }}
-                >
-                  {tab.label}
-                </span>
+                <Plus className="w-6 h-6 text-white" />
               </button>
-            );
-          })}
+            ) : null}
+          </div>
+
+          {/* Right tabs */}
+          {rightTabs.map((tab) => renderTab(tab, tab.path))}
         </div>
       </nav>
 
