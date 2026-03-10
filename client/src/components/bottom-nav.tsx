@@ -6,9 +6,9 @@ import { Drawer } from "vaul";
 import { Link } from "wouter";
 
 const MAIN_TABS = [
-  { path: "/home", label: "HOME", icon: Home },
   { path: "/explore", label: "CLUBS", icon: Users },
   { path: "/events", label: "EVENTS", icon: Calendar },
+  { path: "/home", label: "FEED", icon: Home },
   { path: "/profile", label: "PROFILE", icon: User },
 ];
 
@@ -26,18 +26,18 @@ export function BottomNav() {
 
   const tabs = isCreator
     ? [
-        { path: "/home", label: "HOME", icon: Home },
         { path: "/explore", label: "CLUBS", icon: Users },
         null,
         { path: "/events", label: "EVENTS", icon: Calendar },
+        { path: "/home", label: "FEED", icon: Home },
         isOrganiser
           ? { path: "/organizer", label: "DASHBOARD", icon: LayoutDashboard }
           : { path: "/profile", label: "PROFILE", icon: User },
       ]
     : [
-        { path: "/home", label: "HOME", icon: Home },
         { path: "/explore", label: "CLUBS", icon: Users },
         { path: "/events", label: "EVENTS", icon: Calendar },
+        { path: "/home", label: "FEED", icon: Home },
         { path: "/profile", label: "PROFILE", icon: User },
       ];
 
