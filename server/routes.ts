@@ -153,8 +153,9 @@ export async function registerRoutes(
       }
       const { answer1, answer2 } = req.body;
       const request = await storage.createJoinRequest({ ...validated, userId, status: "pending", answer1: answer1 || null, answer2: answer2 || null });
+      await storage.approveJoinRequestWithFoundingCheck(request.id, validated.clubId);
       const club = await storage.getClub(validated.clubId);
-      res.json({ success: true, message: "Request sent! The organizer will review your request.", data: request, club });
+      res.json({ success: true, message: "You've joined the club!", data: request, club });
     } catch (err) {
       if (err instanceof ZodError) {
         const validationError = fromZodError(err);

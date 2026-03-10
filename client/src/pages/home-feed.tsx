@@ -203,6 +203,7 @@ export default function HomeFeed() {
   }, [feedMoments]);
 
   useEffect(() => {
+    console.log("[HomeFeed] userClubs:", userClubs);
     if (selectedClubId === null && userClubs.length > 0) {
       setSelectedClubId(userClubs[0].id);
     }
@@ -481,6 +482,33 @@ export default function HomeFeed() {
           </div>
         )}
 
+        {/* Empty state — user has no joined clubs */}
+        {user && userClubs.length === 0 && (
+          <div
+            className="rounded-[20px] p-5 flex flex-col items-center text-center gap-3"
+            style={{ background: "var(--warm-white)", border: "1.5px dashed rgba(196,98,45,0.35)" }}
+            data-testid="empty-state-no-clubs"
+          >
+            <span className="text-3xl">🏘️</span>
+            <div>
+              <p className="font-display font-bold text-[15px] mb-1" style={{ color: "var(--ink)" }}>
+                Join a club to see its feed
+              </p>
+              <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
+                Once you're a member, the club's posts will appear here.
+              </p>
+            </div>
+            <Link
+              href="/explore"
+              className="rounded-full px-5 py-2 text-[12px] font-bold text-white"
+              style={{ background: "var(--terra)" }}
+              data-testid="button-browse-clubs"
+            >
+              Browse Clubs
+            </Link>
+          </div>
+        )}
+
         {/* Post Composer */}
         {user && selectedClub && (
           <div
@@ -719,6 +747,7 @@ export default function HomeFeed() {
         )}
 
         {/* Community Feed */}
+        {user && userClubs.length > 0 ? (
         <div data-testid="section-feed">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>
@@ -734,7 +763,7 @@ export default function HomeFeed() {
           ) : filteredMoments.length === 0 ? (
             <div
               className="rounded-[20px] p-6 flex flex-col items-center text-center gap-3"
-              style={{ background: "var(--warm-white)", border: "1.5px dashed var(--terra)", borderColor: "rgba(196,98,45,0.35)" }}
+              style={{ background: "var(--warm-white)", border: "1.5px dashed rgba(196,98,45,0.35)" }}
               data-testid="empty-state-feed"
             >
               <span className="text-4xl">📸</span>
@@ -852,6 +881,7 @@ export default function HomeFeed() {
             ))
           )}
         </div>
+        ) : null}
 
       </div>
     </div>
