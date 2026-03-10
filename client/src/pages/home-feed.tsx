@@ -92,6 +92,7 @@ export default function HomeFeed() {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCountOverrides, setLikeCountOverrides] = useState<Record<string, number>>({});
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
+  const [seenClubs, setSeenClubs] = useState<Set<string>>(new Set());
   const [postContent, setPostContent] = useState("");
   const [postImageFile, setPostImageFile] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
@@ -215,6 +216,7 @@ export default function HomeFeed() {
     console.log("[HomeFeed] userClubs:", userClubs);
     if (selectedClubId === null && userClubs.length > 0) {
       setSelectedClubId(userClubs[0].id);
+      setSeenClubs(prev => new Set([...prev, userClubs[0].id]));
     }
   }, [userClubs, selectedClubId]);
 
@@ -421,19 +423,48 @@ export default function HomeFeed() {
             >
               {userClubs.map(club => {
                 const isActive = selectedClubId === club.id;
-                const hasNewPosts = feedMoments.some(
+                const hasNewPosts = !seenClubs.has(club.id) && feedMoments.some(
                   m => m.clubId === club.id && new Date(m.createdAt ?? 0) > lastVisitRef.current
                 );
                 return (
                   <button
                     key={club.id}
-                    onClick={() => setSelectedClubId(club.id)}
+                    onClick={() => {
+                      setSelectedClubId(club.id);
+                      setSeenClubs(prev => new Set([...prev, club.id]));
+                    }}
                     className="flex flex-col items-center gap-2 shrink-0"
                     style={{ minWidth: 72 }}
                     data-testid={`story-club-${club.id}`}
                   >
                     <div style={{ position: "relative", width: 64, height: 64 }}>
-                      {isActive ? (
+                      {hasNewPosts && (
+                        <>
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: -4,
+                              borderRadius: "50%",
+                              border: "3px solid var(--terra)",
+                              animation: "story-pulse 2s ease-in-out infinite",
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: -2,
+                              right: -2,
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: "var(--terra)",
+                              border: "2px solid white",
+                              zIndex: 10,
+                            }}
+                          />
+                        </>
+                      )}
+                      {!hasNewPosts && isActive && (
                         <div
                           style={{
                             position: "absolute",
@@ -442,18 +473,7 @@ export default function HomeFeed() {
                             border: "3px solid var(--terra)",
                           }}
                         />
-                      ) : hasNewPosts ? (
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: -4,
-                            borderRadius: "50%",
-                            border: "3px solid var(--terra)",
-                            opacity: 0.5,
-                            animation: "pulse 2s ease-in-out infinite",
-                          }}
-                        />
-                      ) : null}
+                      )}
                       <div
                         className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
                         style={{ background: club.bgColor || "var(--ink2)" }}
