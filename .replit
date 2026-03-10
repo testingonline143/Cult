@@ -41,3 +41,8 @@ waitForPort = 5000
 [agent]
 integrations = ["github:1.0.0", "javascript_log_in_with_replit:2.0.0"]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+ADMIN_USER_ID = "55436570"
