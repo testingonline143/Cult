@@ -421,6 +421,15 @@ export async function registerRoutes(
   app.post("/api/clubs/create", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const currentUserForCheck = await storage.getUser(userId);
+      if (
+        currentUserForCheck &&
+        currentUserForCheck.role !== "organiser" &&
+        currentUserForCheck.role !== "admin" &&
+        currentUserForCheck.wantsToCreate !== true
+      ) {
+        return res.status(403).json({ success: false, message: "Not authorised to create clubs" });
+      }
       const { name, category, shortDesc, fullDesc, schedule, location, organizerName, whatsappNumber, city } = req.body;
 
       if (!name || name.length < 3) {
@@ -719,7 +728,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clubs/:id/events", isAuthenticated, async (req: any, res) => {
+  app.post("/api/clubs/:id/events", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
@@ -1698,7 +1707,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/clubs/:clubId/events/:eventId", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/clubs/:clubId/events/:eventId", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.clubId);
@@ -1729,7 +1738,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/clubs/:clubId/events/:eventId", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/clubs/:clubId/events/:eventId", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.clubId);

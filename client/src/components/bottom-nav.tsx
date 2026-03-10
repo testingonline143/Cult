@@ -159,24 +159,26 @@ export function BottomNav() {
                   </div>
                 </Link>
 
-                <Link
-                  href="/create?tab=event"
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-4 p-4 rounded-[16px] transition-colors active:scale-[0.98]"
-                  style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
-                  data-testid="action-create-event"
-                >
-                  <div
-                    className="w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0"
-                    style={{ background: "rgba(201,168,76,0.12)" }}
+                {isOrganiser && (
+                  <Link
+                    href="/create?tab=event"
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center gap-4 p-4 rounded-[16px] transition-colors active:scale-[0.98]"
+                    style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
+                    data-testid="action-create-event"
                   >
-                    <Calendar className="w-5 h-5" style={{ color: "var(--gold)" }} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[15px]" style={{ color: "var(--ink)" }}>Create Event</p>
-                    <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>Schedule a meetup or activity</p>
-                  </div>
-                </Link>
+                    <div
+                      className="w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(201,168,76,0.12)" }}
+                    >
+                      <Calendar className="w-5 h-5" style={{ color: "var(--gold)" }} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-[15px]" style={{ color: "var(--ink)" }}>Create Event</p>
+                      <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>Schedule a meetup or activity</p>
+                    </div>
+                  </Link>
+                )}
 
                 {isOrganiser && (
                   <Link
