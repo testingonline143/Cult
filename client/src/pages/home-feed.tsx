@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle, Compass, Medal, X } from "lucide-react";
+import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle, Medal, X, ImagePlus } from "lucide-react";
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
@@ -24,48 +24,6 @@ interface FeedMoment extends ClubMoment {
   userHasLiked: boolean;
   authorName: string | null;
   authorUserId: string | null;
-}
-
-
-function CircularProgress({ percent }: { percent: number }) {
-  const r = 34;
-  const circ = 2 * Math.PI * r;
-  const dash = (percent / 100) * circ;
-  return (
-    <div className="relative w-20 h-20 flex items-center justify-center">
-      <svg className="absolute inset-0 -rotate-90" width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="5" />
-        <circle
-          cx="40" cy="40" r={r} fill="none"
-          stroke="var(--terra)"
-          strokeWidth="5"
-          strokeDasharray={`${dash} ${circ}`}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="flex flex-col items-center leading-tight">
-        <span className="text-white font-bold text-lg leading-none">{percent}%</span>
-        <span className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: "var(--muted-warm2)" }}>GOAL</span>
-      </div>
-    </div>
-  );
-}
-
-function ClubAvatar({ emoji, color, size = 52 }: { emoji: string; color?: string; size?: number }) {
-  return (
-    <div
-      className="flex items-center justify-center rounded-full shrink-0 font-semibold"
-      style={{
-        width: size,
-        height: size,
-        background: color || "var(--ink2)",
-        border: "2.5px solid var(--terra)",
-        fontSize: size * 0.45,
-      }}
-    >
-      {emoji}
-    </div>
-  );
 }
 
 function getEventLabel(date: Date): string {
@@ -130,8 +88,25 @@ export default function HomeFeed() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [likeCountOverrides, setLikeCountOverrides] = useState<Record<string, number>>({});
+  const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
+  const [postContent, setPostContent] = useState("");
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  const [kudoSheetOpen, setKudoSheetOpen] = useState(false);
+  const [selectedKudoReceiver, setSelectedKudoReceiver] = useState<string | null>(null);
+  const [selectedKudoType, setSelectedKudoType] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastVisitRef = useRef<Date>(
+    new Date(localStorage.getItem("cultfam_feed_last_visit") || 0)
+  );
+
+  useEffect(() => {
+    localStorage.setItem("cultfam_feed_last_visit", new Date().toISOString());
+  }, []);
 
   const likeMutation = useMutation({
     mutationFn: (momentId: string) => apiRequest("POST", `/api/moments/${momentId}/like`),
@@ -166,6 +141,22 @@ export default function HomeFeed() {
     },
   });
 
+  const createPostMutation = useMutation({
+    mutationFn: async ({ clubId, caption, imageUrl }: { clubId: string; caption: string; imageUrl?: string }) => {
+      return apiRequest("POST", `/api/clubs/${clubId}/moments`, { caption, imageUrl });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      setPostContent("");
+      setPostImageFile(null);
+      setPostImagePreview(null);
+      toast({ description: "Post shared!" });
+    },
+    onError: () => {
+      toast({ description: "Could not share post. Try again.", variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     if (!user) return;
     const pending = localStorage.getItem("cultfam_pending_action");
@@ -184,10 +175,6 @@ export default function HomeFeed() {
   const { data: userClubs = [] } = useQuery<Club[]>({
     queryKey: ["/api/user/clubs"],
     enabled: !!user,
-  });
-
-  const { data: allClubs = [] } = useQuery<(Club & { recentJoins?: number })[]>({
-    queryKey: ["/api/clubs-with-activity"],
   });
 
   const { data: events = [] } = useQuery<EventWithClub[]>({
@@ -215,11 +202,13 @@ export default function HomeFeed() {
     }
   }, [feedMoments]);
 
-  const unreadCount = unreadData?.count ?? 0;
+  useEffect(() => {
+    if (selectedClubId === null && userClubs.length > 0) {
+      setSelectedClubId(userClubs[0].id);
+    }
+  }, [userClubs, selectedClubId]);
 
-  const upcomingEvent = events
-    .filter(e => !e.isCancelled && new Date(e.startsAt) > new Date())
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
+  const unreadCount = unreadData?.count ?? 0;
 
   const now = new Date();
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -227,7 +216,9 @@ export default function HomeFeed() {
     .filter(e => !e.isCancelled && new Date(e.startsAt) > now && new Date(e.startsAt) <= in48h)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
-  const discoverClubs = allClubs.filter(c => !userClubs.some(uc => uc.id === c.id)).slice(0, 6);
+  const upcomingEvent = events
+    .filter(e => !e.isCancelled && new Date(e.startsAt) > now)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
 
   const kudoCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const kudoPromptEvent = user
@@ -256,31 +247,13 @@ export default function HomeFeed() {
     enabled: !!kudoPromptEvent && !!user,
   });
 
-  const [kudoSheetOpen, setKudoSheetOpen] = useState(false);
-  const [selectedKudoReceiver, setSelectedKudoReceiver] = useState<string | null>(null);
-  const [selectedKudoType, setSelectedKudoType] = useState<string | null>(null);
-
   const KUDO_TYPES = ["Most Welcoming", "Most Energetic", "Best Conversation", "Always On Time"];
-
-  const sendKudoMutation = useMutation({
-    mutationFn: async ({ receiverId, kudoType }: { receiverId: string; kudoType: string }) => {
-      const res = await apiRequest("POST", `/api/events/${kudoPromptEvent!.id}/kudos`, { receiverId, kudoType });
-      if (!res.ok) throw new Error("Failed to send kudo");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/events", kudoPromptEvent?.id, "kudos/status"] });
-      setKudoSheetOpen(false);
-      setSelectedKudoReceiver(null);
-      setSelectedKudoType(null);
-      toast({ description: "Kudo sent anonymously! 🏅" });
-    },
-    onError: () => {
-      toast({ description: "Could not send kudo. Try again.", variant: "destructive" });
-    },
-  });
-
   const showKudoPrompt = !!kudoPromptEvent && kudoStatus !== undefined && !kudoStatus.hasGiven;
+
+  const selectedClub = userClubs.find(c => c.id === selectedClubId) || null;
+  const filteredMoments = selectedClubId
+    ? feedMoments.filter(m => m.clubId === selectedClubId)
+    : feedMoments;
 
   const displayName = user?.firstName || user?.email?.split("@")[0] || "there";
   const initials = displayName.charAt(0).toUpperCase();
@@ -308,11 +281,7 @@ export default function HomeFeed() {
       url,
     };
     if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch {
-      }
+      try { await navigator.share(shareData); return; } catch {}
     }
     try {
       await navigator.clipboard.writeText(url);
@@ -321,6 +290,50 @@ export default function HomeFeed() {
       toast({ description: "Could not copy link", variant: "destructive" });
     }
   }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPostImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPostImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function handlePostSubmit() {
+    if (!postContent.trim() || !selectedClubId) return;
+    let imageUrl: string | undefined;
+    if (postImageFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", postImageFile);
+        const res = await fetch("/api/upload/image", { method: "POST", body: formData, credentials: "include" });
+        const data = await res.json();
+        imageUrl = data.url;
+      } catch {
+        toast({ description: "Image upload failed. Posting without image.", variant: "destructive" });
+      }
+    }
+    createPostMutation.mutate({ clubId: selectedClubId, caption: postContent, imageUrl });
+  }
+
+  const sendKudoMutation = useMutation({
+    mutationFn: async ({ receiverId, kudoType }: { receiverId: string; kudoType: string }) => {
+      const res = await apiRequest("POST", `/api/events/${kudoPromptEvent!.id}/kudos`, { receiverId, kudoType });
+      if (!res.ok) throw new Error("Failed to send kudo");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", kudoPromptEvent?.id, "kudos/status"] });
+      setKudoSheetOpen(false);
+      setSelectedKudoReceiver(null);
+      setSelectedKudoType(null);
+      toast({ description: "Kudo sent anonymously! 🏅" });
+    },
+    onError: () => {
+      toast({ description: "Could not send kudo. Try again.", variant: "destructive" });
+    },
+  });
 
   return (
     <div className="min-h-screen pb-28" style={{ background: "var(--cream)" }}>
@@ -379,6 +392,177 @@ export default function HomeFeed() {
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-6">
+
+        {/* My Clubs Stories Row */}
+        {user && (
+          <div data-testid="section-club-stories">
+            <div
+              className="flex gap-4 overflow-x-auto pb-2"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {userClubs.map(club => {
+                const isActive = selectedClubId === club.id;
+                const hasNewPosts = feedMoments.some(
+                  m => m.clubId === club.id && new Date(m.createdAt ?? 0) > lastVisitRef.current
+                );
+                return (
+                  <button
+                    key={club.id}
+                    onClick={() => setSelectedClubId(club.id)}
+                    className="flex flex-col items-center gap-2 shrink-0"
+                    style={{ minWidth: 72 }}
+                    data-testid={`story-club-${club.id}`}
+                  >
+                    <div style={{ position: "relative", width: 64, height: 64 }}>
+                      {isActive ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: -4,
+                            borderRadius: "50%",
+                            border: "3px solid var(--terra)",
+                          }}
+                        />
+                      ) : hasNewPosts ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: -4,
+                            borderRadius: "50%",
+                            border: "3px solid var(--terra)",
+                            opacity: 0.5,
+                            animation: "pulse 2s ease-in-out infinite",
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
+                        style={{ background: club.bgColor || "var(--ink2)" }}
+                      >
+                        {club.emoji}
+                      </div>
+                    </div>
+                    <span
+                      className="text-[11px] font-semibold text-center leading-tight"
+                      style={{
+                        color: isActive ? "var(--terra)" : "var(--ink)",
+                        maxWidth: 68,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical" as any,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {club.name}
+                    </span>
+                  </button>
+                );
+              })}
+              <Link
+                href="/explore"
+                className="flex flex-col items-center gap-2 shrink-0"
+                style={{ minWidth: 72 }}
+                data-testid="story-add-club"
+              >
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--warm-white)", border: "2px dashed var(--warm-border)" }}
+                >
+                  <Plus className="w-6 h-6" style={{ color: "var(--muted-warm)" }} />
+                </div>
+                <span
+                  className="text-[11px] font-semibold text-center leading-tight"
+                  style={{ color: "var(--muted-warm)" }}
+                >
+                  Find Clubs
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Post Composer */}
+        {user && selectedClub && (
+          <div
+            className="rounded-[20px] p-4"
+            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+            data-testid="section-post-composer"
+          >
+            <div className="flex items-start gap-3">
+              {user?.profileImageUrl ? (
+                <img
+                  src={user.profileImageUrl}
+                  alt=""
+                  className="w-9 h-9 rounded-full object-cover shrink-0"
+                  style={{ border: "1.5px solid var(--terra)" }}
+                />
+              ) : (
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                  style={{ background: "var(--terra)" }}
+                >
+                  {initials}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <textarea
+                  value={postContent}
+                  onChange={e => setPostContent(e.target.value)}
+                  placeholder={`Share something with ${selectedClub.name}…`}
+                  className="w-full text-[14px] bg-transparent resize-none outline-none"
+                  style={{ color: "var(--ink)", minHeight: 64 }}
+                  rows={3}
+                  data-testid="input-post-content"
+                />
+                {postImagePreview && (
+                  <div className="relative mt-2 rounded-[12px] overflow-hidden">
+                    <img
+                      src={postImagePreview}
+                      alt="Preview"
+                      className="w-full max-h-40 object-cover rounded-[12px]"
+                    />
+                    <button
+                      onClick={() => { setPostImageFile(null); setPostImagePreview(null); }}
+                      className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{ background: "rgba(0,0,0,0.5)" }}
+                      data-testid="button-remove-post-image"
+                    >
+                      <X className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center justify-between mt-3 pt-2" style={{ borderTop: "1px solid var(--warm-border)" }}>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 text-[12px] font-semibold"
+                    style={{ color: "var(--muted-warm)" }}
+                    data-testid="button-attach-image"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    Photo
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                    data-testid="input-post-image"
+                  />
+                  <button
+                    onClick={handlePostSubmit}
+                    disabled={!postContent.trim() || createPostMutation.isPending}
+                    className="rounded-full px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-40 transition-all active:scale-[0.97]"
+                    style={{ background: "var(--terra)" }}
+                    data-testid="button-submit-post"
+                  >
+                    {createPostMutation.isPending ? "Posting…" : "Post"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Happening Soon Reminder */}
         {user && happeningSoon.length > 0 && (
@@ -534,260 +718,12 @@ export default function HomeFeed() {
           </div>
         )}
 
-        {/* Streak / Welcome Card */}
-        {userClubs.length > 0 ? (
-          <div
-            className="rounded-[20px] p-5 flex items-center gap-4"
-            style={{ background: "var(--ink)" }}
-            data-testid="card-streak"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>
-                  ⚡ Keep Showing Up
-                </span>
-              </div>
-              <h2 className="font-display font-bold text-2xl text-white mb-1 leading-tight">
-                Stay Consistent!
-              </h2>
-              <p className="text-[12px] mb-4" style={{ color: "var(--muted-warm2)" }}>
-                Check your upcoming events and keep the momentum going.
-              </p>
-              <Link
-                href="/events"
-                className="inline-block rounded-full px-4 py-2 text-[12px] font-bold text-white"
-                style={{ background: "var(--terra)" }}
-                data-testid="button-view-events"
-              >
-                View Events
-              </Link>
-            </div>
-            <CircularProgress percent={userClubs.length * 20 > 100 ? 100 : userClubs.length * 20} />
-          </div>
-        ) : (
-          <div
-            className="rounded-[20px] p-5"
-            style={{ background: "var(--ink)" }}
-            data-testid="card-welcome"
-          >
-            <span className="text-[10px] font-bold tracking-[2px] uppercase" style={{ color: "var(--terra)" }}>
-              🎉 Welcome to CultFam
-            </span>
-            <h2 className="font-display font-bold text-2xl text-white mt-1 mb-1 leading-tight">
-              Find Your Tribe
-            </h2>
-            <p className="text-[12px] mb-4" style={{ color: "var(--muted-warm2)" }}>
-              Discover hobby clubs in Tirupati and start showing up.
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              <Link
-                href="/explore"
-                className="inline-block rounded-full px-4 py-2 text-[12px] font-bold text-white"
-                style={{ background: "var(--terra)" }}
-                data-testid="button-explore-clubs"
-              >
-                Explore Clubs
-              </Link>
-              {user && !user.quizCompleted && (
-                <Link
-                  href="/onboarding"
-                  className="inline-block rounded-full px-4 py-2 text-[12px] font-bold"
-                  style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
-                  data-testid="button-take-quiz"
-                >
-                  Take Quiz →
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* My Clubs */}
-        {userClubs.length === 0 && user ? (
-          <div
-            className="rounded-[20px] overflow-hidden"
-            style={{ background: "var(--ink)" }}
-            data-testid="card-find-your-tribe"
-          >
-            <div className="p-5">
-              <p className="text-[10px] font-bold tracking-[2px] uppercase mb-2" style={{ color: "var(--terra-light)" }}>
-                🌟 Just Getting Started
-              </p>
-              <h2 className="font-display font-bold text-[22px] text-white leading-tight mb-1">
-                Find Your First Tribe
-              </h2>
-              <p className="text-[12px] mb-4" style={{ color: "var(--muted-warm2)" }}>
-                {allClubs.length > 0 ? `${allClubs.length} active clubs in Tirupati are waiting for you.` : "Discover hobby clubs in Tirupati."}
-              </p>
-              {allClubs.length > 0 && (
-                <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-                  {allClubs.slice(0, 5).map(club => (
-                    <button
-                      key={club.id}
-                      onClick={() => navigate(`/club/${club.id}`)}
-                      className="flex flex-col items-center gap-1.5 shrink-0"
-                      style={{ minWidth: 52 }}
-                      data-testid={`club-preview-${club.id}`}
-                    >
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-xl"
-                        style={{ background: club.bgColor || "rgba(255,255,255,0.12)", border: "2px solid rgba(196,98,45,0.5)" }}
-                      >
-                        {club.emoji}
-                      </div>
-                      <span className="text-[10px] font-semibold text-center leading-tight max-w-[48px] truncate text-white/70">
-                        {club.name.split(" ")[0]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2 flex-wrap">
-                <Link
-                  href="/explore"
-                  className="inline-block rounded-full px-4 py-2 text-[12px] font-bold text-white"
-                  style={{ background: "var(--terra)" }}
-                  data-testid="button-explore-clubs-hero"
-                >
-                  Explore All Clubs →
-                </Link>
-                {!user?.quizCompleted && (
-                  <Link
-                    href="/onboarding"
-                    className="inline-block rounded-full px-4 py-2 text-[12px] font-bold"
-                    style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
-                    data-testid="button-take-quiz-hero"
-                  >
-                    Get Matched →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div data-testid="section-my-clubs">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>My Clubs</h2>
-              <Link
-                href="/explore"
-                className="flex items-center gap-1 text-[12px] font-bold"
-                style={{ color: "var(--terra)" }}
-                data-testid="link-view-all-clubs"
-              >
-                View All <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div
-              className="flex gap-4 overflow-x-auto pb-2"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {!user ? (
-                <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Sign in to see your clubs</p>
-              ) : (
-                userClubs.map(club => (
-                  <button
-                    key={club.id}
-                    onClick={() => navigate(`/club/${club.id}`)}
-                    className="flex flex-col items-center gap-2 shrink-0"
-                    style={{ minWidth: 64 }}
-                    data-testid={`club-avatar-${club.id}`}
-                  >
-                    <ClubAvatar emoji={club.emoji} color={club.bgColor || undefined} size={56} />
-                    <span className="text-[11px] font-semibold text-center leading-tight max-w-[60px] truncate" style={{ color: "var(--ink)" }}>
-                      {club.name.split(" ")[0]}
-                    </span>
-                  </button>
-                ))
-              )}
-              <button
-                onClick={() => navigate("/explore")}
-                className="flex flex-col items-center gap-2 shrink-0"
-                style={{ minWidth: 56 }}
-                data-testid="button-discover-clubs"
-              >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{ background: "var(--warm-white)", border: "2px dashed var(--warm-border)" }}
-                >
-                  <Plus className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
-                </div>
-                <span className="text-[11px] font-semibold text-center leading-tight" style={{ color: "var(--muted-warm)" }}>
-                  Discover
-                </span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Upcoming Event Card */}
-        {upcomingEvent ? (
-          <div
-            className="rounded-[20px] overflow-hidden"
-            style={{ background: "var(--ink)" }}
-            data-testid={`card-event-${upcomingEvent.id}`}
-          >
-            <div className="p-5">
-              <p className="text-[10px] font-bold tracking-[2px] uppercase mb-2" style={{ color: "var(--terra-light)" }}>
-                {getEventLabel(new Date(upcomingEvent.startsAt))}
-              </p>
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="font-display font-bold text-[20px] text-white leading-tight flex-1">
-                  {upcomingEvent.title}
-                </h3>
-                <div
-                  className="rounded-[10px] px-3 py-2 text-center shrink-0"
-                  style={{ background: "var(--terra)", minWidth: 52 }}
-                >
-                  <p className="text-[10px] font-bold uppercase text-white leading-none mb-0.5">
-                    {format(new Date(upcomingEvent.startsAt), "MMM")}
-                  </p>
-                  <p className="text-2xl font-black text-white leading-none">
-                    {format(new Date(upcomingEvent.startsAt), "d")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-4 gap-3">
-                <div className="flex items-center gap-1">
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--muted-warm2)" }}>
-                    {upcomingEvent.rsvps?.filter(r => r.status === "going").length ?? upcomingEvent.rsvpCount ?? 0} going
-                  </span>
-                </div>
-                <Link
-                  href={`/event/${upcomingEvent.id}`}
-                  className="rounded-full px-4 py-2 text-[12px] font-bold"
-                  style={{ background: "var(--warm-white)", color: "var(--ink)" }}
-                  data-testid="button-register-event"
-                >
-                  Register Now
-                </Link>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div
-            className="rounded-[20px] p-5 flex items-center gap-4"
-            style={{ background: "var(--ink)" }}
-          >
-            <div>
-              <p className="text-[10px] font-bold tracking-[2px] uppercase mb-1" style={{ color: "var(--terra-light)" }}>
-                No upcoming events
-              </p>
-              <p className="text-white text-sm">Check back soon for new events!</p>
-              <Link
-                href="/events"
-                className="inline-block mt-3 rounded-full px-4 py-2 text-[12px] font-bold text-white"
-                style={{ background: "var(--terra)" }}
-              >
-                Browse Events
-              </Link>
-            </div>
-          </div>
-        )}
-
         {/* Community Feed */}
         <div data-testid="section-feed">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>Community</h2>
+            <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>
+              {selectedClub ? selectedClub.name : "Community"}
+            </h2>
           </div>
 
           {feedLoading ? (
@@ -795,7 +731,7 @@ export default function HomeFeed() {
               <MomentCardSkeleton />
               <MomentCardSkeleton />
             </>
-          ) : feedMoments.length === 0 ? (
+          ) : filteredMoments.length === 0 ? (
             <div
               className="rounded-[20px] p-6 flex flex-col items-center text-center gap-3"
               style={{ background: "var(--warm-white)", border: "1.5px dashed var(--terra)", borderColor: "rgba(196,98,45,0.35)" }}
@@ -807,215 +743,115 @@ export default function HomeFeed() {
                   No posts yet
                 </p>
                 <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
-                  Clubs will share moments here once they get going.
+                  {selectedClub
+                    ? `Be the first to share something with ${selectedClub.name}.`
+                    : "Clubs will share moments here once they get going."}
                 </p>
               </div>
-              <Link
-                href="/explore"
-                className="rounded-full px-5 py-2 text-[12px] font-bold text-white"
-                style={{ background: "var(--terra)" }}
-                data-testid="button-empty-feed-explore"
-              >
-                Explore Clubs
-              </Link>
             </div>
           ) : (
-            <>
-              {(userClubs.length === 0 ? feedMoments.slice(0, 4) : feedMoments).map((moment) => (
-                <div
-                  key={moment.id}
-                  className="rounded-[20px] overflow-hidden mb-4"
-                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-                  data-testid={`post-${moment.id}`}
-                >
-                  <div className="flex items-center gap-3 p-4 pb-3">
-                    <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-xl"
-                      style={{ background: "var(--ink2)", border: "2px solid var(--terra)" }}
-                    >
-                      {moment.clubEmoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/club/${moment.clubId}`}
-                        className="font-bold text-[14px] leading-tight truncate block no-underline"
-                        style={{ color: "var(--ink)" }}
-                      >
-                        {moment.clubName}
-                      </Link>
-                      <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
-                        {moment.authorName ? (
-                          <span>
-                            <span style={{ color: "var(--terra)", fontWeight: 600 }}>
-                              {moment.authorUserId === user?.id ? "You" : moment.authorName}
-                            </span>
-                            {" · "}
-                          </span>
-                        ) : null}
-                        {moment.createdAt
-                          ? `${formatDistanceToNow(new Date(moment.createdAt))} ago`
-                          : "Recently"
-                        }
-                        {moment.clubLocation ? ` · ${moment.clubLocation}` : ""}
-                      </p>
-                    </div>
-                  </div>
-
-                  {moment.imageUrl ? (
-                    <div className="mx-4 rounded-[16px] overflow-hidden mb-3">
-                      <img
-                        src={moment.imageUrl}
-                        alt={moment.caption || ""}
-                        className="w-full object-cover"
-                        style={{ maxHeight: 260 }}
-                      />
-                    </div>
-                  ) : moment.emoji ? (
-                    <div className="mx-4 mb-3 flex items-center gap-2 px-1">
-                      <span className="text-2xl">{{ fire: "🔥", star: "⭐" }[moment.emoji] ?? moment.emoji}</span>
-                    </div>
-                  ) : null}
-
-                  <div className="px-4 pb-4">
-                    {moment.caption && <ExpandableCaption text={moment.caption} />}
-                    <div className="flex items-center gap-5">
-                      <button
-                        onClick={() => toggleLike(moment.id)}
-                        className="flex items-center gap-1.5 transition-transform active:scale-90"
-                        data-testid={`button-like-${moment.id}`}
-                      >
-                        <Heart
-                          className="w-5 h-5 transition-colors"
-                          style={{
-                            color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)",
-                            fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
-                          }}
-                        />
-                        {((likeCountOverrides[moment.id] ?? moment.likesCount) > 0) && (
-                          <span className="text-[11px] font-semibold" style={{ color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)" }} data-testid={`text-likes-${moment.id}`}>
-                            {likeCountOverrides[moment.id] ?? moment.likesCount}
-                          </span>
-                        )}
-                      </button>
-                      <Link
-                        href={`/club/${moment.clubId}?tab=moments`}
-                        className="flex items-center gap-1.5 transition-transform active:scale-90"
-                        style={{ textDecoration: "none" }}
-                        data-testid={`button-comments-${moment.id}`}
-                      >
-                        <MessageCircle className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
-                        {moment.commentCount > 0 && (
-                          <span className="text-[11px] font-semibold" style={{ color: "var(--muted-warm)" }}>
-                            {moment.commentCount}
-                          </span>
-                        )}
-                      </Link>
-                      <button
-                        onClick={() => handleShare(moment)}
-                        className="flex items-center gap-1.5 ml-auto transition-transform active:scale-90"
-                        data-testid={`button-share-${moment.id}`}
-                      >
-                        <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {userClubs.length === 0 && feedMoments.length > 0 && (
-                <div
-                  className="rounded-[20px] p-5 flex flex-col items-center text-center gap-3 mb-4"
-                  style={{ background: "linear-gradient(135deg, var(--terra) 0%, var(--terra-light) 100%)" }}
-                  data-testid="card-join-nudge"
-                >
-                  <span className="text-3xl">🔒</span>
-                  <div>
-                    <p className="font-display font-bold text-[15px] text-white mb-1">There's more inside</p>
-                    <p className="text-[12px] text-white/80">Join a club to see all moments from your community</p>
-                  </div>
-                  <Link
-                    href="/explore"
-                    className="bg-white rounded-xl px-5 py-2.5 text-sm font-bold"
-                    style={{ color: "var(--terra)" }}
-                    data-testid="button-join-nudge-explore"
+            filteredMoments.map((moment) => (
+              <div
+                key={moment.id}
+                className="rounded-[20px] overflow-hidden mb-4"
+                style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+                data-testid={`post-${moment.id}`}
+              >
+                <div className="flex items-center gap-3 p-4 pb-3">
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-xl"
+                    style={{ background: "var(--ink2)", border: "2px solid var(--terra)" }}
                   >
-                    Explore Clubs →
-                  </Link>
+                    {moment.clubEmoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/club/${moment.clubId}`}
+                      className="font-bold text-[14px] leading-tight truncate block no-underline"
+                      style={{ color: "var(--ink)" }}
+                    >
+                      {moment.clubName}
+                    </Link>
+                    <p className="text-[11px]" style={{ color: "var(--muted-warm)" }}>
+                      {moment.authorName ? (
+                        <span>
+                          <span style={{ color: "var(--terra)", fontWeight: 600 }}>
+                            {moment.authorUserId === user?.id ? "You" : moment.authorName}
+                          </span>
+                          {" · "}
+                        </span>
+                      ) : null}
+                      {moment.createdAt
+                        ? `${formatDistanceToNow(new Date(moment.createdAt))} ago`
+                        : "Recently"
+                      }
+                      {moment.clubLocation ? ` · ${moment.clubLocation}` : ""}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </>
+
+                {moment.imageUrl ? (
+                  <div className="mx-4 rounded-[16px] overflow-hidden mb-3">
+                    <img
+                      src={moment.imageUrl}
+                      alt={moment.caption || ""}
+                      className="w-full object-cover"
+                      style={{ maxHeight: 260 }}
+                    />
+                  </div>
+                ) : moment.emoji ? (
+                  <div className="mx-4 mb-3 flex items-center gap-2 px-1">
+                    <span className="text-2xl">{{ fire: "🔥", star: "⭐" }[moment.emoji] ?? moment.emoji}</span>
+                  </div>
+                ) : null}
+
+                <div className="px-4 pb-4">
+                  {moment.caption && <ExpandableCaption text={moment.caption} />}
+                  <div className="flex items-center gap-5">
+                    <button
+                      onClick={() => toggleLike(moment.id)}
+                      className="flex items-center gap-1.5 transition-transform active:scale-90"
+                      data-testid={`button-like-${moment.id}`}
+                    >
+                      <Heart
+                        className="w-5 h-5 transition-colors"
+                        style={{
+                          color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)",
+                          fill: likedPosts.has(moment.id) ? "#e53e3e" : "transparent",
+                        }}
+                      />
+                      {((likeCountOverrides[moment.id] ?? moment.likesCount) > 0) && (
+                        <span className="text-[11px] font-semibold" style={{ color: likedPosts.has(moment.id) ? "#e53e3e" : "var(--muted-warm)" }} data-testid={`text-likes-${moment.id}`}>
+                          {likeCountOverrides[moment.id] ?? moment.likesCount}
+                        </span>
+                      )}
+                    </button>
+                    <Link
+                      href={`/club/${moment.clubId}?tab=moments`}
+                      className="flex items-center gap-1.5 transition-transform active:scale-90"
+                      style={{ textDecoration: "none" }}
+                      data-testid={`button-comments-${moment.id}`}
+                    >
+                      <MessageCircle className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                      {moment.commentCount > 0 && (
+                        <span className="text-[11px] font-semibold" style={{ color: "var(--muted-warm)" }}>
+                          {moment.commentCount}
+                        </span>
+                      )}
+                    </Link>
+                    <button
+                      onClick={() => handleShare(moment)}
+                      className="flex items-center gap-1.5 ml-auto transition-transform active:scale-90"
+                      data-testid={`button-share-${moment.id}`}
+                    >
+                      <Share2 className="w-5 h-5" style={{ color: "var(--muted-warm)" }} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
-
-        {/* Discover New Clubs */}
-        {discoverClubs.length > 0 && (
-          <div data-testid="section-discover">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-bold text-xl" style={{ color: "var(--ink)" }}>
-                Discover New Clubs
-              </h2>
-              <Link
-                href="/explore"
-                className="flex items-center gap-1 text-[12px] font-bold"
-                style={{ color: "var(--terra)" }}
-                data-testid="link-explore-all"
-              >
-                See All <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {discoverClubs.map(club => (
-                <div
-                  key={club.id}
-                  className="rounded-[16px] p-4"
-                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-                  data-testid={`card-discover-${club.id}`}
-                >
-                  <div
-                    className="w-12 h-12 rounded-[12px] flex items-center justify-center text-2xl mb-3"
-                    style={{ background: club.bgColor || "var(--ink2)" }}
-                  >
-                    {club.emoji}
-                  </div>
-                  <p className="font-bold text-[14px] leading-tight mb-0.5" style={{ color: "var(--ink)" }}>
-                    {club.name}
-                  </p>
-                  <p className="text-[11px] mb-3" style={{ color: "var(--muted-warm)" }}>
-                    {club.memberCount >= 1000
-                      ? `${(club.memberCount / 1000).toFixed(1)}k Members`
-                      : `${club.memberCount} Members`}
-                  </p>
-                  <Link
-                    href={`/club/${club.id}`}
-                    className="block w-full text-center rounded-full py-1.5 text-[12px] font-bold"
-                    style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
-                    data-testid={`button-join-${club.id}`}
-                  >
-                    Join Club
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Explore CTA for fully onboarded users */}
-        {user && userClubs.length >= 3 && discoverClubs.length === 0 && (
-          <div
-            className="rounded-[20px] p-5 flex items-center gap-4"
-            style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-            data-testid="card-all-clubs-joined"
-          >
-            <Compass className="w-8 h-8 shrink-0" style={{ color: "var(--terra)" }} />
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-[14px] mb-0.5" style={{ color: "var(--ink)" }}>
-                You're in all the clubs!
-              </p>
-              <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
-                More clubs are launching soon. Check back later.
-              </p>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
