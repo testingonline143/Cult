@@ -103,6 +103,7 @@ export default function HomeFeed() {
   const lastVisitRef = useRef<Date>(
     new Date(localStorage.getItem("cultfam_feed_last_visit") || 0)
   );
+  const hasTriedAutoJoin = useRef(false);
 
   useEffect(() => {
     localStorage.setItem("cultfam_feed_last_visit", new Date().toISOString());
@@ -157,6 +158,14 @@ export default function HomeFeed() {
     },
   });
 
+  const autoJoinMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/onboarding/quick-join"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/clubs"] });
+      toast({ description: "Welcome! We've added you to 3 clubs — explore your feed." });
+    },
+  });
+
   useEffect(() => {
     if (!user) return;
     const pending = localStorage.getItem("cultfam_pending_action");
@@ -208,6 +217,15 @@ export default function HomeFeed() {
       setSelectedClubId(userClubs[0].id);
     }
   }, [userClubs, selectedClubId]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (userClubs.length > 0) return;
+    if (hasTriedAutoJoin.current) return;
+    if (autoJoinMutation.isPending) return;
+    hasTriedAutoJoin.current = true;
+    autoJoinMutation.mutate();
+  }, [user, userClubs]);
 
   const unreadCount = unreadData?.count ?? 0;
 
@@ -484,29 +502,45 @@ export default function HomeFeed() {
 
         {/* Empty state — user has no joined clubs */}
         {user && userClubs.length === 0 && (
-          <div
-            className="rounded-[20px] p-5 flex flex-col items-center text-center gap-3"
-            style={{ background: "var(--warm-white)", border: "1.5px dashed rgba(196,98,45,0.35)" }}
-            data-testid="empty-state-no-clubs"
-          >
-            <span className="text-3xl">🏘️</span>
-            <div>
-              <p className="font-display font-bold text-[15px] mb-1" style={{ color: "var(--ink)" }}>
-                Join a club to see its feed
-              </p>
-              <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
-                Once you're a member, the club's posts will appear here.
+          autoJoinMutation.isPending ? (
+            <div
+              className="rounded-[20px] p-6 flex flex-col items-center text-center gap-3"
+              style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+              data-testid="empty-state-loading"
+            >
+              <div
+                className="w-10 h-10 rounded-full border-[3px] border-t-transparent animate-spin"
+                style={{ borderColor: "var(--terra)", borderTopColor: "transparent" }}
+              />
+              <p className="text-[13px] font-medium" style={{ color: "var(--muted-warm)" }}>
+                Getting your clubs ready…
               </p>
             </div>
-            <Link
-              href="/explore"
-              className="rounded-full px-5 py-2 text-[12px] font-bold text-white"
-              style={{ background: "var(--terra)" }}
-              data-testid="button-browse-clubs"
+          ) : (
+            <div
+              className="rounded-[20px] p-5 flex flex-col items-center text-center gap-3"
+              style={{ background: "var(--warm-white)", border: "1.5px dashed rgba(196,98,45,0.35)" }}
+              data-testid="empty-state-no-clubs"
             >
-              Browse Clubs
-            </Link>
-          </div>
+              <span className="text-3xl">🏘️</span>
+              <div>
+                <p className="font-display font-bold text-[15px] mb-1" style={{ color: "var(--ink)" }}>
+                  Join a club to see its feed
+                </p>
+                <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
+                  Once you're a member, the club's posts will appear here.
+                </p>
+              </div>
+              <Link
+                href="/explore"
+                className="rounded-full px-5 py-2 text-[12px] font-bold text-white"
+                style={{ background: "var(--terra)" }}
+                data-testid="button-browse-clubs"
+              >
+                Browse Clubs
+              </Link>
+            </div>
+          )
         )}
 
         {/* Post Composer */}

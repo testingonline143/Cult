@@ -16,7 +16,7 @@ import {
   clubAnnouncements, clubPolls, pollVotes, momentLikes, eventComments, kudos,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
+import { eq, sql, desc, asc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
 
 export interface IStorage {
   getClubs(): Promise<Club[]>;
@@ -153,6 +153,7 @@ export interface IStorage {
   hasGivenKudo(eventId: string, giverId: string): Promise<boolean>;
   getKudosByReceiver(userId: string): Promise<(Kudo & { eventTitle: string; eventStartsAt: Date })[]>;
   getEventAttendeesForKudo(eventId: string, excludeUserId: string): Promise<{ userId: string; userName: string | null }[]>;
+  autoJoinSampleClubs(userId: string): Promise<Club[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1366,6 +1367,35 @@ export class DatabaseStorage implements IStorage {
       await this.incrementMemberCount(clubId);
     }
     return updated;
+  }
+
+  async autoJoinSampleClubs(userId: string): Promise<Club[]> {
+    const sampleClubs = await db.select().from(clubs).orderBy(asc(clubs.createdAt)).limit(3);
+    const joined: Club[] = [];
+    for (const club of sampleClubs) {
+      const existing = await this.hasExistingJoinRequest(club.id, userId);
+      if (existing?.status === "approved") {
+        joined.push(club);
+        continue;
+      }
+      if (existing && existing.status !== "approved") {
+        await db.update(joinRequests).set({ status: "approved", isFoundingMember: false }).where(eq(joinRequests.id, existing.id));
+        await this.incrementMemberCount(club.id);
+        joined.push(club);
+        continue;
+      }
+      const [request] = await db.insert(joinRequests).values({
+        clubId: club.id,
+        clubName: club.name,
+        userId,
+        name: "Member",
+        phone: "0000000000",
+        status: "pending",
+      }).returning();
+      await this.approveJoinRequestWithFoundingCheck(request.id, club.id);
+      joined.push(club);
+    }
+    return joined;
   }
 
   async removeCoOrganiser(clubId: string, userId: string): Promise<void> {

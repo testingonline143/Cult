@@ -166,6 +166,17 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/onboarding/quick-join", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const joinedClubs = await storage.autoJoinSampleClubs(userId);
+      res.json({ clubs: joinedClubs });
+    } catch (err) {
+      console.error("Error auto-joining sample clubs:", err);
+      res.status(500).json({ message: "Failed to auto-join clubs" });
+    }
+  });
+
   app.get("/api/admin/status", isAuthenticated, async (req: any, res) => {
     const configured = !!(process.env.ADMIN_USER_ID && process.env.ADMIN_USER_ID.trim().length > 0);
     const isCurrentUserAdmin = configured && req.user?.claims?.sub === process.env.ADMIN_USER_ID;
