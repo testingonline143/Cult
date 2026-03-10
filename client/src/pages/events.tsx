@@ -103,9 +103,9 @@ export default function Events() {
           <p className="text-sm mt-1" style={{ color: "var(--muted-warm)" }}>
             {activeFilter !== "All" ? "Try a different filter" : "Check back soon for new events"}
           </p>
-          {isAuthenticated && (
+          {isOrganiser && (
             <Link
-              href="/create"
+              href="/create?tab=event"
               className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
               style={{ background: "var(--terra)" }}
               data-testid="link-create-event"
