@@ -175,6 +175,15 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
     },
   });
 
+  const { data: clubMomentsData = [] } = useQuery<{ id: string }[]>({
+    queryKey: ["/api/clubs", club.id, "moments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/clubs/${club.id}/moments`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const pendingCount = pendingData?.count ?? 0;
   const now = new Date();
   const nextEvent = clubEvents
@@ -182,7 +191,8 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0] || null;
 
   const hasEvent = clubEvents.length > 0;
-  const showChecklist = !hasEvent;
+  const hasMoment = clubMomentsData.length > 0;
+  const showChecklist = !hasEvent || !hasMoment;
 
   const clubLink = `${window.location.origin}/club/${club.id}`;
   const copyClubLink = () => {
@@ -273,6 +283,25 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
                   data-testid="checklist-create-event"
                 >
                   Create your first event →
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: hasMoment ? "var(--terra)" : "rgba(255,255,255,0.15)" }}
+              >
+                {hasMoment ? <Check className="w-3.5 h-3.5 text-white" /> : <Camera className="w-3.5 h-3.5 text-white/60" />}
+              </div>
+              {hasMoment ? (
+                <span className="text-sm text-white/50 line-through">Post your first moment</span>
+              ) : (
+                <button
+                  onClick={() => { setContentInitialSection?.("moments"); setActiveTab("content"); }}
+                  className="text-sm font-semibold text-white underline underline-offset-2"
+                  data-testid="checklist-post-moment"
+                >
+                  Post your first moment →
                 </button>
               )}
             </div>
