@@ -2287,6 +2287,17 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/clubs/by-slug/:slug", async (req, res) => {
+    try {
+      const club = await storage.getClubBySlug(req.params.slug as string);
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      res.json(club);
+    } catch (err) {
+      console.error("Error fetching club by slug:", err);
+      res.status(500).json({ message: "Failed to fetch club" });
+    }
+  });
+
   app.get("/api/c/:slug", async (req, res) => {
     try {
       const club = await storage.getClubBySlug(req.params.slug as string);
@@ -2296,6 +2307,21 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error fetching public page:", err);
       res.status(500).json({ message: "Failed to fetch public page" });
+    }
+  });
+
+  app.patch("/api/organizer/clubs/:clubId", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const { shortDesc, schedule, location } = req.body;
+      const updates: any = {};
+      if (typeof shortDesc === "string") updates.shortDesc = shortDesc;
+      if (typeof schedule === "string") updates.schedule = schedule;
+      if (typeof location === "string") updates.location = location;
+      const result = await storage.updateClub(req.params.clubId, updates);
+      res.json(result || {});
+    } catch (err) {
+      console.error("Error updating club profile:", err);
+      res.status(500).json({ message: "Failed to update club profile" });
     }
   });
 

@@ -334,22 +334,61 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
         </div>
       )}
 
-      <Link href={`/page-builder/${club.id}`} style={{ textDecoration: "none" }}>
-        <div className="rounded-md p-4 flex items-center gap-4 cursor-pointer transition-all active:scale-[0.98]" style={{ borderRadius: 18, background: "linear-gradient(135deg, var(--terra-pale), rgba(201,168,76,0.08))", border: "1.5px solid rgba(196,98,45,0.2)" }} data-testid="card-public-page">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--terra)", color: "white" }}>
-            <Globe className="w-6 h-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-display text-sm font-bold text-[var(--ink)]">Public Page</div>
-            <p className="text-xs text-[var(--muted-warm)] mt-0.5">
-              {club.slug ? `Live at /c/${club.slug}` : "Set up a shareable page for your club"}
-            </p>
-          </div>
-          <ArrowRight className="w-4 h-4 text-[var(--terra)] shrink-0" />
-        </div>
-      </Link>
-
       {user?.id === club.creatorUserId && <CoOrganisersCard clubId={club.id} />}
+
+      <PublicPageCard club={club} />
+    </div>
+  );
+}
+
+function PublicPageCard({ club }: { club: Club }) {
+  const { toast } = useToast();
+  const publicUrl = club.slug ? `${window.location.origin}/c/${club.slug}` : null;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (publicUrl) {
+      navigator.clipboard.writeText(publicUrl).then(() => {
+        setCopied(true);
+        toast({ description: "Public page URL copied!" });
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  return (
+    <div className="rounded-md p-4 space-y-3" style={{ borderRadius: 18, background: "linear-gradient(135deg, var(--terra-pale), rgba(201,168,76,0.08))", border: "1.5px solid rgba(196,98,45,0.2)" }} data-testid="card-public-page">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--terra)", color: "white" }}>
+          <Globe className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-sm font-bold text-[var(--ink)]">Public Page</div>
+          <p className="text-xs text-[var(--muted-warm)] mt-0.5">
+            {publicUrl ? "Share this link anywhere" : "Set up a shareable page for your club"}
+          </p>
+        </div>
+      </div>
+
+      {publicUrl && (
+        <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}>
+          <span className="text-xs font-mono truncate flex-1 text-[var(--terra)]" data-testid="text-public-url">{publicUrl}</span>
+          <button onClick={handleCopy} className="shrink-0 text-[var(--terra)]" data-testid="button-copy-public-url">
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        {publicUrl && (
+          <a href={`/c/${club.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }} data-testid="link-view-page">
+            <Globe className="w-3.5 h-3.5" /> View Page
+          </a>
+        )}
+        <Link href={`/organizer/page-builder?club=${club.id}`} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background: "var(--terra)", textDecoration: "none" }} data-testid="link-edit-page">
+          <Pencil className="w-3.5 h-3.5" /> Edit Page
+        </Link>
+      </div>
     </div>
   );
 }

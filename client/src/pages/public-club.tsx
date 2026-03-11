@@ -1,20 +1,34 @@
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Calendar, Users, Clock, ArrowRight, Loader2, Star, MessageCircle } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { MapPin, Calendar, Users, Clock, ArrowRight, Loader2, Star, MessageCircle, Trophy } from "lucide-react";
 import type { Club, ClubAnnouncement, ClubScheduleEntry, ClubMoment, ClubPageSection } from "@shared/schema";
+
+interface SectionEvent {
+  id: string;
+  eventId: string;
+  title: string;
+  startsAt: string;
+  location: string;
+  position: number;
+}
 
 interface PublicPageData {
   club: Club;
-  sections: (ClubPageSection & { events: { id: string; eventId: string; title: string; startsAt: string; location: string; position: number }[] })[];
+  sections: (ClubPageSection & { events: SectionEvent[] })[];
   announcements: ClubAnnouncement[];
   schedule: ClubScheduleEntry[];
   moments: ClubMoment[];
   memberCount: number;
   upcomingEventCount: number;
+  pastEventCount: number;
+  rating: number | null;
 }
 
 export default function PublicClub() {
   const { slug } = useParams<{ slug: string }>();
+  const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
 
   const { data, isLoading, error } = useQuery<PublicPageData>({
     queryKey: ["/api/c", slug],
@@ -48,11 +62,20 @@ export default function PublicClub() {
     );
   }
 
-  const { club, sections, announcements, schedule, moments, memberCount, upcomingEventCount } = data;
+  const { club, sections, announcements, schedule, moments, memberCount, upcomingEventCount, pastEventCount, rating } = data;
   const pinnedAnnouncement = announcements.find(a => a.isPinned);
+  const totalEvents = (pastEventCount || 0) + (upcomingEventCount || 0);
+
+  const handleJoinClick = () => {
+    if (isAuthenticated) {
+      navigate(`/club/${club.id}`);
+    } else {
+      window.location.href = `/api/login?returnTo=/club/${club.id}`;
+    }
+  };
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: "var(--cream)" }}>
+    <div className="min-h-screen pb-24" style={{ background: "var(--cream)" }}>
       <div className="relative h-64 w-full overflow-hidden">
         {club.coverImageUrl ? (
           <>
@@ -80,22 +103,41 @@ export default function PublicClub() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 px-6 mt-3">
-        <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-          <div className="font-mono text-[24px] leading-none tracking-wide text-[var(--terra)]" data-testid="text-member-count">{memberCount}</div>
-          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Members</div>
+      <div className="grid grid-cols-4 gap-2 px-6 mt-3">
+        <div className="rounded-[14px] p-2.5 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[20px] leading-none tracking-wide text-[var(--terra)]" data-testid="text-member-count">{memberCount}</div>
+          <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Members</div>
         </div>
-        <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-          <div className="font-mono text-[24px] leading-none tracking-wide text-[var(--ink)]" data-testid="text-upcoming-events">{upcomingEventCount}</div>
-          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Upcoming</div>
-        </div>
-        <div className="rounded-[14px] p-3 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-          <div className="font-mono text-[24px] leading-none tracking-wide text-[var(--ink)]">
-            <MapPin className="w-5 h-5 mx-auto text-[var(--terra)]" />
+        <div className="rounded-[14px] p-2.5 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[20px] leading-none tracking-wide text-[var(--gold)]" data-testid="text-rating">
+            {typeof rating === 'number' ? rating.toFixed(1) : '—'}
           </div>
-          <div className="text-[10px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">{club.city || "Tirupati"}</div>
+          <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Rating</div>
+        </div>
+        <div className="rounded-[14px] p-2.5 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[20px] leading-none tracking-wide text-[var(--ink)]" data-testid="text-events-done">{pastEventCount || 0}</div>
+          <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Events Done</div>
+        </div>
+        <div className="rounded-[14px] p-2.5 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
+          <div className="font-mono text-[20px] leading-none tracking-wide text-[var(--ink)]" data-testid="text-upcoming-events">{upcomingEventCount}</div>
+          <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Upcoming</div>
         </div>
       </div>
+
+      {(club.schedule || club.location) && (
+        <div className="flex items-center gap-3 px-6 mt-3">
+          {club.schedule && (
+            <span className="flex items-center gap-1 text-xs text-[var(--muted-warm)]" data-testid="text-schedule">
+              <Clock className="w-3 h-3 text-[var(--terra)]" /> {club.schedule}
+            </span>
+          )}
+          {club.location && (
+            <span className="flex items-center gap-1 text-xs text-[var(--muted-warm)]" data-testid="text-location">
+              <MapPin className="w-3 h-3 text-[var(--terra)]" /> {club.location}
+            </span>
+          )}
+        </div>
+      )}
 
       {club.whatsappNumber && (
         <div className="px-6 mt-3">
@@ -137,17 +179,7 @@ export default function PublicClub() {
           </h2>
           {section.description && <p className="text-sm text-[var(--ink3)] mb-3">{section.description}</p>}
           {section.events.length > 0 ? (
-            <div className="space-y-2">
-              {section.events.map((evt) => (
-                <Link key={evt.id} href={`/event/${evt.eventId}`} className="block rounded-xl p-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", textDecoration: "none" }} data-testid={`link-event-${evt.eventId}`}>
-                  <div className="font-display text-sm font-bold text-[var(--ink)]">{evt.title}</div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-[var(--muted-warm)] flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(evt.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                    <span className="text-xs text-[var(--muted-warm)] flex items-center gap-1"><MapPin className="w-3 h-3" />{evt.location}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <SectionEventRenderer events={section.events} layout={section.layout || "full"} />
           ) : (
             <p className="text-xs text-[var(--muted-warm)] italic">No events in this section yet.</p>
           )}
@@ -206,17 +238,72 @@ export default function PublicClub() {
         </div>
       )}
 
-      <div className="px-6 mt-8">
-        <Link href={`/club/${club.id}`} className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98]" style={{ background: "var(--terra)" }} data-testid="button-join-club">
-          <Users className="w-4 h-4" />
-          View Full Club & Join
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-
-      <div className="text-center mt-6 pb-4">
+      <div className="text-center mt-8 pb-4">
         <p className="text-[10px] text-[var(--muted-warm)] tracking-wider">Powered by <span className="font-bold text-[var(--terra)]">CultFam</span></p>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40" style={{ background: "linear-gradient(to top, var(--cream) 80%, transparent)" }}>
+        <div className="px-6 pb-6 pt-3">
+          <button
+            onClick={handleJoinClick}
+            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98] shadow-lg"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-join-club"
+          >
+            <Users className="w-4 h-4" />
+            {isAuthenticated ? "View Full Club & Join" : "Sign in to Join Club"}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionEventRenderer({ events, layout }: { events: SectionEvent[]; layout: string }) {
+  if (layout === "scroll") {
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+        {events.map((evt) => (
+          <Link key={evt.id} href={`/event/${evt.eventId}`} className="block rounded-xl p-3 shrink-0 w-[200px]" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", textDecoration: "none", scrollSnapAlign: "start" }} data-testid={`link-event-${evt.eventId}`}>
+            <div className="font-display text-sm font-bold text-[var(--ink)] line-clamp-2">{evt.title}</div>
+            <div className="mt-1.5">
+              <span className="text-xs text-[var(--muted-warm)] flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(evt.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+              {evt.location && <span className="text-xs text-[var(--muted-warm)] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{evt.location}</span>}
+            </div>
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
+  if (layout === "list") {
+    return (
+      <div className="space-y-1.5">
+        {events.map((evt) => (
+          <Link key={evt.id} href={`/event/${evt.eventId}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", textDecoration: "none" }} data-testid={`link-event-${evt.eventId}`}>
+            <Calendar className="w-4 h-4 text-[var(--terra)] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-[var(--ink)] truncate">{evt.title}</div>
+            </div>
+            <span className="text-xs text-[var(--muted-warm)] shrink-0">{new Date(evt.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {events.map((evt) => (
+        <Link key={evt.id} href={`/event/${evt.eventId}`} className="block rounded-xl p-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", textDecoration: "none" }} data-testid={`link-event-${evt.eventId}`}>
+          <div className="font-display text-sm font-bold text-[var(--ink)]">{evt.title}</div>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-xs text-[var(--muted-warm)] flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(evt.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+            {evt.location && <span className="text-xs text-[var(--muted-warm)] flex items-center gap-1"><MapPin className="w-3 h-3" />{evt.location}</span>}
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

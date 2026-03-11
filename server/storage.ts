@@ -175,6 +175,8 @@ export interface IStorage {
     moments: ClubMoment[];
     memberCount: number;
     upcomingEventCount: number;
+    pastEventCount: number;
+    rating: number | null;
   }>;
 }
 
@@ -1680,7 +1682,9 @@ export class DatabaseStorage implements IStorage {
 
     const now = new Date();
     const clubEvents = await this.getEventsByClub(clubId);
-    const upcomingEventCount = clubEvents.filter(e => new Date(e.startsAt) > now && !e.isCancelled).length;
+    const activeEvents = clubEvents.filter(e => !e.isCancelled);
+    const upcomingEventCount = activeEvents.filter(e => new Date(e.startsAt) > now).length;
+    const pastEventCount = activeEvents.filter(e => new Date(e.startsAt) <= now).length;
 
     return {
       club,
@@ -1690,6 +1694,8 @@ export class DatabaseStorage implements IStorage {
       moments,
       memberCount: club.memberCount,
       upcomingEventCount,
+      pastEventCount,
+      rating: (club as any).rating ?? null,
     };
   }
 }

@@ -76,7 +76,7 @@ function Router() {
         <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
         <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
         <Route path="/c/:slug" component={PublicClub} />
-        <Route path="/page-builder/:clubId" component={() => <ProtectedRoute component={PageBuilder} />} />
+        <Route path="/organizer/page-builder" component={() => <ProtectedRoute component={PageBuilder} />} />
         <Route component={NotFound} />
       </Switch>
       <BottomNav />
