@@ -1715,7 +1715,10 @@ export class DatabaseStorage implements IStorage {
       memberCount: club.memberCount,
       upcomingEventCount,
       pastEventCount,
-      rating: (club as any).rating ?? null,
+      rating: await (async () => {
+        const { average, count } = await this.getClubAverageRating(clubId);
+        return count > 0 ? average : null;
+      })(),
     };
   }
 }

@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { MapPin, Calendar, Users, Clock, ArrowRight, Loader2, Star, MessageCircle } from "lucide-react";
+import { MapPin, Calendar, Users, Clock, ArrowRight, Loader2, Star, MessageCircle, X, LogIn } from "lucide-react";
 import type { Club, ClubAnnouncement, ClubScheduleEntry, ClubMoment, ClubPageSection } from "@shared/schema";
 
 interface SectionEvent {
@@ -29,6 +30,7 @@ export default function PublicClub() {
   const { slug } = useParams<{ slug: string }>();
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const [showSignIn, setShowSignIn] = useState(false);
 
   const { data, isLoading, error } = useQuery<PublicPageData>({
     queryKey: ["/api/c", slug],
@@ -70,7 +72,7 @@ export default function PublicClub() {
     if (isAuthenticated) {
       navigate(`/club/${club.id}`);
     } else {
-      window.location.href = `/api/login?returnTo=/club/${club.id}`;
+      setShowSignIn(true);
     }
   };
 
@@ -253,11 +255,38 @@ export default function PublicClub() {
             data-testid="button-join-club"
           >
             <Users className="w-4 h-4" />
-            {isAuthenticated ? "View Full Club & Join" : "Sign in to Join Club"}
+            {isAuthenticated ? "View Full Club & Join" : "Join Club"}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {showSignIn && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowSignIn(false)} />
+          <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl p-6 pt-3 animate-in slide-in-from-bottom duration-300" style={{ background: "var(--warm-white)" }} data-testid="sheet-sign-in">
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--warm-border)" }} />
+            <button onClick={() => setShowSignIn(false)} className="absolute right-4 top-4 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--cream)" }} data-testid="button-close-signin">
+              <X className="w-4 h-4 text-[var(--ink)]" />
+            </button>
+            <div className="text-center mb-5">
+              <span className="text-4xl">{club.emoji}</span>
+              <h3 className="font-display text-xl font-bold text-[var(--ink)] mt-2" data-testid="text-signin-title">Join {club.name}</h3>
+              <p className="text-sm text-[var(--muted-warm)] mt-1">Sign in to request membership and join the community</p>
+            </div>
+            <a
+              href={`/api/login?returnTo=/c/${slug}`}
+              className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98]"
+              style={{ background: "var(--terra)", textDecoration: "none" }}
+              data-testid="button-signin-action"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign in with Google
+            </a>
+            <p className="text-center text-[10px] text-[var(--muted-warm)] mt-3">You'll be redirected back here after signing in</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

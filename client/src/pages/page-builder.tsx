@@ -603,7 +603,7 @@ export default function PageBuilder() {
                     </div>
                   )}
                   {addingEventToSection === section.id ? (
-                    <EventPicker
+                    <EventPickerSheet
                       events={clubEvents}
                       existingEventIds={section.events.map(e => e.eventId)}
                       onSelect={(eventId) => {
@@ -632,7 +632,7 @@ export default function PageBuilder() {
   );
 }
 
-function EventPicker({ events, existingEventIds, onSelect, onCancel }: {
+function EventPickerSheet({ events, existingEventIds, onSelect, onCancel }: {
   events: Event[];
   existingEventIds: string[];
   onSelect: (eventId: string) => void;
@@ -640,39 +640,47 @@ function EventPicker({ events, existingEventIds, onSelect, onCancel }: {
 }) {
   const available = events.filter(e => !existingEventIds.includes(e.id) && !e.isCancelled);
 
-  if (available.length === 0) {
-    return (
-      <div className="text-center py-3">
-        <p className="text-xs text-[var(--muted-warm)]">No available events to add.</p>
-        <button onClick={onCancel} className="text-xs text-[var(--terra)] font-semibold mt-1" data-testid="button-close-picker">Close</button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-1.5 rounded-lg p-2" style={{ background: "var(--cream)", border: "1.5px dashed var(--warm-border)" }}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold text-[var(--ink)]">Select an event</span>
-        <button onClick={onCancel} className="text-xs text-[var(--muted-warm)]" data-testid="button-cancel-picker">Cancel</button>
-      </div>
-      {available.map((event) => (
-        <button
-          key={event.id}
-          onClick={() => onSelect(event.id)}
-          className="w-full flex items-center gap-2 rounded-lg p-2 text-left transition-colors"
-          style={{ background: "var(--warm-white)" }}
-          data-testid={`button-pick-event-${event.id}`}
-        >
-          <Calendar className="w-3.5 h-3.5 text-[var(--terra)] shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-[var(--ink)] truncate">{event.title}</div>
-            <div className="text-[10px] text-[var(--muted-warm)]">
-              {new Date(event.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-              {event.locationText && ` · ${event.locationText}`}
-            </div>
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40" onClick={onCancel} />
+      <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl p-5 pt-3 max-h-[70vh] overflow-y-auto" style={{ background: "var(--warm-white)" }} data-testid="sheet-event-picker">
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--warm-border)" }} />
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-base font-bold text-[var(--ink)]">Add Event</h3>
+          <button onClick={onCancel} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--cream)" }} data-testid="button-cancel-picker">
+            <X className="w-4 h-4 text-[var(--ink)]" />
+          </button>
+        </div>
+        {available.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="text-3xl mb-2">📅</div>
+            <p className="text-sm text-[var(--muted-warm)]">No available events to add.</p>
           </div>
-        </button>
-      ))}
-    </div>
+        ) : (
+          <div className="space-y-2">
+            {available.map((event) => (
+              <button
+                key={event.id}
+                onClick={() => onSelect(event.id)}
+                className="w-full flex items-center gap-3 rounded-xl p-3 text-left transition-all active:scale-[0.98]"
+                style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
+                data-testid={`button-pick-event-${event.id}`}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--terra-pale)" }}>
+                  <Calendar className="w-4 h-4 text-[var(--terra)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-[var(--ink)] truncate">{event.title}</div>
+                  <div className="text-xs text-[var(--muted-warm)] mt-0.5">
+                    {new Date(event.startsAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    {event.locationText && ` · ${event.locationText}`}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
