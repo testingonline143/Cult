@@ -159,6 +159,7 @@ export interface IStorage {
   autoJoinSampleClubs(userId: string): Promise<Club[]>;
   getClubBySlug(slug: string): Promise<Club | undefined>;
   updateClubSlug(clubId: string, slug: string): Promise<Club | undefined>;
+  generateSlugForClub(clubId: string): Promise<string | null>;
   getPageSections(clubId: string): Promise<ClubPageSection[]>;
   createPageSection(data: InsertClubPageSection): Promise<ClubPageSection>;
   updatePageSection(id: string, data: Partial<InsertClubPageSection>): Promise<ClubPageSection | undefined>;
@@ -1588,6 +1589,25 @@ export class DatabaseStorage implements IStorage {
   async updateClubSlug(clubId: string, slug: string): Promise<Club | undefined> {
     const [updated] = await db.update(clubs).set({ slug }).where(eq(clubs.id, clubId)).returning();
     return updated;
+  }
+
+  async generateSlugForClub(clubId: string): Promise<string | null> {
+    const club = await this.getClub(clubId);
+    if (!club) return null;
+    if (club.slug) return club.slug;
+
+    let base = (club.name || "club").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (base.length < 2) base = "club";
+    let candidate = base;
+    let suffix = 1;
+    while (true) {
+      const existing = await this.getClubBySlug(candidate);
+      if (!existing) break;
+      candidate = `${base}-${suffix}`;
+      suffix++;
+    }
+    await this.updateClubSlug(clubId, candidate);
+    return candidate;
   }
 
   async getPageSections(clubId: string): Promise<ClubPageSection[]> {

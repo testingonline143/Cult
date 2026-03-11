@@ -2312,16 +2312,29 @@ export async function registerRoutes(
 
   app.patch("/api/organizer/clubs/:clubId", isAuthenticated, requireClubManager(), async (req: any, res) => {
     try {
-      const { shortDesc, schedule, location } = req.body;
+      const { name, shortDesc, schedule, location } = req.body;
       const updates: any = {};
+      if (typeof name === "string" && name.trim().length > 0) updates.name = name.trim();
       if (typeof shortDesc === "string") updates.shortDesc = shortDesc;
       if (typeof schedule === "string") updates.schedule = schedule;
       if (typeof location === "string") updates.location = location;
+      if (Object.keys(updates).length === 0) return res.json(await storage.getClub(req.params.clubId));
       const result = await storage.updateClub(req.params.clubId, updates);
       res.json(result || {});
     } catch (err) {
       console.error("Error updating club profile:", err);
       res.status(500).json({ message: "Failed to update club profile" });
+    }
+  });
+
+  app.post("/api/organizer/clubs/:clubId/generate-slug", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const slug = await storage.generateSlugForClub(req.params.clubId);
+      if (!slug) return res.status(404).json({ message: "Club not found" });
+      res.json({ slug });
+    } catch (err) {
+      console.error("Error generating slug:", err);
+      res.status(500).json({ message: "Failed to generate slug" });
     }
   });
 

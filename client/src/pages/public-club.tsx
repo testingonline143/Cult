@@ -1,7 +1,7 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { MapPin, Calendar, Users, Clock, ArrowRight, Loader2, Star, MessageCircle, Trophy } from "lucide-react";
+import { MapPin, Calendar, Users, Clock, ArrowRight, Loader2, Star, MessageCircle } from "lucide-react";
 import type { Club, ClubAnnouncement, ClubScheduleEntry, ClubMoment, ClubPageSection } from "@shared/schema";
 
 interface SectionEvent {
@@ -119,8 +119,10 @@ export default function PublicClub() {
           <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Events Done</div>
         </div>
         <div className="rounded-[14px] p-2.5 text-center" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}>
-          <div className="font-mono text-[20px] leading-none tracking-wide text-[var(--ink)]" data-testid="text-upcoming-events">{upcomingEventCount}</div>
-          <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Upcoming</div>
+          <div className="font-mono text-[20px] leading-none tracking-wide text-[var(--ink)]" data-testid="text-founding-spots">
+            {Math.max(0, (club.foundingTotal || 20) - (club.foundingTaken || 0))}
+          </div>
+          <div className="text-[9px] font-semibold text-[var(--muted-warm)] tracking-wider mt-0.5">Spots Left</div>
         </div>
       </div>
 
