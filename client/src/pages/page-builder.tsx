@@ -628,6 +628,22 @@ export default function PageBuilder() {
           </div>
         )}
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-30 px-5 pb-6 pt-3" style={{ background: "linear-gradient(to top, var(--cream) 80%, transparent)" }}>
+        <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", boxShadow: "0 -2px 12px rgba(0,0,0,0.06)" }} data-testid="bar-save-status">
+          <div className="flex items-center gap-2">
+            {(profileMutation.isPending || updateSectionMutation.isPending || createSectionMutation.isPending || reorderMutation.isPending || addEventMutation.isPending || removeEventMutation.isPending)
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--terra)]" /><span className="text-xs font-semibold text-[var(--terra)]">Saving...</span></>
+              : <><Check className="w-3.5 h-3.5 text-green-600" /><span className="text-xs font-semibold text-green-700">All changes saved</span></>
+            }
+          </div>
+          {publicUrl && (
+            <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{ background: "var(--terra)", textDecoration: "none" }} data-testid="link-view-live">
+              <Eye className="w-3 h-3" /> View Live
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

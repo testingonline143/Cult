@@ -371,9 +371,9 @@ function PublicPageCard({ club }: { club: Club }) {
       </div>
 
       {publicUrl && (
-        <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}>
-          <span className="text-xs font-mono truncate flex-1 text-[var(--terra)]" data-testid="text-public-url">{publicUrl}</span>
-          <button onClick={handleCopy} className="shrink-0 text-[var(--terra)]" data-testid="button-copy-public-url">
+        <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: "var(--ink)", border: "1.5px solid var(--ink)" }}>
+          <span className="text-xs font-mono truncate flex-1 text-white/80" data-testid="text-public-url">{publicUrl}</span>
+          <button onClick={handleCopy} className="shrink-0 text-white/60" data-testid="button-copy-public-url">
             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
         </div>
