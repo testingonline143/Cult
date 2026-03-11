@@ -23,8 +23,10 @@ import HomeFeed from "@/pages/home-feed";
 import ScanEvent from "@/pages/scan-event";
 import Notifications from "@/pages/notifications";
 import MemberProfile from "@/pages/member-profile";
+import PublicClub from "@/pages/public-club";
+import PageBuilder from "@/pages/page-builder";
 
-const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/scan", "/club", "/event", "/events", "/create", "/notifications", "/explore", "/profile"];
+const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/scan", "/club", "/event", "/events", "/create", "/notifications", "/explore", "/profile", "/c", "/page-builder"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -73,6 +75,8 @@ function Router() {
         <Route path="/event/:id" component={() => <ProtectedRoute component={EventDetail} />} />
         <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
         <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
+        <Route path="/c/:slug" component={PublicClub} />
+        <Route path="/page-builder/:clubId" component={() => <ProtectedRoute component={PageBuilder} />} />
         <Route component={NotFound} />
       </Switch>
       <BottomNav />

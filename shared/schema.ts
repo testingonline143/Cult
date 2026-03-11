@@ -38,6 +38,27 @@ export const clubs = pgTable("clubs", {
   joinQuestion1: text("join_question_1"),
   joinQuestion2: text("join_question_2"),
   coverImageUrl: text("cover_image_url"),
+  slug: text("slug"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const clubPageSections = pgTable("club_page_sections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clubId: varchar("club_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  emoji: text("emoji").notNull().default("📌"),
+  layout: text("layout").notNull().default("full"),
+  position: integer("position").notNull().default(0),
+  isVisible: boolean("is_visible").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const sectionEvents = pgTable("section_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sectionId: varchar("section_id").notNull(),
+  eventId: varchar("event_id").notNull(),
+  position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -227,6 +248,8 @@ export const insertClubAnnouncementSchema = createInsertSchema(clubAnnouncements
 export const insertClubPollSchema = createInsertSchema(clubPolls).omit({ id: true, createdAt: true });
 export const insertPollVoteSchema = createInsertSchema(pollVotes).omit({ id: true, createdAt: true });
 export const insertKudoSchema = createInsertSchema(kudos).omit({ id: true, createdAt: true });
+export const insertClubPageSectionSchema = createInsertSchema(clubPageSections).omit({ id: true, createdAt: true });
+export const insertSectionEventSchema = createInsertSchema(sectionEvents).omit({ id: true, createdAt: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -260,6 +283,10 @@ export type PollVote = typeof pollVotes.$inferSelect;
 export type InsertPollVote = z.infer<typeof insertPollVoteSchema>;
 export type Kudo = typeof kudos.$inferSelect;
 export type InsertKudo = z.infer<typeof insertKudoSchema>;
+export type ClubPageSection = typeof clubPageSections.$inferSelect;
+export type InsertClubPageSection = z.infer<typeof insertClubPageSectionSchema>;
+export type SectionEvent = typeof sectionEvents.$inferSelect;
+export type InsertSectionEvent = z.infer<typeof insertSectionEventSchema>;
 
 export const CATEGORIES = [
   "Trekking",

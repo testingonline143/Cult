@@ -15,7 +15,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Scan Event (/scan/:eventId), 404
+- **Routing**: Wouter — pages: Home (/), Explore (/explore), Events (/events), Create (/create), Profile (/profile), Admin (/admin), Organizer Dashboard (/organizer), Onboarding Quiz (/onboarding), Matched Clubs (/matched-clubs), Club Detail (/club/:id), Event Detail (/event/:id), Scan Event (/scan/:eventId), Public Club Page (/c/:slug), Page Builder (/page-builder/:clubId), 404
 - **Navigation**: Landing page (/) uses scroll-aware top Navbar (transparent over dark hero, solid cream after scroll). Inner app pages use fixed bottom tab bar (`client/src/components/bottom-nav.tsx`). **Regular users** see 5 tabs: HOME (/home), EXPLORE (/explore), EVENTS (/events), ALERTS (/notifications), PROFILE (/profile). **Organizers/admins** see 6 tabs: HOME, EXPLORE, EVENTS, ALERTS, DASHBOARD (/organizer), PROFILE. Bell icon shows unread notification count badge. Bottom nav visible on /organizer, /create, /notifications. HOME tab (/home) shows a clean mobile feed with city selector pills, "Find Your Tribe" masthead, "Happening Today", and "Trending Clubs". Admin/onboarding/club-detail/event-detail pages use top Navbar only. Regular users access club creation via "Start a Club" CTA on Explore page (links to /create).
 - **Styling**: Tailwind CSS with CSS variables for theming (warm cream editorial design, single light theme)
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives, stored in `client/src/components/ui/`
@@ -137,7 +137,7 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
 - **Tables**:
   - `users` — id (UUID), email (unique), firstName, lastName, profileImageUrl, bio, city, **role** (text, default 'user', values: 'user'|'organiser'|'admin'), quizCompleted, createdAt, updatedAt
   - `sessions` — sid (PK), sess (jsonb), expire (timestamp) — used by express-session for Replit Auth
-  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), **coOrganiserUserIds** (text[], nullable), **joinQuestion1/joinQuestion2** (text, nullable), createdAt
+  - `clubs` — id (UUID), name, category, emoji, shortDesc, fullDesc, organizerName, organizerYears, organizerAvatar, organizerResponse, memberCount, schedule, location, city, vibe, activeSince, whatsappNumber, healthStatus, healthLabel, lastActive, foundingTaken, foundingTotal, bgColor, timeOfDay, isActive, highlights (text[]), **creatorUserId** (links to auth user), **coOrganiserUserIds** (text[], nullable), **joinQuestion1/joinQuestion2** (text, nullable), coverImageUrl, **slug** (text, nullable — URL-safe identifier for public page), createdAt
   - `join_requests` — id (UUID), clubId, clubName, name, phone, userId (nullable, links to auth user — stores who submitted the join request), markedDone, **status** (text, default 'pending', values: 'pending'|'approved'|'rejected'), **answer1/answer2** (text, nullable — join question answers), createdAt
   - `club_announcements` — id (UUID), clubId, authorUserId, authorName, title (text), body (text), isPinned (boolean, default false), createdAt
   - `club_polls` — id (UUID), clubId, question (text), options (text[]), isOpen (boolean, default true), createdAt
@@ -150,6 +150,8 @@ Design preference: Warm editorial design with cream background (#F5F0E8) and ter
   - `club_faqs` — id (UUID), clubId, question (text), answer (text), sortOrder (integer, default 0), createdAt
   - `club_schedule_entries` — id (UUID), clubId, dayOfWeek (text), startTime (text), endTime (text), activity (text), location (text), createdAt
   - `club_moments` — id (UUID), clubId, caption (text), imageUrl (text, nullable), emoji (text, nullable), createdAt
+  - `club_page_sections` — id (UUID), clubId, title (text), description (text, nullable), emoji (text, default "📌"), layout (text, default "full"), position (integer), isVisible (boolean, default true), createdAt
+  - `section_events` — id (UUID), sectionId, eventId, position (integer), createdAt
 - **Migrations**: Raw SQL migrations applied in server startup; drizzle-kit for reference
 - **Seeding**: `server/seed.ts` contains hardcoded club data for initial population
 

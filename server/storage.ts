@@ -11,9 +11,12 @@ import {
   type ClubPoll, type InsertClubPoll,
   type PollVote,
   type Kudo,
+  type ClubPageSection, type InsertClubPageSection,
+  type SectionEvent,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
   clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications,
   clubAnnouncements, clubPolls, pollVotes, momentLikes, eventComments, kudos,
+  clubPageSections, sectionEvents,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
@@ -154,6 +157,25 @@ export interface IStorage {
   getKudosByReceiver(userId: string): Promise<(Kudo & { eventTitle: string; eventStartsAt: Date })[]>;
   getEventAttendeesForKudo(eventId: string, excludeUserId: string): Promise<{ userId: string; userName: string | null }[]>;
   autoJoinSampleClubs(userId: string): Promise<Club[]>;
+  getClubBySlug(slug: string): Promise<Club | undefined>;
+  updateClubSlug(clubId: string, slug: string): Promise<Club | undefined>;
+  getPageSections(clubId: string): Promise<ClubPageSection[]>;
+  createPageSection(data: InsertClubPageSection): Promise<ClubPageSection>;
+  updatePageSection(id: string, data: Partial<InsertClubPageSection>): Promise<ClubPageSection | undefined>;
+  deletePageSection(id: string): Promise<void>;
+  reorderPageSections(clubId: string, sectionIds: string[]): Promise<void>;
+  getSectionEvents(sectionId: string): Promise<(SectionEvent & { eventTitle: string; eventStartsAt: Date; eventLocation: string })[]>;
+  addSectionEvent(sectionId: string, eventId: string, position: number): Promise<SectionEvent>;
+  removeSectionEvent(id: string): Promise<void>;
+  getPublicPageData(clubId: string): Promise<{
+    club: Club;
+    sections: (ClubPageSection & { events: { id: string; eventId: string; title: string; startsAt: Date; location: string; position: number }[] })[];
+    announcements: ClubAnnouncement[];
+    schedule: ClubScheduleEntry[];
+    moments: ClubMoment[];
+    memberCount: number;
+    upcomingEventCount: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1554,6 +1576,121 @@ export class DatabaseStorage implements IStorage {
         ne(eventRsvps.userId, excludeUserId),
       ));
     return rows.map(r => ({ userId: r.userId, userName: r.userName }));
+  }
+
+  async getClubBySlug(slug: string): Promise<Club | undefined> {
+    const [club] = await db.select().from(clubs).where(eq(clubs.slug, slug));
+    return club;
+  }
+
+  async updateClubSlug(clubId: string, slug: string): Promise<Club | undefined> {
+    const [updated] = await db.update(clubs).set({ slug }).where(eq(clubs.id, clubId)).returning();
+    return updated;
+  }
+
+  async getPageSections(clubId: string): Promise<ClubPageSection[]> {
+    return db.select().from(clubPageSections)
+      .where(eq(clubPageSections.clubId, clubId))
+      .orderBy(asc(clubPageSections.position));
+  }
+
+  async createPageSection(data: InsertClubPageSection): Promise<ClubPageSection> {
+    const [created] = await db.insert(clubPageSections).values(data).returning();
+    return created;
+  }
+
+  async updatePageSection(id: string, data: Partial<InsertClubPageSection>): Promise<ClubPageSection | undefined> {
+    const [updated] = await db.update(clubPageSections).set(data).where(eq(clubPageSections.id, id)).returning();
+    return updated;
+  }
+
+  async deletePageSection(id: string): Promise<void> {
+    await db.delete(sectionEvents).where(eq(sectionEvents.sectionId, id));
+    await db.delete(clubPageSections).where(eq(clubPageSections.id, id));
+  }
+
+  async reorderPageSections(clubId: string, sectionIds: string[]): Promise<void> {
+    for (let i = 0; i < sectionIds.length; i++) {
+      await db.update(clubPageSections)
+        .set({ position: i })
+        .where(and(eq(clubPageSections.id, sectionIds[i]), eq(clubPageSections.clubId, clubId)));
+    }
+  }
+
+  async getSectionEvents(sectionId: string): Promise<(SectionEvent & { eventTitle: string; eventStartsAt: Date; eventLocation: string })[]> {
+    const rows = await db.select({
+      id: sectionEvents.id,
+      sectionId: sectionEvents.sectionId,
+      eventId: sectionEvents.eventId,
+      position: sectionEvents.position,
+      createdAt: sectionEvents.createdAt,
+      eventTitle: events.title,
+      eventStartsAt: events.startsAt,
+      eventLocation: events.locationText,
+    })
+      .from(sectionEvents)
+      .innerJoin(events, eq(sectionEvents.eventId, events.id))
+      .where(eq(sectionEvents.sectionId, sectionId))
+      .orderBy(asc(sectionEvents.position));
+    return rows as any;
+  }
+
+  async addSectionEvent(sectionId: string, eventId: string, position: number): Promise<SectionEvent> {
+    const [created] = await db.insert(sectionEvents).values({ sectionId, eventId, position }).returning();
+    return created;
+  }
+
+  async removeSectionEvent(id: string): Promise<void> {
+    await db.delete(sectionEvents).where(eq(sectionEvents.id, id));
+  }
+
+  async getPublicPageData(clubId: string): Promise<{
+    club: Club;
+    sections: (ClubPageSection & { events: { id: string; eventId: string; title: string; startsAt: Date; location: string; position: number }[] })[];
+    announcements: ClubAnnouncement[];
+    schedule: ClubScheduleEntry[];
+    moments: ClubMoment[];
+    memberCount: number;
+    upcomingEventCount: number;
+  }> {
+    const club = await this.getClub(clubId);
+    if (!club) throw new Error("Club not found");
+
+    const sections = await this.getPageSections(clubId);
+    const sectionsWithEvents = await Promise.all(
+      sections.filter(s => s.isVisible !== false).map(async (s) => {
+        const evts = await this.getSectionEvents(s.id);
+        return {
+          ...s,
+          events: evts.map(e => ({
+            id: e.id,
+            eventId: e.eventId,
+            title: e.eventTitle,
+            startsAt: e.eventStartsAt,
+            location: e.eventLocation,
+            position: e.position,
+          })),
+        };
+      })
+    );
+
+    const announcements = await this.getClubAnnouncements(clubId);
+    const schedule = await this.getClubSchedule(clubId);
+    const moments = (await this.getClubMoments(clubId)).slice(0, 6);
+
+    const now = new Date();
+    const clubEvents = await this.getEventsByClub(clubId);
+    const upcomingEventCount = clubEvents.filter(e => new Date(e.startsAt) > now && !e.isCancelled).length;
+
+    return {
+      club,
+      sections: sectionsWithEvents,
+      announcements,
+      schedule,
+      moments,
+      memberCount: club.memberCount,
+      upcomingEventCount,
+    };
   }
 }
 

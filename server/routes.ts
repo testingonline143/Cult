@@ -443,6 +443,15 @@ export async function registerRoutes(
       }
 
       const emoji = CATEGORY_EMOJI[category] || "🎯";
+      let baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+      if (baseSlug.length < 2) baseSlug = `club-${Date.now().toString(36)}`;
+      let finalSlug = baseSlug;
+      let slugAttempt = 0;
+      while (await storage.getClubBySlug(finalSlug)) {
+        slugAttempt++;
+        finalSlug = `${baseSlug}-${slugAttempt}`;
+      }
+
       const club = await storage.createClub({
         name,
         category,
@@ -469,6 +478,7 @@ export async function registerRoutes(
         timeOfDay: "morning",
         isActive: true,
         creatorUserId: userId,
+        slug: finalSlug,
       });
 
       const currentUser = await storage.getUser(userId);
@@ -2253,6 +2263,171 @@ export async function registerRoutes(
       res.json(userKudos);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch kudos" });
+    }
+  });
+
+  app.get("/c/:slug", async (req, res, next) => {
+    try {
+      if (!isCrawler(req.headers["user-agent"])) return next();
+      const club = await storage.getClubBySlug(req.params.slug as string);
+      if (!club) return next();
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const template = await readHtmlTemplate();
+      const html = buildOgHtml(template, {
+        title: `${club.emoji} ${club.name} | CultFam Tirupati`,
+        description: club.shortDesc,
+        imageUrl: `${baseUrl}/api/og-image/club/${club.id}`,
+        url: `${baseUrl}/c/${club.slug}`,
+        type: "website",
+      });
+      res.status(200).set("Content-Type", "text/html").end(html);
+    } catch (err) {
+      console.error("Error serving public club OG page:", err);
+      next();
+    }
+  });
+
+  app.get("/api/c/:slug", async (req, res) => {
+    try {
+      const club = await storage.getClubBySlug(req.params.slug as string);
+      if (!club) return res.status(404).json({ message: "Club not found" });
+      const data = await storage.getPublicPageData(club.id);
+      res.json(data);
+    } catch (err) {
+      console.error("Error fetching public page:", err);
+      res.status(500).json({ message: "Failed to fetch public page" });
+    }
+  });
+
+  app.patch("/api/organizer/clubs/:clubId/slug", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const { slug } = req.body;
+      if (!slug || typeof slug !== "string" || slug.length < 2 || slug.length > 60) {
+        return res.status(400).json({ message: "Slug must be 2-60 characters" });
+      }
+      const cleaned = slug.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      if (cleaned.length < 2) return res.status(400).json({ message: "Slug must contain at least 2 valid characters" });
+      const existing = await storage.getClubBySlug(cleaned);
+      if (existing && existing.id !== req.params.clubId) {
+        return res.status(409).json({ message: "This URL is already taken" });
+      }
+      const updated = await storage.updateClubSlug(req.params.clubId, cleaned);
+      res.json(updated);
+    } catch (err) {
+      console.error("Error updating slug:", err);
+      res.status(500).json({ message: "Failed to update slug" });
+    }
+  });
+
+  app.get("/api/organizer/clubs/:clubId/page-sections", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const sections = await storage.getPageSections(req.params.clubId);
+      const withEvents = await Promise.all(sections.map(async (s) => {
+        const evts = await storage.getSectionEvents(s.id);
+        return { ...s, events: evts };
+      }));
+      res.json(withEvents);
+    } catch (err) {
+      console.error("Error fetching page sections:", err);
+      res.status(500).json({ message: "Failed to fetch page sections" });
+    }
+  });
+
+  app.post("/api/organizer/clubs/:clubId/page-sections", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const { title, description, emoji, layout } = req.body;
+      if (!title || typeof title !== "string" || title.length < 1) {
+        return res.status(400).json({ message: "Title is required" });
+      }
+      const existing = await storage.getPageSections(req.params.clubId);
+      const section = await storage.createPageSection({
+        clubId: req.params.clubId,
+        title,
+        description: description || null,
+        emoji: emoji || "📌",
+        layout: layout || "full",
+        position: existing.length,
+        isVisible: true,
+      });
+      res.status(201).json(section);
+    } catch (err) {
+      console.error("Error creating page section:", err);
+      res.status(500).json({ message: "Failed to create section" });
+    }
+  });
+
+  app.patch("/api/organizer/clubs/:clubId/page-sections/:sectionId", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const sections = await storage.getPageSections(req.params.clubId);
+      const owns = sections.some(s => s.id === req.params.sectionId);
+      if (!owns) return res.status(403).json({ message: "Section does not belong to this club" });
+      const { title, description, emoji, layout, isVisible } = req.body;
+      const updated = await storage.updatePageSection(req.params.sectionId, {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(emoji !== undefined && { emoji }),
+        ...(layout !== undefined && { layout }),
+        ...(isVisible !== undefined && { isVisible }),
+      });
+      if (!updated) return res.status(404).json({ message: "Section not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error updating page section:", err);
+      res.status(500).json({ message: "Failed to update section" });
+    }
+  });
+
+  app.delete("/api/organizer/clubs/:clubId/page-sections/:sectionId", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const sections = await storage.getPageSections(req.params.clubId);
+      const owns = sections.some(s => s.id === req.params.sectionId);
+      if (!owns) return res.status(403).json({ message: "Section does not belong to this club" });
+      await storage.deletePageSection(req.params.sectionId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting page section:", err);
+      res.status(500).json({ message: "Failed to delete section" });
+    }
+  });
+
+  app.patch("/api/organizer/clubs/:clubId/page-sections/reorder", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const { sectionIds } = req.body;
+      if (!Array.isArray(sectionIds)) return res.status(400).json({ message: "sectionIds required" });
+      await storage.reorderPageSections(req.params.clubId, sectionIds);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error reordering sections:", err);
+      res.status(500).json({ message: "Failed to reorder sections" });
+    }
+  });
+
+  app.post("/api/organizer/clubs/:clubId/page-sections/:sectionId/events", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const sections = await storage.getPageSections(req.params.clubId);
+      const owns = sections.some(s => s.id === req.params.sectionId);
+      if (!owns) return res.status(403).json({ message: "Section does not belong to this club" });
+      const { eventId } = req.body;
+      if (!eventId) return res.status(400).json({ message: "eventId required" });
+      const existing = await storage.getSectionEvents(req.params.sectionId);
+      const se = await storage.addSectionEvent(req.params.sectionId, eventId, existing.length);
+      res.status(201).json(se);
+    } catch (err) {
+      console.error("Error adding event to section:", err);
+      res.status(500).json({ message: "Failed to add event" });
+    }
+  });
+
+  app.delete("/api/organizer/clubs/:clubId/page-sections/:sectionId/events/:seId", isAuthenticated, requireClubManager(), async (req: any, res) => {
+    try {
+      const sections = await storage.getPageSections(req.params.clubId);
+      const owns = sections.some(s => s.id === req.params.sectionId);
+      if (!owns) return res.status(403).json({ message: "Section does not belong to this club" });
+      await storage.removeSectionEvent(req.params.seId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error removing event from section:", err);
+      res.status(500).json({ message: "Failed to remove event" });
     }
   });
 

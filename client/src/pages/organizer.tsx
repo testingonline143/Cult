@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
 import { BottomNav } from "@/components/bottom-nav";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera, Globe } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement } from "@shared/schema";
 
@@ -333,6 +333,21 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
           </div>
         </div>
       )}
+
+      <Link href={`/page-builder/${club.id}`} style={{ textDecoration: "none" }}>
+        <div className="rounded-md p-4 flex items-center gap-4 cursor-pointer transition-all active:scale-[0.98]" style={{ borderRadius: 18, background: "linear-gradient(135deg, var(--terra-pale), rgba(201,168,76,0.08))", border: "1.5px solid rgba(196,98,45,0.2)" }} data-testid="card-public-page">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: "var(--terra)", color: "white" }}>
+            <Globe className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-sm font-bold text-[var(--ink)]">Public Page</div>
+            <p className="text-xs text-[var(--muted-warm)] mt-0.5">
+              {club.slug ? `Live at /c/${club.slug}` : "Set up a shareable page for your club"}
+            </p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[var(--terra)] shrink-0" />
+        </div>
+      </Link>
 
       {user?.id === club.creatorUserId && <CoOrganisersCard clubId={club.id} />}
     </div>
