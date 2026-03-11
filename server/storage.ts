@@ -1674,6 +1674,8 @@ export class DatabaseStorage implements IStorage {
     moments: ClubMoment[];
     memberCount: number;
     upcomingEventCount: number;
+    pastEventCount: number;
+    rating: number | null;
   }> {
     const club = await this.getClub(clubId);
     if (!club) throw new Error("Club not found");
