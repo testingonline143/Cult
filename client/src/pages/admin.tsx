@@ -68,19 +68,6 @@ interface WeeklyGrowth {
   moments: number;
 }
 
-interface AdminPoll {
-  id: string;
-  clubId: string;
-  clubName: string;
-  clubEmoji: string;
-  question: string;
-  options: string[];
-  isOpen: boolean | null;
-  createdAt: string | null;
-  votes: number[];
-  totalVotes: number;
-}
-
 interface UserDetail {
   clubs: { clubId: string; clubName: string; clubEmoji: string; joinedAt: string | null }[];
   events: { id: string; title: string; startsAt: string; clubName: string }[];
@@ -94,7 +81,6 @@ const TAB_ICONS: Record<string, React.ReactNode> = {
   users: <Users className="w-[18px] h-[18px]" />,
   events: <Calendar className="w-[18px] h-[18px]" />,
   joins: <UserCheck className="w-[18px] h-[18px]" />,
-  polls: <BarChart2 className="w-[18px] h-[18px]" />,
 };
 
 function downloadCSV(filename: string, rows: string[][], headers: string[]) {
@@ -184,7 +170,7 @@ function AdminSetupScreen({ userId }: { userId: string }) {
 
 export default function Admin() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<"analytics" | "clubs" | "users" | "events" | "joins" | "polls">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "clubs" | "users" | "events" | "joins">("analytics");
 
   const { data: adminStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; isCurrentUserAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
@@ -261,7 +247,6 @@ export default function Admin() {
     { key: "users", label: "Users" },
     { key: "events", label: "Events" },
     { key: "joins", label: "Requests", badge: pendingCount },
-    { key: "polls", label: "Polls" },
   ] as const;
 
   const displayName = user?.firstName || user?.email?.split("@")[0] || "Admin";
@@ -350,7 +335,6 @@ export default function Admin() {
         {activeTab === "users" && <UsersTab />}
         {activeTab === "events" && <EventsTab />}
         {activeTab === "joins" && <JoinRequestsTab />}
-        {activeTab === "polls" && <PollsTab />}
       </div>
     </div>
   );
@@ -1487,121 +1471,3 @@ function JoinRequestsTab() {
   );
 }
 
-function PollsTab() {
-  const { toast } = useToast();
-
-  const { data: polls = [], isLoading, error } = useQuery<AdminPoll[]>({
-    queryKey: ["/api/admin/polls"],
-    retry: false,
-  });
-
-  const closeMutation = useMutation({
-    mutationFn: async (pollId: string) => { await apiRequest("PATCH", `/api/admin/polls/${pollId}/close`); },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/polls"] });
-      toast({ title: "Poll closed" });
-    },
-    onError: () => { toast({ title: "Failed to close poll", variant: "destructive" }); },
-  });
-
-  if (isLoading) return <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-[18px]" />)}</div>;
-  if (error) return <SectionEmptyState icon={<ShieldAlert className="w-6 h-6" />} title="Access Denied" />;
-  if (polls.length === 0) {
-    return <SectionEmptyState icon={<Vote className="w-6 h-6" />} title="No polls yet" desc="When clubs create polls, they'll appear here" />;
-  }
-
-  const openPolls = polls.filter(p => p.isOpen);
-  const closedPolls = polls.filter(p => !p.isOpen);
-
-  const renderPoll = (poll: AdminPoll) => (
-    <div
-      key={poll.id}
-      className="rounded-[18px] p-5"
-      style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", borderLeft: poll.isOpen ? "4px solid #16a34a" : "1.5px solid var(--warm-border)" }}
-      data-testid={`card-poll-${poll.id}`}
-    >
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: "var(--cream)" }}>{poll.clubEmoji}</div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>{poll.clubName}</span>
-              {poll.isOpen && <span className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(22,163,74,0.1)", color: "#16a34a" }}>
-                <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: "#16a34a" }} />Open
-              </span>}
-              {!poll.isOpen && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--muted-warm)" }}>Closed</span>}
-            </div>
-            <p className="font-bold text-[14px]" style={{ color: "var(--ink)" }}>{poll.question}</p>
-          </div>
-        </div>
-        {poll.isOpen && (
-          <button
-            onClick={() => closeMutation.mutate(poll.id)}
-            disabled={closeMutation.isPending}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap shrink-0"
-            style={{ background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.25)" }}
-            data-testid={`button-close-poll-${poll.id}`}
-          >
-            Close
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-2.5">
-        {poll.options.map((option, i) => {
-          const count = poll.votes[i] ?? 0;
-          const pct = poll.totalVotes > 0 ? Math.round((count / poll.totalVotes) * 100) : 0;
-          const isLeading = count === Math.max(...poll.votes) && count > 0;
-          return (
-            <div key={i}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium" style={{ color: isLeading ? "var(--ink)" : "var(--muted-warm)" }}>{option}</span>
-                <span className="text-xs font-black font-mono" style={{ color: "var(--terra)" }}>{pct}% <span className="font-normal" style={{ color: "var(--muted-warm)" }}>({count})</span></span>
-              </div>
-              <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--cream)" }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${pct}%`, background: isLeading ? `linear-gradient(90deg, var(--terra), var(--gold))` : "rgba(196,98,45,0.35)" }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid var(--warm-border)" }}>
-        <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--muted-warm)" }}>
-          <Users className="w-3 h-3" />{poll.totalVotes} vote{poll.totalVotes !== 1 ? "s" : ""}
-        </span>
-        {poll.createdAt && <span className="text-xs" style={{ color: "var(--muted-warm)" }}>{formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}</span>}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-6" data-testid="section-admin-polls">
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={<BarChart2 className="w-6 h-6" />} label="Total" value={polls.length} />
-        <StatCard icon={<Activity className="w-6 h-6" />} label="Open" value={openPolls.length} color="#16a34a" />
-        <StatCard icon={<CheckCircle2 className="w-6 h-6" />} label="Closed" value={closedPolls.length} />
-      </div>
-
-      {openPolls.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>Open Polls</h3>
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "#16a34a" }}>{openPolls.length}</span>
-          </div>
-          <div className="space-y-3">{openPolls.map(renderPoll)}</div>
-        </div>
-      )}
-
-      {closedPolls.length > 0 && (
-        <div>
-          <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--muted-warm)" }}>Closed Polls</h3>
-          <div className="space-y-3">{closedPolls.map(renderPoll)}</div>
-        </div>
-      )}
-    </div>
-  );
-}

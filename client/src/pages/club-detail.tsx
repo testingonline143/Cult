@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment, MomentComment, ClubAnnouncement, ClubPoll } from "@shared/schema";
+import type { Club, ClubFaq, ClubScheduleEntry, ClubMoment, MomentComment, ClubAnnouncement } from "@shared/schema";
 
 interface ClubEvent {
   id: string;
@@ -304,11 +304,9 @@ function ClubDetailContent({ club }: { club: Club }) {
     ...(hasImages ? [{ id: "gallery", label: "Gallery" }] : []),
     { id: "about", label: "About" },
     { id: "values", label: "Values" },
-    { id: "perks", label: "Perks" },
     { id: "faqs", label: "FAQs" },
     { id: "leaders", label: "Leaders" },
     { id: "members", label: "Members" },
-    ...(isAuthenticated ? [{ id: "polls", label: "Polls" }] : []),
   ];
 
   return (
@@ -702,10 +700,6 @@ function ClubDetailContent({ club }: { club: Club }) {
         <GalleryTab clubId={club.id} />
       )}
 
-      {activeTab === "polls" && isAuthenticated && (
-        <PollsTab clubId={club.id} />
-      )}
-
       {activeTab === "values" && (
         <div className="px-6 py-4 space-y-4" data-testid="tab-values">
           <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">What we stand for</h2>
@@ -733,33 +727,6 @@ function ClubDetailContent({ club }: { club: Club }) {
               <span className="text-4xl mb-3">✨</span>
               <p className="text-sm font-semibold text-[var(--ink)] mb-1">Values coming soon</p>
               <p className="text-xs text-[var(--muted-warm)]">The organiser hasn't added values yet.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === "perks" && (
-        <div className="px-6 py-4 space-y-3" data-testid="tab-perks">
-          <h2 className="text-xs font-bold text-[var(--muted-warm)] uppercase tracking-wider">Member perks</h2>
-          {club.highlights && club.highlights.length > 0 ? (
-            <div className="space-y-2">
-              {club.highlights.map((item: string, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 rounded-2xl p-4"
-                  style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }}
-                  data-testid={`card-perk-${i}`}
-                >
-                  <span className="text-[var(--gold)] text-lg shrink-0">⭐</span>
-                  <span className="text-sm text-[var(--ink)] leading-relaxed font-medium">{item}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="text-4xl mb-3">🎁</span>
-              <p className="text-sm font-semibold text-[var(--ink)] mb-1">Perks coming soon</p>
-              <p className="text-xs text-[var(--muted-warm)]">The organiser hasn't listed member perks yet.</p>
             </div>
           )}
         </div>
@@ -1905,113 +1872,6 @@ function GalleryTab({ clubId }: { clubId: string }) {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-function PollsTab({ clubId }: { clubId: string }) {
-  const { user } = useAuth();
-  const [optimisticVotes, setOptimisticVotes] = useState<Record<string, number>>({});
-
-  const { data: polls = [], isLoading } = useQuery<(ClubPoll & { voteCounts: number[]; userVote: number | null })[]>({
-    queryKey: ["/api/clubs", clubId, "polls"],
-    queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/polls`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
-
-  const voteMutation = useMutation({
-    mutationFn: async ({ pollId, optionIndex }: { pollId: string; optionIndex: number }) => {
-      const res = await apiRequest("POST", `/api/polls/${pollId}/vote`, { optionIndex });
-      return res.json();
-    },
-    onMutate: ({ pollId, optionIndex }) => {
-      setOptimisticVotes(prev => ({ ...prev, [pollId]: optionIndex }));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
-    },
-    onError: (_err, { pollId }) => {
-      setOptimisticVotes(prev => { const next = { ...prev }; delete next[pollId]; return next; });
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="px-6 py-4 space-y-3">
-        {[1, 2].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
-      </div>
-    );
-  }
-
-  if (polls.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center px-6" data-testid="text-no-polls">
-        <BarChart2 className="w-10 h-10 text-[var(--warm-border)] mb-3" />
-        <p className="text-sm text-muted-foreground">No active polls right now</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="px-6 py-4 space-y-4" data-testid="tab-polls">
-      {polls.map((poll) => {
-        const userVote = optimisticVotes[poll.id] !== undefined ? optimisticVotes[poll.id] : poll.userVote;
-        const hasVoted = userVote !== null && userVote !== undefined;
-        const total = (poll.voteCounts || []).reduce((a, b) => a + b, 0);
-
-        return (
-          <div key={poll.id} className="p-4 rounded-2xl space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid={`card-poll-${poll.id}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="font-display font-bold text-sm text-[var(--ink)] flex-1">{poll.question}</div>
-              {!poll.isOpen && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0" style={{ background: "var(--warm-border)", color: "var(--muted-warm)" }}>Closed</span>
-              )}
-            </div>
-            <div className="space-y-2">
-              {(poll.options || []).map((opt, i) => {
-                const count = poll.voteCounts?.[i] ?? 0;
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                const isChosen = hasVoted && userVote === i;
-                const showResults = hasVoted || !poll.isOpen;
-
-                if (showResults) {
-                  return (
-                    <div key={i} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className={`font-medium ${isChosen ? "text-[var(--terra)]" : "text-[var(--ink)]"}`}>{opt}{isChosen && " ✓"}</span>
-                        <span className="text-muted-foreground">{pct}% · {count}</span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--warm-border)" }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${pct}%`, background: isChosen ? "var(--terra)" : "var(--ink)" }}
-                        />
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <button
-                    key={i}
-                    onClick={() => user && voteMutation.mutate({ pollId: poll.id, optionIndex: i })}
-                    disabled={!poll.isOpen || voteMutation.isPending}
-                    className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all active:scale-[0.98] disabled:opacity-60"
-                    style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
-                    data-testid={`button-vote-${poll.id}-${i}`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="text-[10px] text-muted-foreground">{total} vote{total !== 1 ? "s" : ""} · {poll.isOpen ? "Open" : "Closed"}</div>
-          </div>
-        );
-      })}
     </div>
   );
 }

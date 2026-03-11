@@ -7,7 +7,7 @@ import { useLocation, useSearch, Link } from "wouter";
 import { BottomNav } from "@/components/bottom-nav";
 import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
-import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement, ClubPoll } from "@shared/schema";
+import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement } from "@shared/schema";
 
 export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
@@ -15,7 +15,7 @@ export default function Organizer() {
   const searchString = useSearch();
   const urlTab = new URLSearchParams(searchString).get("tab") as "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements" | null;
   const [activeTab, setActiveTab] = useState<"overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements">(urlTab || "overview");
-  const [contentInitialSection, setContentInitialSection] = useState<"faqs" | "schedule" | "moments" | "polls">("faqs");
+  const [contentInitialSection, setContentInitialSection] = useState<"faqs" | "schedule" | "moments">("faqs");
   const [selectedClubIndex, setSelectedClubIndex] = useState(0);
 
   const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
@@ -149,7 +149,7 @@ export default function Organizer() {
   );
 }
 
-function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { club: Club; user: any; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void; setContentInitialSection?: (s: "faqs" | "schedule" | "moments" | "polls") => void }) {
+function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { club: Club; user: any; setActiveTab: (tab: "overview" | "requests" | "insights" | "events" | "content" | "edit" | "announcements") => void; setContentInitialSection?: (s: "faqs" | "schedule" | "moments") => void }) {
   const { toast } = useToast();
   const healthColors: Record<string, string> = {
     green: "text-[var(--green-accent)] bg-[var(--green-accent)]/10",
@@ -1611,14 +1611,13 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
   );
 }
 
-function ContentManager({ clubId, initialSection = "faqs" }: { clubId: string; initialSection?: "faqs" | "schedule" | "moments" | "polls" }) {
-  const [activeSection, setActiveSection] = useState<"faqs" | "schedule" | "moments" | "polls">(initialSection);
+function ContentManager({ clubId, initialSection = "faqs" }: { clubId: string; initialSection?: "faqs" | "schedule" | "moments" }) {
+  const [activeSection, setActiveSection] = useState<"faqs" | "schedule" | "moments">(initialSection);
 
-  const sections: { key: "faqs" | "schedule" | "moments" | "polls"; label: string }[] = [
+  const sections: { key: "faqs" | "schedule" | "moments"; label: string }[] = [
     { key: "faqs", label: "FAQs" },
     { key: "schedule", label: "Schedule" },
     { key: "moments", label: "Moments" },
-    { key: "polls", label: "Polls" },
   ];
 
   return (
@@ -1644,7 +1643,6 @@ function ContentManager({ clubId, initialSection = "faqs" }: { clubId: string; i
       {activeSection === "faqs" && <FaqsManager clubId={clubId} />}
       {activeSection === "schedule" && <ScheduleManager clubId={clubId} />}
       {activeSection === "moments" && <MomentsManager clubId={clubId} />}
-      {activeSection === "polls" && <PollsManager clubId={clubId} />}
     </div>
   );
 }
@@ -2419,189 +2417,6 @@ function AnnouncementsManager({ clubId }: { clubId: string }) {
               </div>
             </div>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PollsManager({ clubId }: { clubId: string }) {
-  const { toast } = useToast();
-  const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState(["", ""]);
-
-  const { data: polls = [], isLoading } = useQuery<(ClubPoll & { voteCounts: number[]; userVote: number | null })[]>({
-    queryKey: ["/api/organizer/clubs", clubId, "polls"],
-    queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/polls`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: { question: string; options: string[] }) => {
-      const res = await apiRequest("POST", `/api/organizer/clubs/${clubId}/polls`, data);
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Poll created!" });
-      setQuestion("");
-      setOptions(["", ""]);
-      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "polls"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (pollId: string) => {
-      const res = await apiRequest("DELETE", `/api/organizer/clubs/${clubId}/polls/${pollId}`, {});
-      return res;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "polls"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
-    },
-  });
-
-  const closeMutation = useMutation({
-    mutationFn: async (pollId: string) => {
-      const res = await apiRequest("PATCH", `/api/organizer/clubs/${clubId}/polls/${pollId}/close`, {});
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "polls"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "polls"] });
-    },
-  });
-
-  const addOption = () => { if (options.length < 6) setOptions([...options, ""]); };
-  const removeOption = (i: number) => { if (options.length > 2) setOptions(options.filter((_, idx) => idx !== i)); };
-  const setOption = (i: number, val: string) => { const next = [...options]; next[i] = val; setOptions(next); };
-
-  const validOptions = options.map(o => o.trim()).filter(Boolean);
-
-  return (
-    <div className="space-y-5" data-testid="section-polls-manager">
-      <div className="p-4 rounded-2xl space-y-3" style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}>
-        <div className="flex items-center gap-2 mb-1">
-          <Vote className="w-4 h-4 text-[var(--terra)]" />
-          <h3 className="font-display text-base font-bold text-[var(--ink)]">Create a Poll</h3>
-        </div>
-        <input
-          type="text"
-          placeholder="Ask a question..."
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
-          data-testid="input-poll-question"
-        />
-        <div className="space-y-2">
-          {options.map((opt, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <input
-                type="text"
-                placeholder={`Option ${i + 1}`}
-                value={opt}
-                onChange={(e) => setOption(i, e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
-                data-testid={`input-poll-option-${i}`}
-              />
-              {options.length > 2 && (
-                <button onClick={() => removeOption(i)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground" style={{ background: "rgba(239,68,68,0.08)" }}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        {options.length < 6 && (
-          <button
-            onClick={addOption}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--terra)] transition-colors"
-            data-testid="button-add-poll-option"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add option
-          </button>
-        )}
-        <button
-          onClick={() => createMutation.mutate({ question, options: validOptions })}
-          disabled={createMutation.isPending || !question.trim() || validOptions.length < 2}
-          className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold disabled:opacity-50"
-          data-testid="button-create-poll"
-        >
-          {createMutation.isPending ? "Creating..." : "Create Poll"}
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2].map(i => <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: "var(--warm-border)" }} />)}
-        </div>
-      ) : polls.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-sm" data-testid="text-no-polls">
-          No polls yet. Create one to engage your members!
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {polls.map((poll) => {
-            const total = (poll.voteCounts || []).reduce((a, b) => a + b, 0);
-            return (
-              <div key={poll.id} className={`p-4 rounded-2xl space-y-3 ${!poll.isOpen ? "opacity-70" : ""}`} style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }} data-testid={`card-poll-${poll.id}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-display font-bold text-sm text-[var(--ink)]">{poll.question}</span>
-                      {!poll.isOpen && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: "var(--warm-border)", color: "var(--muted-warm)" }}>Closed</span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">{total} vote{total !== 1 ? "s" : ""}</div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {poll.isOpen && (
-                      <button
-                        onClick={() => closeMutation.mutate(poll.id)}
-                        disabled={closeMutation.isPending}
-                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-[var(--terra)] transition-colors"
-                        style={{ background: "var(--terra-pale)", border: "1px solid rgba(196,98,45,0.3)" }}
-                        data-testid={`button-close-poll-${poll.id}`}
-                      >
-                        Close
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteMutation.mutate(poll.id)}
-                      disabled={deleteMutation.isPending}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-destructive"
-                      style={{ background: "rgba(239,68,68,0.08)" }}
-                      data-testid={`button-delete-poll-${poll.id}`}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  {(poll.options || []).map((opt, i) => {
-                    const count = poll.voteCounts?.[i] ?? 0;
-                    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                    return (
-                      <div key={i} className="space-y-0.5">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-[var(--ink)]">{opt}</span>
-                          <span className="font-semibold text-[var(--muted-warm)]">{pct}%</span>
-                        </div>
-                        <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--warm-border)" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "var(--terra)" }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
     </div>
