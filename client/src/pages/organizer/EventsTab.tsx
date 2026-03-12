@@ -1,0 +1,308 @@
+import { useState, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+import { ImageUpload } from "@/components/image-upload";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, Loader2, Pencil, Clock, X, AlertTriangle, Link2, Zap, BarChart3, Download, Repeat, UserCheck, Clock3, Ban, ChevronDown, ChevronUp } from "lucide-react";
+import type { Event, EventRsvp } from "@shared/schema";
+
+type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
+type AttendanceRow = { userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: string | null; phone: string | null };
+type AttendanceReport = { attendees: AttendanceRow[]; goingCount: number; waitlistCount: number; checkedInCount: number };
+
+function RecurringEventGroup({ group, clubId, onDuplicate }: { group: { key: string; rule: string; label: string; events: (Event & { rsvpCount: number })[] }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] overflow-hidden" style={{ borderRadius: 18 }} data-testid={`recurring-group-${group.key}`}>
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-3 p-4 text-left" data-testid={`button-toggle-group-${group.key}`}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}><Repeat className="w-4 h-4 text-[var(--terra)]" /></div>
+        <div className="flex-1 min-w-0"><span className="font-semibold text-sm text-foreground block truncate">{group.label}</span></div>
+        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+      </button>
+      {expanded && <div className="border-t border-[var(--warm-border)] space-y-0">{group.events.map((event) => <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={onDuplicate} />)}</div>}
+    </div>
+  );
+}
+
+function EventTodayBanner({ event }: { event: Event & { rsvpCount: number } }) {
+  const d = new Date(event.startsAt);
+  const { toast } = useToast();
+  return (
+    <div className="relative overflow-hidden p-5" style={{ borderRadius: 18, background: "linear-gradient(135deg, var(--ink) 0%, #2d1810 100%)" }} data-testid={`banner-event-today-${event.id}`}>
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--terra)] text-white text-[10px] font-bold uppercase tracking-wider"><Zap className="w-3 h-3" />Today</div>
+      <div className="mb-4">
+        <h3 className="font-display text-lg font-bold text-white pr-16" data-testid={`text-today-event-title-${event.id}`}>{event.title}</h3>
+        <div className="flex items-center gap-3 text-xs text-white/60 mt-2 flex-wrap">
+          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{event.locationText}</span>
+          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{event.rsvpCount}/{event.maxCapacity} RSVPs</span>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Link href={`/scan/${event.id}`} className="flex-1 flex items-center justify-center gap-2 bg-[var(--terra)] text-white rounded-xl py-3.5 text-sm font-bold" data-testid={`button-today-checkin-${event.id}`}><QrCode className="w-5 h-5" />Check In Attendees</Link>
+        <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/scan/${event.id}`).then(() => toast({ title: "Scanner link copied!" }))} className="flex items-center justify-center gap-1.5 px-4 rounded-xl text-xs font-semibold bg-white/10 text-white/80" data-testid={`button-today-copy-link-${event.id}`}><Link2 className="w-3.5 h-3.5" />Share</button>
+      </div>
+    </div>
+  );
+}
+
+function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount: number }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
+  const [showAttendees, setShowAttendees] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const { toast } = useToast();
+  const [editTitle, setEditTitle] = useState(event.title);
+  const [editDescription, setEditDescription] = useState(event.description || "");
+  const [editStartsAt, setEditStartsAt] = useState(() => {
+    const d = new Date(event.startsAt);
+    const p = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  });
+  const [editLocationText, setEditLocationText] = useState(event.locationText);
+  const [editMaxCapacity, setEditMaxCapacity] = useState(String(event.maxCapacity));
+  const [editCoverImageUrl, setEditCoverImageUrl] = useState<string | null>(event.coverImageUrl ?? null);
+  const [editError, setEditError] = useState("");
+  const d = new Date(event.startsAt);
+  const isPast = d < new Date();
+  const isCancelled = event.isCancelled;
+
+  const { data: attendeeData } = useQuery<{ attendees: AttendeeData[]; checkedInCount: number; totalRsvps: number }>({
+    queryKey: ["/api/events", event.id, "attendees"],
+    queryFn: async () => { const res = await fetch(`/api/events/${event.id}/attendees`, { credentials: "include" }); if (!res.ok) return { attendees: [], checkedInCount: 0, totalRsvps: 0 }; return res.json(); },
+    enabled: showAttendees,
+  });
+
+  const { data: reportData, isLoading: reportLoading } = useQuery<AttendanceReport>({
+    queryKey: ["/api/organizer/events", event.id, "attendance"],
+    queryFn: async () => { const res = await fetch(`/api/organizer/events/${event.id}/attendance`, { credentials: "include" }); if (!res.ok) return { attendees: [], goingCount: 0, waitlistCount: 0, checkedInCount: 0 }; return res.json(); },
+    enabled: showReport,
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async (data: any) => { const res = await apiRequest("PATCH", `/api/clubs/${clubId}/events/${event.id}`, data); return res.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] }); queryClient.invalidateQueries({ queryKey: ["/api/events"] }); setShowEditForm(false); setEditError(""); },
+    onError: (err: Error) => setEditError(err.message || "Failed to update event"),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => { await apiRequest("DELETE", `/api/clubs/${clubId}/events/${event.id}`); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] }); queryClient.invalidateQueries({ queryKey: ["/api/events"] }); setShowCancelConfirm(false); },
+  });
+
+  const checkedInCount = attendeeData?.checkedInCount ?? 0;
+  const totalRsvps = attendeeData?.totalRsvps ?? event.rsvpCount;
+  const attendees = attendeeData?.attendees ?? [];
+
+  const handleDownloadCsv = () => {
+    if (!reportData) return;
+    const rows = reportData.attendees.map(a => [`"${a.userName??""}"`, `"${a.phone??""}"`, a.status==="going"?"Going":"Waitlisted", a.checkedIn?"Yes":"No", a.checkedInAt?new Date(a.checkedInAt).toLocaleString("en-IN"):"—"].join(","));
+    const csv = [["Name","Phone","RSVP","Checked In","Time"].join(","), ...rows].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    Object.assign(document.createElement("a"), { href: url, download: `${event.title.replace(/\s+/g,"_")}_attendance.csv` }).click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className={`bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 ${isCancelled||isPast?"opacity-50":""}`} style={{ borderRadius: 18 }} data-testid={`event-card-${event.id}`}>
+      <div className="flex items-center gap-2 flex-wrap mb-1">
+        <span className="font-semibold text-sm text-foreground">{event.title}</span>
+        {isCancelled && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-destructive/15 text-destructive" data-testid={`badge-cancelled-${event.id}`}><Ban className="w-2.5 h-2.5"/>Cancelled</span>}
+        {!isCancelled && isPast && <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] rounded-md text-muted-foreground">Past</span>}
+        {event.recurrenceRule && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md" style={{background:'rgba(196,98,45,0.1)',color:'var(--terra)'}} data-testid={`badge-recurring-${event.id}`}><Repeat className="w-2.5 h-2.5"/>{event.recurrenceRule==="weekly"?"Weekly":event.recurrenceRule==="biweekly"?"Bi-weekly":"Monthly"}</span>}
+      </div>
+
+      {showCancelConfirm && (
+        <div className="mb-3 p-3 rounded-md bg-destructive/10 border border-destructive/30" data-testid={`confirm-cancel-event-${event.id}`}>
+          <div className="flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4 text-destructive"/><span className="text-sm font-semibold text-destructive">Cancel this event?</span></div>
+          <p className="text-xs text-muted-foreground mb-3">This will mark the event as cancelled.</p>
+          <div className="flex gap-2">
+            <button onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending} className="flex-1 py-2 rounded-md text-xs font-semibold bg-destructive text-white" data-testid={`button-confirm-cancel-${event.id}`}>{cancelMutation.isPending?"Cancelling...":"Yes, Cancel Event"}</button>
+            <button onClick={() => setShowCancelConfirm(false)} className="flex-1 py-2 rounded-md text-xs font-semibold bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground" data-testid={`button-dismiss-cancel-${event.id}`}>Keep Event</button>
+          </div>
+        </div>
+      )}
+
+      {showEditForm && (
+        <div className="mb-3 p-3 rounded-md bg-[var(--cream)] border-[1.5px] border-[var(--warm-border)] space-y-3" data-testid={`form-edit-event-${event.id}`}>
+          <ImageUpload value={editCoverImageUrl} onChange={setEditCoverImageUrl} label="Event Cover Photo" />
+          <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Title</label><input value={editTitle} onChange={e=>setEditTitle(e.target.value)} className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid={`input-edit-event-title-${event.id}`}/></div>
+          <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Description</label><textarea value={editDescription} onChange={e=>setEditDescription(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none" data-testid={`input-edit-event-desc-${event.id}`}/></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date & Time</label><input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid={`input-edit-event-datetime-${event.id}`}/></div>
+            <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Capacity</label><input type="number" value={editMaxCapacity} onChange={e=>setEditMaxCapacity(e.target.value)} min="2" max="500" className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid={`input-edit-event-capacity-${event.id}`}/></div>
+          </div>
+          <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label><input value={editLocationText} onChange={e=>setEditLocationText(e.target.value)} className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--warm-white)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid={`input-edit-event-location-${event.id}`}/></div>
+          {editError && <p className="text-xs text-destructive font-medium text-center" data-testid={`text-edit-event-error-${event.id}`}>{editError}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => editMutation.mutate({title:editTitle.trim(),description:editDescription.trim(),startsAt:editStartsAt,locationText:editLocationText.trim(),maxCapacity:parseInt(editMaxCapacity)||20,coverImageUrl:editCoverImageUrl})} disabled={editMutation.isPending||!editTitle.trim()||!editStartsAt||!editLocationText.trim()} className="flex-1 bg-[var(--terra)] text-white rounded-md py-2.5 text-sm font-semibold disabled:opacity-50" data-testid={`button-submit-edit-event-${event.id}`}>{editMutation.isPending?"Saving...":"Save Changes"}</button>
+            <button onClick={() => {setShowEditForm(false);setEditError("");}} className="px-4 py-2.5 rounded-md text-sm font-semibold bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] text-muted-foreground" data-testid={`button-cancel-edit-event-${event.id}`}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {event.description && <p className="text-xs text-muted-foreground mb-2">{event.description}</p>}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/>{d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})} &middot; {d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</span>
+        <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/>{event.locationText}</span>
+        <span className="flex items-center gap-1"><Users className="w-3 h-3"/>{event.rsvpCount}/{event.maxCapacity}</span>
+      </div>
+
+      {!isCancelled && !isPast && (
+        <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
+          <div className="flex gap-2 mb-2">
+            <Link href={`/scan/${event.id}`} className="flex-1 flex items-center justify-center gap-2 bg-[var(--terra)] text-white rounded-xl py-2.5 text-sm font-bold" data-testid={`button-scan-attendees-${event.id}`}><QrCode className="w-4 h-4"/>Scan & Check In</Link>
+            <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/scan/${event.id}`).then(()=>toast({title:"Scanner link copied!"})).catch(()=>toast({title:"Could not copy link",variant:"destructive"}))} className="flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-semibold bg-[var(--terra-pale)] text-[var(--terra)]" data-testid={`button-copy-scan-link-${event.id}`}><Link2 className="w-3.5 h-3.5"/></button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button onClick={()=>setShowEditForm(!showEditForm)} className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground" data-testid={`button-edit-event-${event.id}`}><Pencil className="w-2.5 h-2.5"/>Edit</button>
+            <button onClick={()=>onDuplicate(event)} className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground" data-testid={`button-duplicate-${event.id}`}><Copy className="w-2.5 h-2.5"/>Duplicate</button>
+            <button onClick={()=>setShowCancelConfirm(true)} className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-destructive/70" data-testid={`button-cancel-event-${event.id}`}><Ban className="w-2.5 h-2.5"/>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {!isCancelled && isPast && (
+        <div className="mt-3 pt-3 border-t border-[var(--warm-border)]">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold text-foreground" data-testid={`text-attendance-stats-${event.id}`}>{checkedInCount} of {totalRsvps} attended</span>
+            <span className="text-xs font-bold text-[var(--terra)]">{totalRsvps>0?Math.round((checkedInCount/totalRsvps)*100):0}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-[var(--cream)] overflow-hidden mb-2"><div className="h-full rounded-full transition-all" style={{width:`${totalRsvps>0?Math.round((checkedInCount/totalRsvps)*100):0}%`,background:"var(--terra)"}}/></div>
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            <button onClick={()=>setShowReport(p=>!p)} className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]" data-testid={`button-view-report-${event.id}`}><BarChart3 className="w-2.5 h-2.5"/>{showReport?"Hide Report":"View Report"}</button>
+            <button onClick={()=>onDuplicate(event)} className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground" data-testid={`button-duplicate-${event.id}`}><Copy className="w-2.5 h-2.5"/>Duplicate</button>
+          </div>
+          {showReport && (
+            <div className="mt-2 p-3 rounded-xl bg-[var(--cream)] border border-[var(--warm-border)] space-y-3" data-testid={`section-report-${event.id}`}>
+              {reportLoading ? <div className="flex items-center justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-[var(--terra)]"/></div> : (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap" data-testid={`report-summary-${event.id}`}>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]"><Users className="w-3 h-3 text-muted-foreground"/><span className="text-[11px] font-semibold">{reportData?.goingCount??0} Going</span></div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--terra-pale)] border border-[rgba(196,98,45,0.2)]"><UserCheck className="w-3 h-3" style={{color:"var(--terra)"}}/><span className="text-[11px] font-semibold" style={{color:"var(--terra)"}}>{reportData?.checkedInCount??0} Checked In</span></div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]"><Clock3 className="w-3 h-3 text-muted-foreground"/><span className="text-[11px] font-semibold text-muted-foreground">{reportData?.waitlistCount??0} Waitlisted</span></div>
+                  </div>
+                  {(reportData?.attendees.length??0)>0 ? (
+                    <div className="overflow-x-auto" data-testid={`report-table-${event.id}`}>
+                      <table className="w-full text-[11px]">
+                        <thead><tr className="border-b border-[var(--warm-border)]"><th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Name</th><th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Status</th><th className="text-left py-1.5 font-semibold text-muted-foreground">Checked In</th></tr></thead>
+                        <tbody>{reportData!.attendees.map((a,i)=>(<tr key={i} className="border-b border-[var(--warm-border)] last:border-0" data-testid={`report-row-${event.id}-${i}`}><td className="py-1.5 pr-3 font-medium">{a.userName??"—"}</td><td className="py-1.5 pr-3"><span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${a.status==="going"?"bg-green-100 text-green-700":"bg-orange-100 text-orange-700"}`}>{a.status==="going"?"Going":"Waitlisted"}</span></td><td className="py-1.5">{a.checkedIn?<span className="text-[var(--terra)] font-semibold">{a.checkedInAt?new Date(a.checkedInAt).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"Yes"}</span>:<span className="text-muted-foreground">—</span>}</td></tr>))}</tbody>
+                      </table>
+                    </div>
+                  ) : <p className="text-[11px] text-muted-foreground text-center py-2">No RSVPs for this event</p>}
+                  <button onClick={handleDownloadCsv} disabled={!reportData||reportData.attendees.length===0} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-[var(--warm-white)] border border-[var(--warm-border)] disabled:opacity-40" data-testid={`button-download-csv-${event.id}`}><Download className="w-3.5 h-3.5"/>Download CSV</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isCancelled && <div className="mt-3 pt-3 border-t border-[var(--warm-border)]"><button onClick={()=>onDuplicate(event)} className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground" data-testid={`button-duplicate-${event.id}`}><Copy className="w-2.5 h-2.5"/>Duplicate</button></div>}
+
+      {!isCancelled && (
+        <div className="mt-2">
+          <button onClick={()=>setShowAttendees(!showAttendees)} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground" data-testid={`button-toggle-attendees-${event.id}`}><Users className="w-3 h-3"/><span>{showAttendees?"Hide":"Show"} attendees ({totalRsvps})</span></button>
+          {showAttendees && (
+            <div className="mt-2 space-y-1" data-testid={`list-attendees-${event.id}`}>
+              {attendees.length===0 ? <div className="text-xs text-muted-foreground py-2" data-testid={`text-no-attendees-${event.id}`}>No attendees yet</div> : attendees.map((a)=>(
+                <div key={a.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md" data-testid={`attendee-row-${a.id}`}>
+                  {a.checkedIn?<Check className="w-3.5 h-3.5 text-[var(--terra)]" data-testid={`icon-checked-in-${a.id}`}/>:<Check className="w-3.5 h-3.5 text-muted-foreground/30" data-testid={`icon-not-checked-in-${a.id}`}/>}
+                  <span className="text-xs text-foreground" data-testid={`text-attendee-name-${a.id}`}>{a.userName||"Anonymous"}</span>
+                  {a.checkedIn&&<span className="text-[10px] text-[var(--terra)] ml-auto" data-testid={`text-checkin-status-${a.id}`}>Checked in</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function EventsTab({ clubId }: { clubId: string }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [locationText, setLocationText] = useState("");
+  const [maxCapacity, setMaxCapacity] = useState("20");
+  const [recurrenceRule, setRecurrenceRule] = useState("none");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [createError, setCreateError] = useState("");
+  const [duplicatingFrom, setDuplicatingFrom] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const { data: events = [], isLoading } = useQuery<(Event & { rsvpCount: number })[]>({
+    queryKey: ["/api/clubs", clubId, "events"],
+    queryFn: async () => { const res = await fetch(`/api/clubs/${clubId}/events`); if (!res.ok) return []; return res.json(); },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => { const res = await apiRequest("POST", `/api/clubs/${clubId}/events`, data); return res.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] }); queryClient.invalidateQueries({ queryKey: ["/api/events"] }); resetForm(); setShowCreate(false); },
+    onError: (err: Error) => setCreateError(err.message || "Failed to create event"),
+  });
+
+  const handleDuplicate = (event: Event & { rsvpCount: number }) => {
+    setTitle(event.title); setDescription(event.description||""); setLocationText(event.locationText);
+    setMaxCapacity(String(event.maxCapacity)); setStartsAt(""); setCreateError(""); setDuplicatingFrom(event.title); setShowCreate(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  };
+
+  const resetForm = () => { setTitle(""); setDescription(""); setStartsAt(""); setLocationText(""); setMaxCapacity("20"); setRecurrenceRule("none"); setCoverImageUrl(null); setCreateError(""); setDuplicatingFrom(null); };
+
+  if (isLoading) return <div className="space-y-3"><div className="h-12 rounded-md animate-pulse" style={{background:"var(--warm-white)",border:"1.5px solid var(--warm-border)"}}/>{[1,2].map(i=><div key={i} className="h-32 rounded-[18px] animate-pulse" style={{background:"var(--warm-white)",border:"1.5px solid var(--warm-border)"}}/>)}</div>;
+
+  return (
+    <div className="space-y-4" data-testid="section-organizer-events">
+      <button onClick={() => { if(showCreate){resetForm();setShowCreate(false);}else{resetForm();setShowCreate(true);} }} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-create-event">{showCreate?"Cancel":"+ Create Event"}</button>
+
+      {showCreate && (
+        <div ref={formRef} className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] p-4 space-y-3" style={{ borderRadius: 18 }} data-testid="form-create-event">
+          {duplicatingFrom && <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-[var(--terra-pale)] border border-[rgba(196,98,45,0.3)]" data-testid="banner-duplicating"><div className="flex items-center gap-2 min-w-0"><Copy className="w-3.5 h-3.5 text-[var(--terra)] shrink-0"/><span className="text-xs font-medium text-[var(--terra)] truncate">Duplicating: {duplicatingFrom}</span></div><button onClick={resetForm} className="text-xs text-muted-foreground hover:text-foreground shrink-0" data-testid="button-clear-duplicate">Clear</button></div>}
+          <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Event Title</label><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Weekend Trek to Talakona" className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid="input-event-title"/></div>
+          <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Description</label><textarea value={description} onChange={e=>setDescription(e.target.value)} rows={2} placeholder="What's this event about?" className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30 resize-none" data-testid="input-event-desc"/></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date & Time</label><input type="datetime-local" value={startsAt} onChange={e=>setStartsAt(e.target.value)} className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid="input-event-datetime"/></div>
+            <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Max Capacity</label><input type="number" value={maxCapacity} onChange={e=>setMaxCapacity(e.target.value)} min="2" max="500" className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid="input-event-capacity"/></div>
+          </div>
+          <div><label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label><input value={locationText} onChange={e=>setLocationText(e.target.value)} placeholder="Sri Venkateswara University Ground" className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30" data-testid="input-event-location"/></div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block flex items-center gap-1.5"><Repeat className="w-3 h-3"/>Repeat</label>
+            <div className="flex gap-2 flex-wrap">{[["none","Once"],["weekly","Weekly"],["biweekly","Bi-weekly"],["monthly","Monthly"]].map(([val,label])=><button key={val} type="button" onClick={()=>setRecurrenceRule(val)} className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${recurrenceRule===val?"bg-[var(--terra-pale)] text-[var(--terra)] border-[rgba(196,98,45,0.4)]":"bg-[var(--warm-white)] border-[var(--warm-border)] text-muted-foreground"}`} data-testid={`button-recurrence-${val}`}>{label}</button>)}</div>
+            {recurrenceRule!=="none"&&<p className="text-[11px] text-muted-foreground mt-1.5">We'll create 4 instances automatically</p>}
+          </div>
+          <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} label="Cover Photo (optional)"/>
+          {createError&&<p className="text-xs text-destructive font-medium text-center" data-testid="text-event-error">{createError}</p>}
+          <button onClick={()=>{if(!title.trim()||!startsAt||!locationText.trim())return;createMutation.mutate({title:title.trim(),description:description.trim(),startsAt,locationText:locationText.trim(),maxCapacity:parseInt(maxCapacity)||20,...(recurrenceRule!=="none"?{recurrenceRule}:{}),...(coverImageUrl?{coverImageUrl}:{})});}} disabled={createMutation.isPending||!title.trim()||!startsAt||!locationText.trim()} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold disabled:opacity-50" data-testid="button-submit-event">{createMutation.isPending?"Creating...":"Create Event"}</button>
+        </div>
+      )}
+
+      {events.length===0 ? <div className="text-center py-8 text-muted-foreground" data-testid="text-no-events">No events yet. Create one to engage your members!</div> : (
+        <div className="space-y-2">{(()=>{
+          const now=new Date(),todayStr=now.toDateString();
+          const todayEvents=events.filter(e=>!e.isCancelled&&new Date(e.startsAt).toDateString()===todayStr);
+          const otherEvents=events.filter(e=>e.isCancelled||new Date(e.startsAt).toDateString()!==todayStr);
+          const grouped: { key: string; rule: string; label: string; events: typeof otherEvents }[]=[];
+          const standalone: typeof otherEvents=[];
+          const processed=new Set<string>();
+          for(const ev of otherEvents){
+            if(processed.has(ev.id))continue;
+            if(ev.recurrenceRule){
+              const siblings=otherEvents.filter(e=>e.title===ev.title&&e.recurrenceRule===ev.recurrenceRule&&!processed.has(e.id));
+              if(siblings.length>1){
+                const ruleLabel=ev.recurrenceRule==="weekly"?"Weekly":ev.recurrenceRule==="biweekly"?"Bi-weekly":"Monthly";
+                grouped.push({key:`${ev.title}__${ev.recurrenceRule}`,rule:ev.recurrenceRule,label:`${ev.title} — ${ruleLabel} · ${siblings.length} instances`,events:siblings.sort((a,b)=>new Date(a.startsAt).getTime()-new Date(b.startsAt).getTime())});
+                siblings.forEach(s=>processed.add(s.id));continue;
+              }
+            }
+            standalone.push(ev);processed.add(ev.id);
+          }
+          return (<>{todayEvents.map(event=><EventTodayBanner key={`today-${event.id}`} event={event}/>)}{grouped.map(group=><RecurringEventGroup key={group.key} group={group} clubId={clubId} onDuplicate={handleDuplicate}/>)}{standalone.map(event=><EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate}/>)}</>);
+        })()}</div>
+      )}
+    </div>
+  );
+}
