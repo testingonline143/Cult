@@ -1330,7 +1330,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
     const rows = reportData.attendees.map(a => [
       a.userName ?? "—",
       a.phone ?? "—",
-      a.status === "going" ? "Going" : "Waitlist",
+      a.status === "going" ? "Going" : "Waitlisted",
       a.checkedIn ? "Yes" : "No",
       a.checkedInAt ? new Date(a.checkedInAt).toLocaleString("en-IN") : "—",
     ]);
@@ -1684,7 +1684,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
                               <td className="py-1.5 pr-3 font-medium text-foreground">{a.userName ?? "—"}</td>
                               <td className="py-1.5 pr-3">
                                 <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${a.status === "going" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                                  {a.status === "going" ? "Going" : "Waitlist"}
+                                  {a.status === "going" ? "Going" : "Waitlisted"}
                                 </span>
                               </td>
                               <td className="py-1.5">

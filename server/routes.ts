@@ -2602,7 +2602,7 @@ export async function registerRoutes(
       }
       const attendees = await storage.getEventAttendanceReport(event.id, club.id);
       const goingCount = attendees.filter(a => a.status === "going").length;
-      const waitlistCount = attendees.filter(a => a.status === "waitlist").length;
+      const waitlistCount = attendees.filter(a => a.status === "waitlisted").length;
       const checkedInCount = attendees.filter(a => a.checkedIn === true).length;
       res.json({ attendees, goingCount, waitlistCount, checkedInCount });
     } catch (err) {
