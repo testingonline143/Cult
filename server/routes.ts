@@ -56,23 +56,6 @@ function requireClubManager(clubIdParam = "clubId"): RequestHandler {
   };
 }
 
-function requireClubCreator(clubIdParam = "clubId"): RequestHandler {
-  return async (req: any, res, next) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) return res.status(401).json({ message: "Unauthorized" });
-      const clubId = req.params[clubIdParam];
-      const club = await storage.getClub(clubId);
-      if (!club || club.creatorUserId !== userId) {
-        return res.status(403).json({ message: "Forbidden: creator only" });
-      }
-      next();
-    } catch (err) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  };
-}
-
 function requireRole(...roles: string[]): RequestHandler {
   return async (req: any, res, next) => {
     try {
@@ -513,7 +496,7 @@ export async function registerRoutes(
   app.get("/api/organizer/my-club", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const clubs = await storage.getClubsByCreator(userId);
+      const clubs = await storage.getClubsForOrganiser(userId);
       if (clubs.length === 0) {
         return res.status(404).json({ message: "No club found" });
       }
@@ -745,7 +728,8 @@ export async function registerRoutes(
       if (!club) {
         return res.status(404).json({ success: false, message: "Club not found" });
       }
-      if (club.creatorUserId !== userId) {
+      const isManager = await storage.isClubManager(club.id, userId);
+      if (!isManager) {
         return res.status(403).json({ success: false, message: "Not authorized for this club" });
       }
       const recurrenceRule = req.body.recurrenceRule && req.body.recurrenceRule !== "none" ? req.body.recurrenceRule : null;
@@ -804,8 +788,8 @@ export async function registerRoutes(
         return res.status(404).json({ success: false, message: "Event not found" });
       }
       const club = await storage.getClub(event.clubId);
-      const isClubCreator = club && club.creatorUserId === userId;
-      if (!isClubCreator) {
+      const isManager = club && await storage.isClubManager(club.id, userId);
+      if (!isManager) {
         const isMember = await storage.hasUserJoinedClub(event.clubId, userId);
         if (!isMember) {
           return res.status(403).json({ success: false, message: "You must be an approved member of this club to RSVP. Join the club first!" });
@@ -1059,7 +1043,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const { shortDesc, fullDesc, schedule, location, healthStatus, highlights, organizerName, whatsappNumber, joinQuestion1, joinQuestion2 } = req.body;
@@ -1149,7 +1133,7 @@ export async function registerRoutes(
         return res.status(404).json({ success: false, message: "Event not found" });
       }
       const club = await storage.getClub(event.clubId);
-      if (!club || club.creatorUserId !== organizerUserId) {
+      if (!club || !(await storage.isClubManager(club.id, organizerUserId))) {
         return res.status(403).json({ success: false, message: "Only the event organizer can scan check-ins" });
       }
       if (rsvp.checkedIn) {
@@ -1182,7 +1166,7 @@ export async function registerRoutes(
         return res.status(404).json({ success: false, message: "Event not found" });
       }
       const club = await storage.getClub(event.clubId);
-      if (!club || club.creatorUserId !== organizerUserId) {
+      if (!club || !(await storage.isClubManager(club.id, organizerUserId))) {
         return res.status(403).json({ success: false, message: "Only the event organizer can manually check in attendees" });
       }
       if (rsvp.checkedIn) {
@@ -1204,7 +1188,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Event not found" });
       }
       const club = await storage.getClub(event.clubId);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Only the club organizer can view attendance" });
       }
       const attendees = await storage.getEventAttendees(req.params.id);
@@ -1235,7 +1219,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Event not found" });
       }
       const club = await storage.getClub(event.clubId);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Only the club organizer can view attendees" });
       }
       const attendees = await storage.getEventAttendees(req.params.id);
@@ -1411,7 +1395,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const { question, answer } = req.body;
@@ -1430,7 +1414,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const { question, answer } = req.body;
@@ -1450,7 +1434,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const existingFaqs = await storage.getClubFaqs(req.params.id);
@@ -1479,7 +1463,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const { dayOfWeek, startTime, endTime, activity, location } = req.body;
@@ -1498,7 +1482,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const schedule = await storage.getClubSchedule(req.params.id);
@@ -1518,7 +1502,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const schedule = await storage.getClubSchedule(req.params.id);
@@ -1548,11 +1532,10 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
       if (!club) return res.status(404).json({ message: "Club not found" });
-      const isCreator = club.creatorUserId === userId;
-      const isCoOrganiser = Array.isArray(club.coOrganiserUserIds) && club.coOrganiserUserIds.includes(userId);
-      const joinStatus = await storage.getUserJoinStatus(req.params.id, userId);
-      const isApprovedMember = joinStatus.status === "approved";
-      if (!isCreator && !isCoOrganiser && !isApprovedMember) {
+      const isManager = await storage.isClubManager(club.id, userId);
+      const joinStatus = !isManager ? await storage.getUserJoinStatus(req.params.id, userId) : null;
+      const isApprovedMember = joinStatus?.status === "approved";
+      if (!isManager && !isApprovedMember) {
         return res.status(403).json({ message: "Only approved club members can post moments" });
       }
       const { caption, emoji, imageUrl } = req.body;
@@ -1574,13 +1557,12 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
       if (!club) return res.status(404).json({ message: "Club not found" });
-      const isCreator = club.creatorUserId === userId;
-      const isCoOrganiser = Array.isArray(club.coOrganiserUserIds) && club.coOrganiserUserIds.includes(userId);
+      const isManager = await storage.isClubManager(club.id, userId);
       const moments = await storage.getClubMoments(req.params.id);
       const moment = moments.find(m => m.id === req.params.momentId);
       if (!moment) return res.status(404).json({ message: "Moment not found in this club" });
       const isMomentAuthor = moment.authorUserId === userId;
-      if (!isCreator && !isCoOrganiser && !isMomentAuthor) {
+      if (!isManager && !isMomentAuthor) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const { caption, emoji } = req.body;
@@ -1600,13 +1582,12 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.id);
       if (!club) return res.status(404).json({ message: "Club not found" });
-      const isCreator = club.creatorUserId === userId;
-      const isCoOrganiser = Array.isArray(club.coOrganiserUserIds) && club.coOrganiserUserIds.includes(userId);
+      const isManager = await storage.isClubManager(club.id, userId);
       const moments = await storage.getClubMoments(req.params.id);
       const moment = moments.find(m => m.id === req.params.momentId);
       if (!moment) return res.status(404).json({ message: "Moment not found in this club" });
       const isMomentAuthor = moment.authorUserId === userId;
-      if (!isCreator && !isCoOrganiser && !isMomentAuthor) {
+      if (!isManager && !isMomentAuthor) {
         return res.status(403).json({ message: "Not authorized" });
       }
       await storage.deleteMoment(req.params.momentId);
@@ -1657,7 +1638,7 @@ export async function registerRoutes(
       const moment = await storage.getMomentById(req.params.momentId);
       if (!moment) return res.status(404).json({ message: "Moment not found" });
       const club = await storage.getClub(moment.clubId);
-      const isOrganiser = club?.creatorUserId === userId;
+      const isOrganiser = club ? await storage.isClubManager(club.id, userId) : false;
       await storage.deleteComment(req.params.commentId, userId, isOrganiser);
       res.json({ success: true });
     } catch (err) {
@@ -1720,7 +1701,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.clubId);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const event = await storage.getEvent(req.params.eventId);
@@ -1751,7 +1732,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const club = await storage.getClub(req.params.clubId);
-      if (!club || club.creatorUserId !== userId) {
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
         return res.status(403).json({ message: "Not authorized" });
       }
       const event = await storage.getEvent(req.params.eventId);
@@ -1973,7 +1954,7 @@ export async function registerRoutes(
 
   // ── CO-ORGANISERS ────────────────────────────────────────────────────────
 
-  app.get("/api/organizer/clubs/:clubId/co-organisers", isAuthenticated, requireClubCreator(), async (req: any, res) => {
+  app.get("/api/organizer/clubs/:clubId/co-organisers", isAuthenticated, requireClubManager(), async (req: any, res) => {
     try {
       const club = await storage.getClub(req.params.clubId);
       if (!club) return res.status(404).json({ message: "Club not found" });
@@ -1990,7 +1971,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/organizer/clubs/:clubId/co-organisers", isAuthenticated, requireClubCreator(), async (req: any, res) => {
+  app.post("/api/organizer/clubs/:clubId/co-organisers", isAuthenticated, requireClubManager(), async (req: any, res) => {
     try {
       const { userId } = req.body;
       if (!userId) return res.status(400).json({ message: "userId is required" });
@@ -2021,7 +2002,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/organizer/clubs/:clubId/co-organisers/:userId", isAuthenticated, requireClubCreator(), async (req: any, res) => {
+  app.delete("/api/organizer/clubs/:clubId/co-organisers/:userId", isAuthenticated, requireClubManager(), async (req: any, res) => {
     try {
       await storage.removeCoOrganiser(req.params.clubId, req.params.userId);
       res.json({ success: true });
