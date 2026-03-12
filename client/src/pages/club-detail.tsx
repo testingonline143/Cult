@@ -1274,7 +1274,7 @@ function MomentsTab({
   const [selectedEmoji, setSelectedEmoji] = useState("");
   const [momentImageUrl, setMomentImageUrl] = useState<string | null>(null);
 
-  const canPost = isOwner || isOrganiser || isMember;
+  const canPost = isOwner || isOrganiser;
 
   const { data: moments = [], isLoading } = useQuery<MomentWithCount[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
