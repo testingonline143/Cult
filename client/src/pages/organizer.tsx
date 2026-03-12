@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera, Globe } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera, Globe } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement } from "@shared/schema";
 
@@ -331,8 +331,6 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
           </div>
         </div>
       )}
-
-      {user?.id === club.creatorUserId && <CoOrganisersCard clubId={club.id} />}
 
       <PublicPageCard club={club} />
     </div>
@@ -2470,119 +2468,6 @@ function AnnouncementsManager({ clubId }: { clubId: string }) {
             </div>
           ))}
         </div>
-      )}
-    </div>
-  );
-}
-
-function CoOrganisersCard({ clubId }: { clubId: string }) {
-  const { toast } = useToast();
-  const [selectedUserId, setSelectedUserId] = useState("");
-
-  const { data: coOrganisers = [] } = useQuery<{ userId: string; name: string; profileImageUrl: string | null }[]>({
-    queryKey: ["/api/organizer/clubs", clubId, "co-organisers"],
-    queryFn: async () => {
-      const res = await fetch(`/api/organizer/clubs/${clubId}/co-organisers`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
-
-  const { data: approvedMembers = [] } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null }[]>({
-    queryKey: ["/api/clubs", clubId, "members"],
-    queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/members`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
-
-  const coOrgIds = new Set(coOrganisers.map(c => c.userId));
-  const eligibleMembers = approvedMembers.filter(m => m.userId && !coOrgIds.has(m.userId));
-
-  const addMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const res = await apiRequest("POST", `/api/organizer/clubs/${clubId}/co-organisers`, { userId });
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Co-organiser added!" });
-      setSelectedUserId("");
-      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "co-organisers"] });
-    },
-    onError: () => toast({ title: "Failed to add co-organiser", variant: "destructive" }),
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const res = await apiRequest("DELETE", `/api/organizer/clubs/${clubId}/co-organisers/${userId}`, {});
-      return res;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", clubId, "co-organisers"] });
-    },
-  });
-
-  return (
-    <div className="p-4 rounded-2xl space-y-4" style={{ background: "var(--warm-white)", border: "1.5px solid rgba(196,98,45,0.25)" }} data-testid="card-co-organisers">
-      <div className="flex items-center gap-2">
-        <Shield className="w-4 h-4 text-[var(--terra)]" />
-        <h3 className="font-display text-base font-bold text-[var(--ink)]">Co-organisers</h3>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: "var(--terra-pale)", color: "var(--terra)" }}>Creator only</span>
-      </div>
-      <p className="text-xs text-muted-foreground">Give trusted members dashboard access to help manage requests, events, and content.</p>
-
-      {coOrganisers.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-2" data-testid="text-no-co-organisers">No co-organisers yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {coOrganisers.map((co) => (
-            <div key={co.userId} className="flex items-center justify-between gap-2 p-2 rounded-xl" style={{ background: "var(--cream)" }} data-testid={`row-co-organiser-${co.userId}`}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: "var(--terra-pale)", color: "var(--terra)" }}>
-                  {co.name.charAt(0).toUpperCase()}
-                </div>
-                <span className="text-sm font-semibold text-[var(--ink)]">{co.name}</span>
-              </div>
-              <button
-                onClick={() => removeMutation.mutate(co.userId)}
-                disabled={removeMutation.isPending}
-                className="text-xs font-semibold text-destructive px-2.5 py-1 rounded-lg transition-colors"
-                style={{ background: "rgba(239,68,68,0.08)" }}
-                data-testid={`button-remove-co-organiser-${co.userId}`}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {eligibleMembers.length > 0 ? (
-        <div className="flex gap-2">
-          <select
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
-            className="flex-1 px-3 py-2.5 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none"
-            data-testid="select-co-organiser-candidate"
-          >
-            <option value="">Select a member...</option>
-            {eligibleMembers.map(m => (
-              <option key={m.userId!} value={m.userId!}>{m.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => selectedUserId && addMutation.mutate(selectedUserId)}
-            disabled={!selectedUserId || addMutation.isPending}
-            className="px-4 py-2.5 rounded-md text-sm font-semibold text-white disabled:opacity-50"
-            style={{ background: "var(--terra)" }}
-            data-testid="button-add-co-organiser"
-          >
-            {addMutation.isPending ? "Adding..." : "Add"}
-          </button>
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground italic">All approved members are already co-organisers or there are no members yet.</p>
       )}
     </div>
   );
