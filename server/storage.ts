@@ -187,6 +187,7 @@ export interface IStorage {
   getClubProposal(id: string): Promise<ClubProposal | undefined>;
   getPendingProposalCount(): Promise<number>;
   getEventAttendanceReport(eventId: string, clubId: string): Promise<{ userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: Date | null; phone: string | null }[]>;
+  getClubMembersEnriched(clubId: string): Promise<{ id: string; userId: string | null; name: string; phone: string; profileImageUrl: string | null; joinedAt: Date | null; isFoundingMember: boolean | null; eventsAttended: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1780,6 +1781,38 @@ export class DatabaseStorage implements IStorage {
   async getPendingProposalCount(): Promise<number> {
     const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(clubProposals).where(eq(clubProposals.status, "pending"));
     return result?.count ?? 0;
+  }
+
+  async getClubMembersEnriched(clubId: string): Promise<{ id: string; userId: string | null; name: string; phone: string; profileImageUrl: string | null; joinedAt: Date | null; isFoundingMember: boolean | null; eventsAttended: number }[]> {
+    const attendanceSubquery = db
+      .select({
+        userId: eventRsvps.userId,
+        count: sql<number>`count(*)::int`.as("count"),
+      })
+      .from(eventRsvps)
+      .innerJoin(events, eq(eventRsvps.eventId, events.id))
+      .where(and(eq(events.clubId, clubId), eq(eventRsvps.checkedIn, true)))
+      .groupBy(eventRsvps.userId)
+      .as("attendance");
+
+    const rows = await db
+      .select({
+        id: joinRequests.id,
+        userId: joinRequests.userId,
+        name: joinRequests.name,
+        phone: joinRequests.phone,
+        profileImageUrl: users.profileImageUrl,
+        joinedAt: joinRequests.createdAt,
+        isFoundingMember: joinRequests.isFoundingMember,
+        eventsAttended: sql<number>`coalesce(${attendanceSubquery.count}, 0)`.as("events_attended"),
+      })
+      .from(joinRequests)
+      .leftJoin(users, eq(joinRequests.userId, users.id))
+      .leftJoin(attendanceSubquery, eq(joinRequests.userId, attendanceSubquery.userId))
+      .where(and(eq(joinRequests.clubId, clubId), eq(joinRequests.status, "approved")))
+      .orderBy(desc(joinRequests.createdAt));
+
+    return rows;
   }
 
   async getEventAttendanceReport(eventId: string, clubId: string): Promise<{ userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: Date | null; phone: string | null }[]> {

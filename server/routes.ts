@@ -1097,7 +1097,7 @@ export async function registerRoutes(
       if (!isManager) {
         return res.status(403).json({ message: "Not authorized" });
       }
-      const members = await storage.getApprovedMembersByClub(req.params.clubId);
+      const members = await storage.getClubMembersEnriched(req.params.clubId);
       res.json(members);
     } catch (err) {
       console.error("Error fetching members:", err);
