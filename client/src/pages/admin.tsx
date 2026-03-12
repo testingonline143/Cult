@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Shield, ShieldAlert, Users, Activity, Ban, BarChart3, Calendar, MapPin,
+  Shield, ShieldAlert, Users, Activity, Ban, Calendar, MapPin,
   Search, CheckCircle2, XCircle, Building2, UserCheck, ArrowLeft,
   TrendingUp, Camera, MessageSquare, Zap, RotateCcw, ChevronRight,
   BarChart2, Megaphone, Download, X, Vote, Send, Copy, Check,
@@ -75,13 +75,6 @@ interface UserDetail {
   joinRequests: { clubName: string; status: string; createdAt: string | null }[];
 }
 
-const TAB_ICONS: Record<string, React.ReactNode> = {
-  analytics: <BarChart3 className="w-[18px] h-[18px]" />,
-  clubs: <Building2 className="w-[18px] h-[18px]" />,
-  users: <Users className="w-[18px] h-[18px]" />,
-  events: <Calendar className="w-[18px] h-[18px]" />,
-  joins: <UserCheck className="w-[18px] h-[18px]" />,
-};
 
 function downloadCSV(filename: string, rows: string[][], headers: string[]) {
   const escape = (v: string) => `"${(v ?? "").toString().replace(/"/g, '""')}"`;
@@ -255,9 +248,9 @@ export default function Admin() {
   return (
     <div className="min-h-screen" style={{ background: "var(--cream)" }}>
       {/* Header */}
-      <div className="sticky top-0 z-40" style={{ background: "var(--ink)", borderBottom: "3px solid var(--terra)" }}>
-        <div className="px-4 pt-4 pb-3">
-          <div className="flex items-center justify-between mb-3">
+      <div className="sticky top-0 z-40" style={{ background: "var(--ink)" }}>
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {user?.profileImageUrl ? (
                 <img src={user.profileImageUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover shrink-0" style={{ border: "2px solid var(--terra)" }} />
@@ -281,55 +274,41 @@ export default function Admin() {
               </div>
             </Link>
           </div>
-
-          {/* Vitals strip */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "none" }}>
-            {[
-              { label: "Users", value: analytics?.totalUsers ?? "—", icon: <Users className="w-3 h-3" /> },
-              { label: "Clubs", value: analytics?.activeClubs ?? "—", icon: <Building2 className="w-3 h-3" /> },
-              { label: "Events", value: analytics?.totalEvents ?? "—", icon: <Calendar className="w-3 h-3" /> },
-              { label: "Moments", value: analytics?.totalMoments ?? "—", icon: <Camera className="w-3 h-3" /> },
-              ...(pendingCount > 0 ? [{ label: "Pending", value: pendingCount, icon: <UserCheck className="w-3 h-3" />, alert: true }] : []),
-            ].map((v, i) => (
-              <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0" style={{ background: (v as any).alert ? "rgba(229,62,62,0.25)" : "rgba(255,255,255,0.08)", border: `1px solid ${(v as any).alert ? "rgba(229,62,62,0.5)" : "rgba(255,255,255,0.12)"}` }}>
-                <span style={{ color: (v as any).alert ? "#fc8181" : "var(--terra)" }}>{v.icon}</span>
-                <span className="text-[10px] font-bold" style={{ color: (v as any).alert ? "#fc8181" : "rgba(255,255,255,0.7)" }}>{v.label}</span>
-                <span className="text-[10px] font-black text-white">{String(v.value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab bar */}
-        <div className="flex border-t" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex-1 flex flex-col items-center gap-1 py-2.5 relative transition-all"
-                style={{ borderBottom: isActive ? "2.5px solid var(--terra)" : "2.5px solid transparent" }}
-                data-testid={`tab-${tab.key}`}
-              >
-                <span style={{ color: isActive ? "var(--terra)" : "rgba(255,255,255,0.4)" }}>
-                  {TAB_ICONS[tab.key]}
-                </span>
-                <span className="text-[9px] font-black tracking-wide uppercase" style={{ color: isActive ? "var(--terra)" : "rgba(255,255,255,0.4)" }}>
-                  {tab.label}
-                </span>
-                {"badge" in tab && tab.badge > 0 && (
-                  <span className="absolute top-1.5 right-1/2 translate-x-3 min-w-[16px] h-4 flex items-center justify-center rounded-full text-white text-[8px] font-black px-1" style={{ background: "#e53e3e" }}>
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-5 pb-24">
+      {/* Tab bar */}
+      <div
+        className="flex overflow-x-auto px-4 sticky top-[64px] z-30"
+        style={{ background: "var(--cream)", borderBottom: "1.5px solid var(--warm-border)", scrollbarWidth: "none" }}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2.5 text-sm font-semibold transition-all whitespace-nowrap inline-flex items-center gap-1.5 border-b-2 -mb-px shrink-0 ${
+                isActive
+                  ? "border-[var(--terra)] text-[var(--terra)]"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid={`tab-${tab.key}`}
+            >
+              {tab.label}
+              {"badge" in tab && tab.badge > 0 && (
+                <span
+                  className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-[var(--terra)] text-white"
+                >
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-5 pb-24">
         {activeTab === "analytics" && <AnalyticsTab />}
         {activeTab === "clubs" && <ClubsMonitorTab />}
         {activeTab === "users" && <UsersTab />}
