@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon, Loader2, Crown } from "lucide-react";
+import { ChevronLeft, Share2, MapPin, Calendar, Users, ArrowRight, Star, MessageCircle, User, Settings, Plus, LayoutDashboard, Clock, Activity, LogOut, Clock3, CheckCircle2, XCircle, Sparkles, Camera, Megaphone, Heart, Trash2, Send, X, BarChart2, Pin, ImageIcon, Loader2, Crown, Repeat } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -1032,7 +1032,15 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
                     <span className="font-bold text-[var(--cream)] text-lg leading-tight">{day}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-display font-semibold text-[var(--cream)] text-sm truncate">{event.title}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-display font-semibold text-[var(--cream)] text-sm truncate">{event.title}</span>
+                      {event.recurrenceRule && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(196,98,45,0.25)', color: 'var(--terra-light)' }} data-testid={`badge-recurring-${event.id}`}>
+                          <Repeat className="w-2.5 h-2.5" />
+                          {event.recurrenceRule === "weekly" ? "Weekly" : event.recurrenceRule === "biweekly" ? "Bi-weekly" : "Monthly"}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-[var(--muted-warm2)] mt-0.5">
                       <MapPin className="w-3 h-3 shrink-0" />
                       <span className="truncate">{event.locationText}</span>

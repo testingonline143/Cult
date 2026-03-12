@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, MapPin, Users, Plus } from "lucide-react";
+import { Calendar, MapPin, Users, Plus, Repeat } from "lucide-react";
 import { format, isToday, isSaturday, isSunday, isThisWeek } from "date-fns";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -158,9 +158,17 @@ export default function Events() {
                   </div>
                 </div>
 
-                <span className="absolute top-3 right-3 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1px solid rgba(196,98,45,0.2)" }} data-testid={`badge-free-${event.id}`}>
-                  FREE
-                </span>
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1px solid rgba(196,98,45,0.2)" }} data-testid={`badge-free-${event.id}`}>
+                    FREE
+                  </span>
+                  {event.recurrenceRule && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(196,98,45,0.1)", color: "var(--terra)" }} data-testid={`badge-recurring-${event.id}`}>
+                      <Repeat className="w-2.5 h-2.5" />
+                      {event.recurrenceRule === "weekly" ? "Weekly" : event.recurrenceRule === "biweekly" ? "Bi-weekly" : "Monthly"}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}

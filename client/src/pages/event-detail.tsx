@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown, AlertCircle, MessageCircle, Send } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown, AlertCircle, MessageCircle, Send, Repeat } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -250,6 +250,15 @@ export default function EventDetail() {
         {isPast && (
           <div className="inline-block px-3 py-1 rounded-md text-[var(--muted-warm)] text-xs font-bold uppercase mb-4" style={{ background: 'var(--warm-white)', border: '1.5px solid var(--warm-border)' }} data-testid="badge-past">
             Past Event
+          </div>
+        )}
+
+        {eventData.recurrenceRule && (
+          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl mb-4" style={{ background: 'rgba(196,98,45,0.08)', border: '1.5px solid rgba(196,98,45,0.2)' }} data-testid="badge-recurrence-info">
+            <Repeat className="w-4 h-4 text-[var(--terra)]" />
+            <span className="text-xs font-semibold text-[var(--terra)]">
+              Recurring event — every {eventData.recurrenceRule === "weekly" ? "week" : eventData.recurrenceRule === "biweekly" ? "2 weeks" : "month"}
+            </span>
           </div>
         )}
 

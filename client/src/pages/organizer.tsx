@@ -1377,17 +1377,80 @@ function OrganizerEvents({ clubId }: { clubId: string }) {
             const todayStr = now.toDateString();
             const todayEvents = events.filter((e) => !e.isCancelled && new Date(e.startsAt).toDateString() === todayStr);
             const otherEvents = events.filter((e) => e.isCancelled || new Date(e.startsAt).toDateString() !== todayStr);
+
+            const grouped: { key: string; rule: string; label: string; events: typeof otherEvents }[] = [];
+            const standalone: typeof otherEvents = [];
+
+            const processed = new Set<string>();
+            for (const ev of otherEvents) {
+              if (processed.has(ev.id)) continue;
+              if (ev.recurrenceRule) {
+                const siblings = otherEvents.filter(
+                  (e) => e.title === ev.title && e.recurrenceRule === ev.recurrenceRule && !processed.has(e.id)
+                );
+                if (siblings.length > 1) {
+                  const ruleLabel = ev.recurrenceRule === "weekly" ? "Weekly" : ev.recurrenceRule === "biweekly" ? "Bi-weekly" : "Monthly";
+                  grouped.push({
+                    key: `${ev.title}__${ev.recurrenceRule}`,
+                    rule: ev.recurrenceRule,
+                    label: `${ev.title} — ${ruleLabel} · ${siblings.length} instances`,
+                    events: siblings.sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
+                  });
+                  siblings.forEach((s) => processed.add(s.id));
+                  continue;
+                }
+              }
+              standalone.push(ev);
+              processed.add(ev.id);
+            }
+
             return (
               <>
                 {todayEvents.map((event) => (
                   <EventTodayBanner key={`today-${event.id}`} event={event} />
                 ))}
-                {otherEvents.map((event) => (
+                {grouped.map((group) => (
+                  <RecurringEventGroup key={group.key} group={group} clubId={clubId} onDuplicate={handleDuplicate} />
+                ))}
+                {standalone.map((event) => (
                   <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate} />
                 ))}
               </>
             );
           })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecurringEventGroup({ group, clubId, onDuplicate }: { group: { key: string; rule: string; label: string; events: (Event & { rsvpCount: number })[] }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div
+      className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] overflow-hidden"
+      style={{ borderRadius: 18 }}
+      data-testid={`recurring-group-${group.key}`}
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 p-4 text-left"
+        data-testid={`button-toggle-group-${group.key}`}
+      >
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}>
+          <Repeat className="w-4 h-4 text-[var(--terra)]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="font-semibold text-sm text-foreground block truncate">{group.label}</span>
+        </div>
+        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+      </button>
+      {expanded && (
+        <div className="border-t border-[var(--warm-border)] space-y-0">
+          {group.events.map((event) => (
+            <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={onDuplicate} />
+          ))}
         </div>
       )}
     </div>
@@ -1594,7 +1657,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
           {event.recurrenceRule && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md" style={{ background: 'rgba(196,98,45,0.1)', color: 'var(--terra)' }} data-testid={`badge-recurring-${event.id}`}>
               <Repeat className="w-2.5 h-2.5" />
-              Recurring
+              {event.recurrenceRule === "weekly" ? "Weekly" : event.recurrenceRule === "biweekly" ? "Bi-weekly" : "Monthly"}
             </span>
           )}
         </div>
