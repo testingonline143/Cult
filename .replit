@@ -46,3 +46,7 @@ expertMode = true
 
 [userenv.shared]
 ADMIN_USER_ID = "55436570"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
