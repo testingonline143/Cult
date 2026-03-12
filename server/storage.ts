@@ -186,6 +186,7 @@ export interface IStorage {
   updateClubProposalStatus(id: string, status: string, reviewNote?: string): Promise<ClubProposal | undefined>;
   getClubProposal(id: string): Promise<ClubProposal | undefined>;
   getPendingProposalCount(): Promise<number>;
+  getEventAttendanceReport(eventId: string, clubId: string): Promise<{ userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: Date | null; phone: string | null }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1779,6 +1780,27 @@ export class DatabaseStorage implements IStorage {
   async getPendingProposalCount(): Promise<number> {
     const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(clubProposals).where(eq(clubProposals.status, "pending"));
     return result?.count ?? 0;
+  }
+
+  async getEventAttendanceReport(eventId: string, clubId: string): Promise<{ userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: Date | null; phone: string | null }[]> {
+    const rows = await db.select({
+      userId: eventRsvps.userId,
+      userName: users.firstName,
+      status: eventRsvps.status,
+      checkedIn: eventRsvps.checkedIn,
+      checkedInAt: eventRsvps.checkedInAt,
+      phone: joinRequests.phone,
+    })
+      .from(eventRsvps)
+      .leftJoin(users, eq(eventRsvps.userId, users.id))
+      .leftJoin(joinRequests, and(
+        eq(eventRsvps.userId, joinRequests.userId),
+        eq(joinRequests.clubId, clubId),
+        eq(joinRequests.status, "approved"),
+      ))
+      .where(eq(eventRsvps.eventId, eventId))
+      .orderBy(asc(eventRsvps.status), asc(users.firstName));
+    return rows;
   }
 }
 

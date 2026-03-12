@@ -1277,8 +1277,12 @@ function EventTodayBanner({ event }: { event: Event & { rsvpCount: number } }) {
 
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 
+type AttendanceRow = { userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: string | null; phone: string | null };
+type AttendanceReport = { attendees: AttendanceRow[]; goingCount: number; waitlistCount: number; checkedInCount: number };
+
 function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount: number }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
   const [showAttendees, setShowAttendees] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const { toast } = useToast();
@@ -1309,6 +1313,36 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
     },
     enabled: showAttendees,
   });
+
+  const { data: reportData, isLoading: reportLoading } = useQuery<AttendanceReport>({
+    queryKey: ["/api/organizer/events", event.id, "attendance"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/events/${event.id}/attendance`, { credentials: "include" });
+      if (!res.ok) return { attendees: [], goingCount: 0, waitlistCount: 0, checkedInCount: 0 };
+      return res.json();
+    },
+    enabled: showReport,
+  });
+
+  const handleDownloadCsv = () => {
+    if (!reportData) return;
+    const header = ["Name", "Phone", "RSVP Status", "Checked In", "Check-in Time"];
+    const rows = reportData.attendees.map(a => [
+      a.userName ?? "—",
+      a.phone ?? "—",
+      a.status === "going" ? "Going" : "Waitlist",
+      a.checkedIn ? "Yes" : "No",
+      a.checkedInAt ? new Date(a.checkedInAt).toLocaleString("en-IN") : "—",
+    ]);
+    const csvContent = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${event.title.replace(/\s+/g, "_")}_attendance.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const editMutation = useMutation({
     mutationFn: async (data: { title: string; description: string; startsAt: string; locationText: string; maxCapacity: number; coverImageUrl: string | null }) => {
@@ -1577,7 +1611,15 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
               />
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            <button
+              onClick={() => setShowReport(prev => !prev)}
+              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-[var(--terra-pale)] text-[var(--terra)]"
+              data-testid={`button-view-report-${event.id}`}
+            >
+              <BarChart3 className="w-2.5 h-2.5" />
+              {showReport ? "Hide Report" : "View Report"}
+            </button>
             <button
               onClick={() => onDuplicate(event)}
               className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md bg-[var(--cream)] text-muted-foreground"
@@ -1600,6 +1642,82 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
               </button>
             )}
           </div>
+
+          {showReport && (
+            <div className="mt-2 p-3 rounded-xl bg-[var(--cream)] border border-[var(--warm-border)] space-y-3" data-testid={`section-report-${event.id}`}>
+              {reportLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-4 h-4 animate-spin text-[var(--terra)]" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap" data-testid={`report-summary-${event.id}`}>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]">
+                      <Users className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[11px] font-semibold text-foreground">{reportData?.goingCount ?? 0} Going</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--terra-pale)] border border-[rgba(196,98,45,0.2)]">
+                      <UserCheck className="w-3 h-3" style={{ color: "var(--terra)" }} />
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--terra)" }}>{reportData?.checkedInCount ?? 0} Checked In</span>
+                    </div>
+                    {(reportData?.waitlistCount ?? 0) > 0 && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]">
+                        <Clock3 className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[11px] font-semibold text-muted-foreground">{reportData?.waitlistCount ?? 0} Waitlisted</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {(reportData?.attendees.length ?? 0) > 0 ? (
+                    <div className="overflow-x-auto" data-testid={`report-table-${event.id}`}>
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="border-b border-[var(--warm-border)]">
+                            <th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Name</th>
+                            <th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Status</th>
+                            <th className="text-left py-1.5 font-semibold text-muted-foreground">Checked In</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData!.attendees.map((a, i) => (
+                            <tr key={i} className="border-b border-[var(--warm-border)] last:border-0" data-testid={`report-row-${event.id}-${i}`}>
+                              <td className="py-1.5 pr-3 font-medium text-foreground">{a.userName ?? "—"}</td>
+                              <td className="py-1.5 pr-3">
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${a.status === "going" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                                  {a.status === "going" ? "Going" : "Waitlist"}
+                                </span>
+                              </td>
+                              <td className="py-1.5">
+                                {a.checkedIn ? (
+                                  <span className="text-[var(--terra)] font-semibold">
+                                    {a.checkedInAt ? new Date(a.checkedInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "Yes"}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground text-center py-2">No RSVPs for this event</p>
+                  )}
+
+                  <button
+                    onClick={handleDownloadCsv}
+                    disabled={!reportData || reportData.attendees.length === 0}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-[var(--warm-white)] border border-[var(--warm-border)] text-foreground disabled:opacity-40 transition-all"
+                    data-testid={`button-download-csv-${event.id}`}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download CSV
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -2591,5 +2591,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/organizer/events/:eventId/attendance", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const event = await storage.getEvent(req.params.eventId);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+      const club = await storage.getClub(event.clubId);
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
+        return res.status(403).json({ message: "Only club managers can view attendance reports" });
+      }
+      const attendees = await storage.getEventAttendanceReport(event.id, club.id);
+      const goingCount = attendees.filter(a => a.status === "going").length;
+      const waitlistCount = attendees.filter(a => a.status === "waitlist").length;
+      const checkedInCount = attendees.filter(a => a.checkedIn === true).length;
+      res.json({ attendees, goingCount, waitlistCount, checkedInCount });
+    } catch (err) {
+      console.error("Error fetching event attendance report:", err);
+      res.status(500).json({ message: "Failed to fetch attendance report" });
+    }
+  });
+
   return httpServer;
 }
