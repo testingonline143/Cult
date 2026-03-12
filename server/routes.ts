@@ -1958,7 +1958,7 @@ export async function registerRoutes(
     try {
       const club = await storage.getClub(req.params.clubId);
       if (!club) return res.status(404).json({ message: "Club not found" });
-      const ids = club.coOrganiserUserIds ?? [];
+      const ids = (club.coOrganiserUserIds ?? []).filter(id => id !== club.creatorUserId);
       const members = await Promise.all(ids.map(id => storage.getUser(id)));
       res.json(members.filter(Boolean).map(u => ({
         userId: u!.id,
@@ -2004,6 +2004,10 @@ export async function registerRoutes(
 
   app.delete("/api/organizer/clubs/:clubId/co-organisers/:userId", isAuthenticated, requireClubManager(), async (req: any, res) => {
     try {
+      const club = await storage.getClub(req.params.clubId);
+      if (club && req.params.userId === club.creatorUserId) {
+        return res.status(400).json({ message: "Cannot remove the club creator" });
+      }
       await storage.removeCoOrganiser(req.params.clubId, req.params.userId);
       res.json({ success: true });
     } catch (err) {
