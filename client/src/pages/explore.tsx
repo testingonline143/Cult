@@ -376,20 +376,33 @@ export default function Explore() {
             </div>
             <h3 className="font-display text-lg font-bold mb-2" style={{ color: "var(--ink)" }} data-testid="text-no-clubs">No clubs found</h3>
             <p className="text-sm mb-4" style={{ color: "var(--muted-warm)" }}>Try different filters or search terms</p>
-            <button
-              onClick={() => {
-                setSearch("");
-                setActiveCategory("All");
-                setActiveCity("All Cities");
-                setActiveVibe("all");
-                setActiveTimeOfDay("all");
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-              style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
-              data-testid="button-clear-filters"
-            >
-              Clear All Filters
-            </button>
+            <div className="flex flex-col items-center gap-3">
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setActiveCategory("All");
+                  setActiveCity("All Cities");
+                  setActiveVibe("all");
+                  setActiveTimeOfDay("all");
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                style={{ background: "var(--terra-pale)", color: "var(--terra)" }}
+                data-testid="button-clear-filters"
+              >
+                Clear All Filters
+              </button>
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowProposalModal(true)}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all"
+                  style={{ background: "var(--terra)" }}
+                  data-testid="button-propose-empty-state"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Propose a Club
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
