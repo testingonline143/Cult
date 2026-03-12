@@ -969,6 +969,8 @@ type EnrichedMember = {
   name: string;
   phone: string;
   profileImageUrl: string | null;
+  bio: string | null;
+  city: string | null;
   joinedAt: string | null;
   isFoundingMember: boolean | null;
   eventsAttended: number;
@@ -1096,6 +1098,7 @@ function OrganizerMembers({ clubId }: { clubId: string }) {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">{member.phone}</div>
+                  {member.city && <div className="text-[11px] text-muted-foreground mt-0.5">{member.city}</div>}
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
