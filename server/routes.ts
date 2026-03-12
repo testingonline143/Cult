@@ -487,6 +487,9 @@ export async function registerRoutes(
           timeOfDay: "morning",
         });
 
+        // Auto-generate a shareable slug for the club
+        await storage.generateSlugForClub(newClub.id);
+
         const proposalUser = await storage.getUser(proposal.userId);
         if (proposalUser) {
           if (proposalUser.role === "user") {
@@ -521,6 +524,21 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error updating proposal:", err);
       res.status(500).json({ message: "Failed to update proposal" });
+    }
+  });
+
+  // Public club page by slug — no auth required
+  app.get("/api/c/:slug", async (req, res) => {
+    try {
+      const club = await storage.getClubBySlug(req.params.slug);
+      if (!club || !club.isActive) {
+        return res.status(404).json({ message: "Club not found" });
+      }
+      const pageData = await storage.getPublicPageData(club.id);
+      res.json(pageData);
+    } catch (err) {
+      console.error("Error fetching public club page:", err);
+      res.status(500).json({ message: "Failed to fetch club page" });
     }
   });
 

@@ -204,6 +204,36 @@ export class DatabaseStorage implements IStorage {
     return club;
   }
 
+  async getClubBySlug(slug: string): Promise<Club | undefined> {
+    const [club] = await db.select().from(clubs).where(eq(clubs.slug, slug));
+    return club;
+  }
+
+  async updateClubSlug(clubId: string, slug: string): Promise<Club | undefined> {
+    const [updated] = await db.update(clubs).set({ slug }).where(eq(clubs.id, clubId)).returning();
+    return updated;
+  }
+
+  async generateSlugForClub(clubId: string): Promise<string | null> {
+    const club = await this.getClub(clubId);
+    if (!club) return null;
+    let baseSlug = club.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+    if (baseSlug.length < 2) baseSlug = `club-${clubId.slice(0, 8)}`;
+    let finalSlug = baseSlug;
+    let attempt = 0;
+    while (await this.getClubBySlug(finalSlug)) {
+      // If the existing slug belongs to this same club, it's fine — return it
+      const existing = await this.getClubBySlug(finalSlug);
+      if (existing && existing.id === clubId) {
+        return finalSlug;
+      }
+      attempt++;
+      finalSlug = `${baseSlug}-${attempt}`;
+    }
+    await this.updateClubSlug(clubId, finalSlug);
+    return finalSlug;
+  }
+
   async createClub(club: InsertClub): Promise<Club> {
     const [created] = await db.insert(clubs).values(club).returning();
     return created;

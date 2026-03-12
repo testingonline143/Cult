@@ -193,7 +193,9 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
   const hasMoment = clubMomentsData.length > 0;
   const showChecklist = !hasEvent || !hasMoment;
 
-  const clubLink = `${window.location.origin}/club/${club.id}`;
+  const clubLink = club.slug
+    ? `${window.location.origin}/c/${club.slug}`
+    : `${window.location.origin}/club/${club.id}`;
   const copyClubLink = () => {
     navigator.clipboard.writeText(clubLink).then(() => {
       toast({ description: "Club link copied!" });
