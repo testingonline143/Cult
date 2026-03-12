@@ -4,7 +4,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch, Link } from "wouter";
-import { BottomNav } from "@/components/bottom-nav";
 import { Calendar, MapPin, Users, QrCode, Check, Copy, LayoutDashboard, Loader2, Plus, Pencil, Trash2, Clock, X, UserMinus, CheckCircle2, XCircle, Clock3, Ban, AlertTriangle, Link2, Zap, BarChart3, Download, ArrowRight, TrendingUp, Repeat, UserCheck, TrendingDown, Medal, Megaphone, MessageSquare, Shield, ChevronDown, ChevronUp, Users2, BarChart2, Vote, Bell, Pin, Camera, Globe } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import type { Club, JoinRequest, Event, EventRsvp, ClubFaq, ClubScheduleEntry, ClubMoment, ClubAnnouncement } from "@shared/schema";
