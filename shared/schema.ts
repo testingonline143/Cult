@@ -232,6 +232,21 @@ export const kudos = pgTable("kudos", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (t) => [uniqueIndex("kudos_giver_event_unique").on(t.eventId, t.giverId)]);
 
+export const clubProposals = pgTable("club_proposals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  clubName: text("club_name").notNull(),
+  category: text("category").notNull(),
+  vibe: text("vibe").notNull().default("casual"),
+  shortDesc: text("short_desc").notNull(),
+  city: text("city").notNull().default("Tirupati"),
+  schedule: text("schedule").notNull(),
+  motivation: text("motivation").notNull(),
+  status: text("status").notNull().default("pending"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertClubSchema = createInsertSchema(clubs).omit({ id: true, createdAt: true });
 export const insertJoinRequestSchema = createInsertSchema(joinRequests).omit({ id: true, createdAt: true });
 export const insertQuizAnswersSchema = createInsertSchema(userQuizAnswers).omit({ id: true, createdAt: true });
@@ -250,6 +265,7 @@ export const insertPollVoteSchema = createInsertSchema(pollVotes).omit({ id: tru
 export const insertKudoSchema = createInsertSchema(kudos).omit({ id: true, createdAt: true });
 export const insertClubPageSectionSchema = createInsertSchema(clubPageSections).omit({ id: true, createdAt: true });
 export const insertSectionEventSchema = createInsertSchema(sectionEvents).omit({ id: true, createdAt: true });
+export const insertClubProposalSchema = createInsertSchema(clubProposals).omit({ id: true, createdAt: true, status: true, reviewNote: true });
 
 export type Club = typeof clubs.$inferSelect;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -287,6 +303,8 @@ export type ClubPageSection = typeof clubPageSections.$inferSelect;
 export type InsertClubPageSection = z.infer<typeof insertClubPageSectionSchema>;
 export type SectionEvent = typeof sectionEvents.$inferSelect;
 export type InsertSectionEvent = z.infer<typeof insertSectionEventSchema>;
+export type ClubProposal = typeof clubProposals.$inferSelect;
+export type InsertClubProposal = z.infer<typeof insertClubProposalSchema>;
 
 export const CATEGORIES = [
   "Trekking",

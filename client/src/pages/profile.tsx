@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck, Medal } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck, Medal, PlusCircle } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -68,6 +68,7 @@ export default function Profile() {
         <ProfileActions user={user} />
         <UserEvents userId={user.id} />
         <JoinedClubs userId={user.id} />
+        <MyProposals />
         <KudosReceived />
         <AttendanceSection />
       </div>
@@ -317,6 +318,20 @@ function ProfileActions({ user }: { user: User }) {
             <div className="flex-1 min-w-0">
               <h3 className="font-display text-sm font-bold" style={{ color: 'var(--terra)' }} data-testid="text-organiser-dashboard-label">Organiser Dashboard</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Manage your clubs, events & members</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </div>
+        </Link>
+      )}
+      {!isOrganiserOrAdmin && (
+        <Link href="/explore" data-testid="link-propose-club">
+          <div className="glass-card rounded-2xl p-4 flex items-center gap-4 cursor-pointer group transition-all" style={{ borderColor: "rgba(196,98,45,0.3)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--terra-pale)" }}>
+              <PlusCircle className="w-5 h-5" style={{ color: "var(--terra)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-display text-sm font-bold" style={{ color: "var(--terra)" }}>Propose a Club</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Start your own community around a hobby</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </div>
@@ -736,6 +751,67 @@ function AttendanceSection() {
                 <div className="text-sm font-bold text-foreground" data-testid={`text-attended-${stat.clubId}`}>{stat.attended}/{stat.totalRsvps}</div>
                 <div className="text-[10px] text-muted-foreground">attended</div>
               </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MyProposals() {
+  const { user } = useAuth();
+  const { data: proposals = [], isLoading } = useQuery<{
+    id: string;
+    clubName: string;
+    category: string;
+    status: string;
+    reviewNote: string | null;
+    createdAt: string;
+  }[]>({
+    queryKey: ["/api/club-proposals/mine"],
+    enabled: !!user,
+  });
+
+  if (isLoading || proposals.length === 0) return null;
+
+  const statusConfig: Record<string, { label: string; bg: string; color: string }> = {
+    pending: { label: "Under Review", bg: "rgba(251,191,36,0.12)", color: "#92400e" },
+    approved: { label: "Approved", bg: "rgba(22,163,74,0.12)", color: "#15803d" },
+    rejected: { label: "Not Approved", bg: "rgba(239,68,68,0.12)", color: "#dc2626" },
+  };
+
+  return (
+    <div className="mt-8" data-testid="section-my-proposals">
+      <div className="flex items-center gap-2 mb-4">
+        <Clock3 className="w-4 h-4" style={{ color: "var(--terra)" }} />
+        <h2 className="font-display text-lg font-bold text-foreground" data-testid="text-proposals-title">
+          My Club Proposals
+        </h2>
+      </div>
+      <div className="space-y-3">
+        {proposals.map((p) => {
+          const cfg = statusConfig[p.status] || statusConfig.pending;
+          return (
+            <div key={p.id} className="glass-card rounded-2xl p-4" data-testid={`proposal-${p.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display font-bold text-foreground truncate">{p.clubName}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{p.category}</p>
+                </div>
+                <span
+                  className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  style={{ background: cfg.bg, color: cfg.color }}
+                  data-testid={`proposal-status-${p.id}`}
+                >
+                  {cfg.label}
+                </span>
+              </div>
+              {p.status === "rejected" && p.reviewNote && (
+                <p className="text-xs mt-2 p-2 rounded-lg" style={{ background: "rgba(239,68,68,0.06)", color: "#dc2626" }}>
+                  {p.reviewNote}
+                </p>
+              )}
             </div>
           );
         })}

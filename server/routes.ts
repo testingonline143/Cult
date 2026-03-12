@@ -401,6 +401,129 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/club-proposals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { clubName, category, vibe, shortDesc, city, schedule, motivation } = req.body;
+      if (!clubName || clubName.length < 3) return res.status(400).json({ message: "Club name must be at least 3 characters" });
+      if (!category) return res.status(400).json({ message: "Category is required" });
+      if (!shortDesc) return res.status(400).json({ message: "Description is required" });
+      if (!schedule) return res.status(400).json({ message: "Schedule is required" });
+      if (!motivation) return res.status(400).json({ message: "Motivation is required" });
+      const proposal = await storage.createClubProposal({
+        userId,
+        clubName,
+        category,
+        vibe: vibe || "casual",
+        shortDesc,
+        city: city || "Tirupati",
+        schedule,
+        motivation,
+      });
+      res.status(201).json(proposal);
+    } catch (err) {
+      console.error("Error creating club proposal:", err);
+      res.status(500).json({ message: "Failed to submit proposal" });
+    }
+  });
+
+  app.get("/api/club-proposals/mine", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const proposals = await storage.getClubProposalsByUser(userId);
+      res.json(proposals);
+    } catch (err) {
+      console.error("Error fetching user proposals:", err);
+      res.status(500).json({ message: "Failed to fetch proposals" });
+    }
+  });
+
+  app.get("/api/admin/club-proposals", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const proposals = await storage.getAllClubProposals();
+      res.json(proposals);
+    } catch (err) {
+      console.error("Error fetching admin proposals:", err);
+      res.status(500).json({ message: "Failed to fetch proposals" });
+    }
+  });
+
+  app.get("/api/admin/club-proposals/pending-count", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const count = await storage.getPendingProposalCount();
+      res.json({ count });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch count" });
+    }
+  });
+
+  app.patch("/api/admin/club-proposals/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { status, reviewNote } = req.body;
+      if (!status || !["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+      }
+      const proposal = await storage.getClubProposal(req.params.id);
+      if (!proposal) return res.status(404).json({ message: "Proposal not found" });
+      if (proposal.status !== "pending") return res.status(400).json({ message: "Proposal already reviewed" });
+
+      if (status === "approved") {
+        const emoji = CATEGORY_EMOJI[proposal.category] || "🎯";
+        const newClub = await storage.createClub({
+          name: proposal.clubName,
+          category: proposal.category,
+          emoji,
+          shortDesc: proposal.shortDesc,
+          fullDesc: proposal.shortDesc,
+          organizerName: "",
+          schedule: proposal.schedule,
+          location: proposal.city,
+          city: proposal.city,
+          vibe: proposal.vibe,
+          creatorUserId: proposal.userId,
+          memberCount: 0,
+          healthStatus: "green",
+          healthLabel: "New Club",
+          timeOfDay: "morning",
+        });
+
+        const proposalUser = await storage.getUser(proposal.userId);
+        if (proposalUser) {
+          if (proposalUser.role === "user") {
+            await storage.updateUserRole(proposal.userId, "organiser");
+          }
+          if (proposalUser.firstName) {
+            await storage.updateClub(newClub.id, { organizerName: proposalUser.firstName });
+          }
+        }
+
+        await storage.createNotification({
+          userId: proposal.userId,
+          type: "proposal_approved",
+          title: "Club Proposal Approved!",
+          message: `Your club "${proposal.clubName}" has been approved! You can now manage it from your organizer dashboard.`,
+          linkUrl: "/organizer",
+        });
+      } else {
+        await storage.createNotification({
+          userId: proposal.userId,
+          type: "proposal_rejected",
+          title: "Club Proposal Update",
+          message: reviewNote
+            ? `Your proposal for "${proposal.clubName}" was not approved. Note: ${reviewNote}`
+            : `Your proposal for "${proposal.clubName}" was not approved at this time.`,
+          linkUrl: "/profile",
+        });
+      }
+
+      const updated = await storage.updateClubProposalStatus(req.params.id, status, reviewNote);
+      res.json(updated);
+    } catch (err) {
+      console.error("Error updating proposal:", err);
+      res.status(500).json({ message: "Failed to update proposal" });
+    }
+  });
+
   app.post("/api/clubs/create", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

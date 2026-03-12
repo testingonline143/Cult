@@ -1,38 +1,237 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Users, MapPin, Calendar, PlusCircle } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Search, Users, MapPin, Calendar, PlusCircle, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { CATEGORIES, CITIES, CATEGORY_EMOJI } from "@shared/schema";
 import type { Club } from "@shared/schema";
 import { CATEGORY_GRADIENTS, DEFAULT_GRADIENT } from "@/lib/constants";
+import { useToast } from "@/hooks/use-toast";
 
 const ALL_CATEGORIES = ["All", ...CATEGORIES];
 
+function ProposeClubModal({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({
+    clubName: "",
+    category: "",
+    vibe: "casual",
+    shortDesc: "",
+    city: "Tirupati",
+    schedule: "",
+    motivation: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/club-proposals", form),
+    onSuccess: () => {
+      setSubmitted(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/club-proposals/mine"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err?.message || "Failed to submit proposal", variant: "destructive" });
+    },
+  });
+
+  const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
+
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+        <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 text-center space-y-4 animate-in slide-in-from-bottom" style={{ background: "var(--cream)" }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto" style={{ background: "rgba(22,163,74,0.12)" }}>
+            <CheckCircle2 className="w-7 h-7 text-green-600" />
+          </div>
+          <h2 className="font-display text-xl font-bold" style={{ color: "var(--ink)" }}>Proposal Submitted!</h2>
+          <p className="text-sm" style={{ color: "var(--muted-warm)" }}>
+            We'll review your club proposal and get back to you soon. You can check the status on your Profile page.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white"
+            style={{ background: "var(--terra)" }}
+            data-testid="button-proposal-done"
+          >
+            Got it!
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const canGoNext = step === 1
+    ? form.clubName.length >= 3 && form.category && form.shortDesc
+    : form.schedule && form.motivation;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden animate-in slide-in-from-bottom" style={{ background: "var(--cream)" }}>
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--warm-border)" }}>
+          <h2 className="font-display text-lg font-bold" style={{ color: "var(--ink)" }}>Propose a Club</h2>
+          <button onClick={onClose} className="p-1 rounded-lg" data-testid="button-close-proposal"><X className="w-5 h-5" style={{ color: "var(--muted-warm)" }} /></button>
+        </div>
+
+        <div className="flex gap-1 px-4 pt-3">
+          <div className="h-1 flex-1 rounded-full" style={{ background: "var(--terra)" }} />
+          <div className="h-1 flex-1 rounded-full" style={{ background: step >= 2 ? "var(--terra)" : "var(--warm-border)" }} />
+        </div>
+
+        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {step === 1 ? (
+            <>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Club Name</label>
+                <input
+                  value={form.clubName}
+                  onChange={e => set("clubName", e.target.value)}
+                  placeholder="e.g. Tirupati Trail Runners"
+                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)", "--tw-ring-color": "rgba(196,98,45,0.3)" } as React.CSSProperties}
+                  data-testid="input-proposal-name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Category</label>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => set("category", cat)}
+                      className="px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                      style={form.category === cat
+                        ? { background: "var(--ink)", color: "var(--cream)", border: "1.5px solid var(--ink)" }
+                        : { background: "var(--warm-white)", color: "var(--ink3)", border: "1.5px solid var(--warm-border)" }
+                      }
+                      data-testid={`proposal-cat-${cat.toLowerCase()}`}
+                    >
+                      {CATEGORY_EMOJI[cat]} {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Vibe</label>
+                <div className="flex gap-2">
+                  {["casual", "competitive"].map(v => (
+                    <button
+                      key={v}
+                      onClick={() => set("vibe", v)}
+                      className="flex-1 px-3 py-2.5 rounded-xl text-xs font-semibold capitalize transition-all"
+                      style={form.vibe === v
+                        ? { background: "var(--ink)", color: "var(--cream)", border: "1.5px solid var(--ink)" }
+                        : { background: "var(--warm-white)", color: "var(--ink3)", border: "1.5px solid var(--warm-border)" }
+                      }
+                      data-testid={`proposal-vibe-${v}`}
+                    >
+                      {v === "casual" ? "😌 Casual" : "🔥 Competitive"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Short Description</label>
+                <textarea
+                  value={form.shortDesc}
+                  onChange={e => set("shortDesc", e.target.value)}
+                  placeholder="What's this club about?"
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 resize-none"
+                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)", "--tw-ring-color": "rgba(196,98,45,0.3)" } as React.CSSProperties}
+                  data-testid="input-proposal-desc"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>City</label>
+                <select
+                  value={form.city}
+                  onChange={e => set("city", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)", "--tw-ring-color": "rgba(196,98,45,0.3)" } as React.CSSProperties}
+                  data-testid="select-proposal-city"
+                >
+                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Intended Schedule</label>
+                <input
+                  value={form.schedule}
+                  onChange={e => set("schedule", e.target.value)}
+                  placeholder="e.g. Every Saturday morning 6 AM"
+                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)", "--tw-ring-color": "rgba(196,98,45,0.3)" } as React.CSSProperties}
+                  data-testid="input-proposal-schedule"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 uppercase tracking-wider" style={{ color: "var(--muted-warm)" }}>Why do you want to run this club?</label>
+                <textarea
+                  value={form.motivation}
+                  onChange={e => set("motivation", e.target.value)}
+                  placeholder="Tell us your passion and experience..."
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 resize-none"
+                  style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)", color: "var(--ink)", "--tw-ring-color": "rgba(196,98,45,0.3)" } as React.CSSProperties}
+                  data-testid="input-proposal-motivation"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex gap-3 p-4 border-t" style={{ borderColor: "var(--warm-border)" }}>
+          {step === 2 && (
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold"
+              style={{ background: "var(--warm-white)", color: "var(--ink)", border: "1.5px solid var(--warm-border)" }}
+              data-testid="button-proposal-back"
+            >
+              Back
+            </button>
+          )}
+          {step === 1 ? (
+            <button
+              onClick={() => setStep(2)}
+              disabled={!canGoNext}
+              className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+              style={{ background: "var(--terra)" }}
+              data-testid="button-proposal-next"
+            >
+              Next
+            </button>
+          ) : (
+            <button
+              onClick={() => mutation.mutate()}
+              disabled={!canGoNext || mutation.isPending}
+              className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 inline-flex items-center justify-center gap-2"
+              style={{ background: "var(--terra)" }}
+              data-testid="button-proposal-submit"
+            >
+              {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : "Submit Proposal"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Explore() {
   const { user, isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
-  const queryClient = useQueryClient();
-  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCity, setActiveCity] = useState("All Cities");
   const [activeVibe, setActiveVibe] = useState("all");
   const [activeTimeOfDay, setActiveTimeOfDay] = useState("all");
-
-  const becomeCreatorMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
-        old ? { ...old, wantsToCreate: true } : old
-      );
-      navigate("/create");
-    },
-    onError: () => {
-      navigate("/create");
-    },
-  });
+  const [showProposalModal, setShowProposalModal] = useState(false);
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -143,9 +342,9 @@ export default function Explore() {
           <div className="flex rounded-xl overflow-hidden" style={{ border: "1.5px solid var(--warm-border)", background: "var(--warm-white)" }}>
             {[
               { value: "all", label: "Any" },
-              { value: "morning", label: "☀️ Morning" },
-              { value: "evening", label: "🌆 Evening" },
-              { value: "weekends", label: "🗓️ Weekends" },
+              { value: "morning", label: "Morning" },
+              { value: "evening", label: "Evening" },
+              { value: "weekends", label: "Weekends" },
             ].map((t) => (
               <button
                 key={t.value}
@@ -244,12 +443,11 @@ export default function Explore() {
               );
             })}
 
-            {isAuthenticated && !isOrganiser && (
+            {isAuthenticated && (
               <button
-                onClick={() => becomeCreatorMutation.mutate()}
-                disabled={becomeCreatorMutation.isPending}
+                onClick={() => setShowProposalModal(true)}
                 className="w-full text-left"
-                data-testid="card-start-club"
+                data-testid="card-propose-club"
               >
                 <div className="rounded-[18px] p-6 text-center space-y-3" style={{ background: "var(--terra-pale)", border: "1.5px dashed rgba(196,98,45,0.4)" }}>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ background: "rgba(196,98,45,0.15)" }}>
@@ -259,10 +457,10 @@ export default function Explore() {
                     Don't see your hobby?
                   </h3>
                   <p className="text-xs" style={{ color: "var(--muted-warm)" }}>
-                    Start your own club and build a community around what you love.
+                    Propose a new club and we'll help you get started!
                   </p>
                   <span className="inline-block text-sm font-semibold" style={{ color: "var(--terra)" }}>
-                    {becomeCreatorMutation.isPending ? "Setting up..." : "Start a Club →"}
+                    Propose a Club
                   </span>
                 </div>
               </button>
@@ -270,6 +468,8 @@ export default function Explore() {
           </div>
         )}
       </div>
+
+      {showProposalModal && <ProposeClubModal onClose={() => setShowProposalModal(false)} />}
     </div>
   );
 }

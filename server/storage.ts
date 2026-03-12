@@ -13,10 +13,11 @@ import {
   type Kudo,
   type ClubPageSection, type InsertClubPageSection,
   type SectionEvent,
+  type ClubProposal, type InsertClubProposal,
   clubs, joinRequests, users, userQuizAnswers, events, eventRsvps,
   clubRatings, clubFaqs, clubScheduleEntries, clubMoments, momentComments, notifications,
   clubAnnouncements, clubPolls, pollVotes, momentLikes, eventComments, kudos,
-  clubPageSections, sectionEvents,
+  clubPageSections, sectionEvents, clubProposals,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, gte, ilike, or, ne, arrayOverlaps } from "drizzle-orm";
@@ -179,6 +180,12 @@ export interface IStorage {
     pastEventCount: number;
     rating: number | null;
   }>;
+  createClubProposal(data: InsertClubProposal): Promise<ClubProposal>;
+  getClubProposalsByUser(userId: string): Promise<ClubProposal[]>;
+  getAllClubProposals(): Promise<(ClubProposal & { userName: string | null; userEmail: string | null })[]>;
+  updateClubProposalStatus(id: string, status: string, reviewNote?: string): Promise<ClubProposal | undefined>;
+  getClubProposal(id: string): Promise<ClubProposal | undefined>;
+  getPendingProposalCount(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1722,6 +1729,56 @@ export class DatabaseStorage implements IStorage {
         return count > 0 ? average : null;
       })(),
     };
+  }
+
+  async createClubProposal(data: InsertClubProposal): Promise<ClubProposal> {
+    const [created] = await db.insert(clubProposals).values(data).returning();
+    return created;
+  }
+
+  async getClubProposalsByUser(userId: string): Promise<ClubProposal[]> {
+    return db.select().from(clubProposals).where(eq(clubProposals.userId, userId)).orderBy(desc(clubProposals.createdAt));
+  }
+
+  async getAllClubProposals(): Promise<(ClubProposal & { userName: string | null; userEmail: string | null })[]> {
+    const rows = await db
+      .select({
+        id: clubProposals.id,
+        userId: clubProposals.userId,
+        clubName: clubProposals.clubName,
+        category: clubProposals.category,
+        vibe: clubProposals.vibe,
+        shortDesc: clubProposals.shortDesc,
+        city: clubProposals.city,
+        schedule: clubProposals.schedule,
+        motivation: clubProposals.motivation,
+        status: clubProposals.status,
+        reviewNote: clubProposals.reviewNote,
+        createdAt: clubProposals.createdAt,
+        userName: users.firstName,
+        userEmail: users.email,
+      })
+      .from(clubProposals)
+      .leftJoin(users, eq(clubProposals.userId, users.id))
+      .orderBy(desc(clubProposals.createdAt));
+    return rows;
+  }
+
+  async updateClubProposalStatus(id: string, status: string, reviewNote?: string): Promise<ClubProposal | undefined> {
+    const updateData: Record<string, any> = { status };
+    if (reviewNote !== undefined) updateData.reviewNote = reviewNote;
+    const [updated] = await db.update(clubProposals).set(updateData).where(eq(clubProposals.id, id)).returning();
+    return updated;
+  }
+
+  async getClubProposal(id: string): Promise<ClubProposal | undefined> {
+    const [proposal] = await db.select().from(clubProposals).where(eq(clubProposals.id, id));
+    return proposal;
+  }
+
+  async getPendingProposalCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(clubProposals).where(eq(clubProposals.status, "pending"));
+    return result?.count ?? 0;
   }
 }
 

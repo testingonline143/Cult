@@ -163,7 +163,7 @@ function AdminSetupScreen({ userId }: { userId: string }) {
 
 export default function Admin() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<"analytics" | "clubs" | "users" | "events" | "joins">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "clubs" | "users" | "events" | "joins" | "proposals">("analytics");
 
   const { data: adminStatus, isLoading: statusLoading } = useQuery<{ configured: boolean; isCurrentUserAdmin: boolean }>({
     queryKey: ["/api/admin/status"],
@@ -177,6 +177,13 @@ export default function Admin() {
     retry: false,
   });
   const pendingCount = (pendingCountData ?? []).filter((r: any) => r.status === "pending" && !r.markedDone).length;
+
+  const { data: proposalCountData } = useQuery<{ count: number }>({
+    queryKey: ["/api/admin/club-proposals/pending-count"],
+    enabled: isAuthenticated && adminStatus?.isCurrentUserAdmin === true,
+    retry: false,
+  });
+  const pendingProposalCount = proposalCountData?.count ?? 0;
 
   const { data: analytics } = useQuery<AdminAnalytics>({
     queryKey: ["/api/admin/analytics"],
@@ -240,6 +247,7 @@ export default function Admin() {
     { key: "users", label: "Users" },
     { key: "events", label: "Events" },
     { key: "joins", label: "Requests", badge: pendingCount },
+    { key: "proposals", label: "Proposals", badge: pendingProposalCount },
   ] as const;
 
   const displayName = user?.firstName || user?.email?.split("@")[0] || "Admin";
@@ -314,6 +322,7 @@ export default function Admin() {
         {activeTab === "users" && <UsersTab />}
         {activeTab === "events" && <EventsTab />}
         {activeTab === "joins" && <JoinRequestsTab />}
+        {activeTab === "proposals" && <ProposalsTab />}
       </div>
     </div>
   );
@@ -1444,6 +1453,212 @@ function JoinRequestsTab() {
         <div>
           <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--muted-warm)" }}>All Requests</h3>
           <div className="space-y-2">{rest.map(renderRequest)}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface Proposal {
+  id: string;
+  userId: string;
+  clubName: string;
+  category: string;
+  vibe: string;
+  shortDesc: string;
+  city: string;
+  schedule: string;
+  motivation: string;
+  status: string;
+  reviewNote: string | null;
+  createdAt: string | null;
+  userName: string | null;
+  userEmail: string | null;
+}
+
+function ProposalsTab() {
+  const { toast } = useToast();
+  const [rejectNote, setRejectNote] = useState<Record<string, string>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const { data: proposals = [], isLoading } = useQuery<Proposal[]>({
+    queryKey: ["/api/admin/club-proposals"],
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("PATCH", `/api/admin/club-proposals/${id}`, { status: "approved" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/club-proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/club-proposals/pending-count"] });
+      toast({ title: "Proposal approved", description: "Club created and user promoted to organiser." });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to approve proposal", variant: "destructive" }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reviewNote }: { id: string; reviewNote?: string }) =>
+      apiRequest("PATCH", `/api/admin/club-proposals/${id}`, { status: "rejected", reviewNote }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/club-proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/club-proposals/pending-count"] });
+      toast({ title: "Proposal rejected" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to reject proposal", variant: "destructive" }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-[18px]" />)}
+      </div>
+    );
+  }
+
+  const pending = proposals.filter(p => p.status === "pending");
+  const reviewed = proposals.filter(p => p.status !== "pending");
+
+  const statusBadge = (status: string) => {
+    const cfg: Record<string, { bg: string; color: string; label: string }> = {
+      pending: { bg: "rgba(251,191,36,0.15)", color: "#92400e", label: "Pending" },
+      approved: { bg: "rgba(22,163,74,0.12)", color: "#15803d", label: "Approved" },
+      rejected: { bg: "rgba(239,68,68,0.12)", color: "#dc2626", label: "Rejected" },
+    };
+    const c = cfg[status] || cfg.pending;
+    return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: c.bg, color: c.color }}>{c.label}</span>;
+  };
+
+  const renderProposal = (p: Proposal) => {
+    const isExpanded = expandedId === p.id;
+    return (
+      <div
+        key={p.id}
+        className="rounded-[18px] p-4 space-y-3"
+        style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
+        data-testid={`admin-proposal-${p.id}`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>{p.clubName}</h3>
+              {statusBadge(p.status)}
+            </div>
+            <p className="text-xs mt-1" style={{ color: "var(--muted-warm)" }}>
+              by {p.userName || "Unknown"} ({p.userEmail || "no email"})
+              {p.createdAt && <> &middot; {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</>}
+            </p>
+          </div>
+          <button
+            onClick={() => setExpandedId(isExpanded ? null : p.id)}
+            className="p-1"
+            data-testid={`toggle-proposal-${p.id}`}
+          >
+            <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} style={{ color: "var(--muted-warm)" }} />
+          </button>
+        </div>
+
+        {isExpanded && (
+          <div className="space-y-2 pt-1">
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded-lg p-2" style={{ background: "var(--cream)" }}>
+                <span className="block font-bold" style={{ color: "var(--muted-warm)" }}>Category</span>
+                <span style={{ color: "var(--ink)" }}>{p.category}</span>
+              </div>
+              <div className="rounded-lg p-2" style={{ background: "var(--cream)" }}>
+                <span className="block font-bold" style={{ color: "var(--muted-warm)" }}>Vibe</span>
+                <span className="capitalize" style={{ color: "var(--ink)" }}>{p.vibe}</span>
+              </div>
+              <div className="rounded-lg p-2" style={{ background: "var(--cream)" }}>
+                <span className="block font-bold" style={{ color: "var(--muted-warm)" }}>City</span>
+                <span style={{ color: "var(--ink)" }}>{p.city}</span>
+              </div>
+            </div>
+            <div className="text-xs rounded-lg p-2" style={{ background: "var(--cream)" }}>
+              <span className="block font-bold mb-0.5" style={{ color: "var(--muted-warm)" }}>Description</span>
+              <span style={{ color: "var(--ink)" }}>{p.shortDesc}</span>
+            </div>
+            <div className="text-xs rounded-lg p-2" style={{ background: "var(--cream)" }}>
+              <span className="block font-bold mb-0.5" style={{ color: "var(--muted-warm)" }}>Schedule</span>
+              <span style={{ color: "var(--ink)" }}>{p.schedule}</span>
+            </div>
+            <div className="text-xs rounded-lg p-2" style={{ background: "var(--cream)" }}>
+              <span className="block font-bold mb-0.5" style={{ color: "var(--muted-warm)" }}>Motivation</span>
+              <span style={{ color: "var(--ink)" }}>{p.motivation}</span>
+            </div>
+
+            {p.status === "pending" && (
+              <div className="space-y-2 pt-2">
+                <textarea
+                  value={rejectNote[p.id] || ""}
+                  onChange={e => setRejectNote(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  placeholder="Optional note (shown if rejected)..."
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl text-xs focus:outline-none focus:ring-2 resize-none"
+                  style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)", "--tw-ring-color": "rgba(196,98,45,0.3)" } as React.CSSProperties}
+                  data-testid={`input-reject-note-${p.id}`}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => approveMutation.mutate(p.id)}
+                    disabled={approveMutation.isPending}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center justify-center gap-1.5"
+                    style={{ background: "#15803d" }}
+                    data-testid={`button-approve-proposal-${p.id}`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => rejectMutation.mutate({ id: p.id, reviewNote: rejectNote[p.id] || undefined })}
+                    disabled={rejectMutation.isPending}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center justify-center gap-1.5"
+                    style={{ background: "#dc2626" }}
+                    data-testid={`button-reject-proposal-${p.id}`}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {p.status === "rejected" && p.reviewNote && (
+              <div className="text-xs rounded-lg p-2" style={{ background: "rgba(239,68,68,0.06)" }}>
+                <span className="block font-bold mb-0.5" style={{ color: "#dc2626" }}>Rejection Note</span>
+                <span style={{ color: "#dc2626" }}>{p.reviewNote}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6" data-testid="section-proposals-tab">
+      {proposals.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "var(--terra-pale)" }}>
+            <Send className="w-7 h-7" style={{ color: "var(--terra)" }} />
+          </div>
+          <h3 className="font-display text-lg font-bold mb-1" style={{ color: "var(--ink)" }}>No Proposals Yet</h3>
+          <p className="text-sm" style={{ color: "var(--muted-warm)" }}>Club proposals from users will appear here.</p>
+        </div>
+      )}
+
+      {pending.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-display font-bold text-base" style={{ color: "var(--ink)" }}>Pending Review</h3>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "#e53e3e" }}>{pending.length}</span>
+          </div>
+          <div className="space-y-3">{pending.map(renderProposal)}</div>
+        </div>
+      )}
+
+      {reviewed.length > 0 && (
+        <div>
+          <h3 className="font-display font-bold text-base mb-3" style={{ color: "var(--muted-warm)" }}>Reviewed</h3>
+          <div className="space-y-3">{reviewed.map(renderProposal)}</div>
         </div>
       )}
     </div>
