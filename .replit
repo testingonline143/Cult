@@ -45,7 +45,7 @@ expertMode = true
 [userenv]
 
 [userenv.shared]
-ADMIN_USER_ID = "55436570"
+ADMIN_USER_ID = "55804750"
 
 [postMerge]
 path = "scripts/post-merge.sh"
