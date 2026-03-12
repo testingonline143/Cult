@@ -2588,6 +2588,136 @@ function CoOrganisersCard({ clubId }: { clubId: string }) {
   );
 }
 
+function CoOrganiserSection({ club }: { club: Club }) {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: coOrganisers = [], isLoading: loadingCo } = useQuery<{ userId: string; name: string; profileImageUrl: string | null }[]>({
+    queryKey: ["/api/organizer/clubs", club.id, "co-organisers"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/clubs/${club.id}/co-organisers`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: members = [] } = useQuery<{ id: string; userId: string; name: string; status: string }[]>({
+    queryKey: ["/api/organizer/clubs", club.id, "members"],
+    queryFn: async () => {
+      const res = await fetch(`/api/organizer/clubs/${club.id}/members`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const coIds = new Set(coOrganisers.map(c => c.userId));
+  const searchableMembers = members
+    .filter(m => m.status === "approved" && m.userId && !coIds.has(m.userId) && m.userId !== club.creatorUserId)
+    .filter(m => searchQuery.length >= 2 && m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const addMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", `/api/organizer/clubs/${club.id}/co-organisers`, { userId });
+      return res.json();
+    },
+    onSuccess: () => {
+      setSearchQuery("");
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", club.id, "co-organisers"] });
+      toast({ title: "Co-organiser added" });
+    },
+    onError: () => {
+      toast({ title: "Failed to add co-organiser", variant: "destructive" });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/organizer/clubs/${club.id}/co-organisers/${userId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organizer/clubs", club.id, "co-organisers"] });
+      toast({ title: "Co-organiser removed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove co-organiser", variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="pt-2 border-t border-[var(--warm-border)]" data-testid="section-co-organisers">
+      <div className="flex items-center gap-1.5 mb-3">
+        <Users2 className="w-3.5 h-3.5 text-[var(--terra)]" />
+        <span className="text-xs font-bold text-[var(--terra)] uppercase tracking-wider">Co-Organisers</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground mb-3">Add club members as co-organisers so they can help manage the dashboard.</p>
+
+      {loadingCo ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        </div>
+      ) : coOrganisers.length > 0 ? (
+        <div className="space-y-2 mb-3">
+          {coOrganisers.map(co => (
+            <div key={co.userId} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--warm-white)] border border-[var(--warm-border)]" data-testid={`co-organiser-${co.userId}`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-[var(--terra)]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {co.profileImageUrl ? (
+                    <img src={co.profileImageUrl} alt="" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <span className="text-xs font-bold text-[var(--terra)]">{co.name.charAt(0)}</span>
+                  )}
+                </div>
+                <span className="text-sm font-medium text-foreground truncate">{co.name}</span>
+              </div>
+              <button
+                onClick={() => removeMutation.mutate(co.userId)}
+                disabled={removeMutation.isPending}
+                className="text-xs text-red-500 hover:text-red-700 font-medium flex-shrink-0"
+                data-testid={`button-remove-co-${co.userId}`}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground mb-3 italic">No co-organisers yet</p>
+      )}
+
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search members to add..."
+          className="w-full px-4 py-3 rounded-md border-[1.5px] border-[var(--warm-border)] bg-[var(--cream)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--terra)]/30"
+          data-testid="input-search-co-organiser"
+        />
+        {searchableMembers.length > 0 && (
+          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[var(--warm-border)] rounded-lg shadow-lg z-20 max-h-40 overflow-y-auto">
+            {searchableMembers.map(m => (
+              <button
+                key={m.userId}
+                onClick={() => addMutation.mutate(m.userId)}
+                disabled={addMutation.isPending}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-[var(--cream)] transition-colors"
+                data-testid={`button-add-co-${m.userId}`}
+              >
+                <Plus className="w-3.5 h-3.5 text-[var(--terra)]" />
+                <span className="font-medium">{m.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {searchQuery.length >= 2 && searchableMembers.length === 0 && (
+          <p className="text-[11px] text-muted-foreground mt-1">No matching members found</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EditClub({ club }: { club: Club }) {
   const [shortDesc, setShortDesc] = useState(club.shortDesc);
   const [fullDesc, setFullDesc] = useState(club.fullDesc || "");
@@ -2727,6 +2857,8 @@ function EditClub({ club }: { club: Club }) {
       >
         {updateMutation.isPending ? "Saving..." : saved ? "Saved" : "Save Changes"}
       </button>
+
+      <CoOrganiserSection club={club} />
     </div>
   );
 }
