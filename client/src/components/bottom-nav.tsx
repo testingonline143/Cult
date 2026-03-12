@@ -79,9 +79,8 @@ export function BottomNav() {
           {/* Left tabs */}
           {leftTabs.map((tab) => renderTab(tab, tab.path))}
 
-          {/* Centre FAB or empty space */}
-          <div className="flex flex-col items-center flex-1 relative" style={{ minWidth: 56 }}>
-            {isCreator ? (
+          {isCreator && (
+            <div className="flex flex-col items-center flex-1 relative" style={{ minWidth: 56 }}>
               <button
                 onClick={() => setDrawerOpen(true)}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
@@ -95,8 +94,8 @@ export function BottomNav() {
               >
                 <Plus className="w-6 h-6 text-white" />
               </button>
-            ) : null}
-          </div>
+            </div>
+          )}
 
           {/* Right tabs */}
           {rightTabs.map((tab) => renderTab(tab, tab.path))}

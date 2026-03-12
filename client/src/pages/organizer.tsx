@@ -143,7 +143,6 @@ export default function Organizer() {
         {activeTab === "edit" && user?.id === club.creatorUserId && <EditClub club={club} />}
         {activeTab === "announcements" && <AnnouncementsManager clubId={club.id} />}
       </div>
-      <BottomNav />
     </div>
   );
 }
