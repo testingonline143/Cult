@@ -11,14 +11,11 @@ import { isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth"
 import type { RequestHandler } from "express";
 import { isCrawler, readHtmlTemplate, buildOgHtml, buildClubSvg, buildEventSvg } from "./og";
 
+import fs from "fs/promises";
+import sharp from "sharp";
+
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: path.resolve("uploads"),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname) || ".jpg";
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) {
@@ -734,7 +731,16 @@ export async function registerRoutes(
       if (!req.file) {
         return res.status(400).json({ success: false, message: "No image file provided" });
       }
-      const url = `/uploads/${req.file.filename}`;
+      
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+      const outputPath = path.resolve("uploads", filename);
+      
+      await sharp(req.file.buffer)
+        .resize({ width: 1200, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toFile(outputPath);
+        
+      const url = `/uploads/${filename}`;
       res.json({ success: true, url });
     } catch (err) {
       console.error("Error uploading image:", err);
@@ -748,7 +754,16 @@ export async function registerRoutes(
       if (!req.file) {
         return res.status(400).json({ success: false, message: "No image file provided" });
       }
-      const url = `/uploads/${req.file.filename}`;
+      
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+      const outputPath = path.resolve("uploads", filename);
+      
+      await sharp(req.file.buffer)
+        .resize({ width: 800, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toFile(outputPath);
+
+      const url = `/uploads/${filename}`;
       const user = await storage.updateUser(userId, { profileImageUrl: url });
       if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
