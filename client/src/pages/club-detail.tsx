@@ -20,6 +20,7 @@ interface ClubEvent {
   locationText: string;
   maxCapacity: number;
   rsvpCount: number;
+  recurrenceRule: string | null;
 }
 
 export default function ClubDetail() {

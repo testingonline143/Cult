@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle, Medal, X, ImagePlus } from "lucide-react";
+import { Bell, Heart, Share2, Plus, ChevronRight, MessageCircle, Medal, X, ImagePlus, Repeat } from "lucide-react";
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
@@ -670,9 +670,17 @@ export default function HomeFeed() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-0.5">
                       {getEventLabel(eventDate).toUpperCase()} · {diffHrs > 0 ? `in ${diffHrs}h` : "very soon"}
                     </p>
-                    <p className="font-display font-bold text-white text-[16px] leading-tight truncate" data-testid={`text-soon-event-${event.id}`}>
-                      {event.title}
-                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="font-display font-bold text-white text-[16px] leading-tight truncate" data-testid={`text-soon-event-${event.id}`}>
+                        {event.title}
+                      </p>
+                      {event.recurrenceRule && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-white/15 text-white/90" data-testid={`badge-recurring-${event.id}`}>
+                          <Repeat className="w-2.5 h-2.5" />
+                          {event.recurrenceRule === "weekly" ? "Weekly" : event.recurrenceRule === "biweekly" ? "Bi-weekly" : "Monthly"}
+                        </span>
+                      )}
+                    </div>
                     {event.clubName && (
                       <p className="text-[11px] text-white/70 mt-0.5">{event.clubEmoji} {event.clubName}</p>
                     )}
