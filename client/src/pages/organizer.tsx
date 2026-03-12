@@ -1660,12 +1660,10 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
                       <UserCheck className="w-3 h-3" style={{ color: "var(--terra)" }} />
                       <span className="text-[11px] font-semibold" style={{ color: "var(--terra)" }}>{reportData?.checkedInCount ?? 0} Checked In</span>
                     </div>
-                    {(reportData?.waitlistCount ?? 0) > 0 && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]">
-                        <Clock3 className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[11px] font-semibold text-muted-foreground">{reportData?.waitlistCount ?? 0} Waitlisted</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]">
+                      <Clock3 className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[11px] font-semibold text-muted-foreground">{reportData?.waitlistCount ?? 0} Waitlisted</span>
+                    </div>
                   </div>
 
                   {(reportData?.attendees.length ?? 0) > 0 ? (
