@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
+import { Loader2 } from "lucide-react";
 
 // Lazy-loaded page chunks — Vite will split each into its own JS file
 // so users only download the code for the page they actually visit.
@@ -29,6 +30,17 @@ const MemberProfile   = lazy(() => import("@/pages/member-profile"));
 const PublicClub      = lazy(() => import("@/pages/public-club"));
 const PageBuilder     = lazy(() => import("@/pages/page-builder"));
 
+function PageLoader() {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ background: "var(--cream)" }}
+    >
+      <Loader2 className="h-8 w-8 animate-spin opacity-40" />
+    </div>
+  );
+}
+
 const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
@@ -49,12 +61,12 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const [location] = useLocation();
 
   if (isLoading) {
-    return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {
     window.location.href = `/api/login?returnTo=${encodeURIComponent(location)}`;
-    return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
+    return <PageLoader />;
   }
 
   return <Component />;
@@ -67,13 +79,7 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
 
-    // Wait for the next tick to ensure we don't interfere with initial renders
     const timeoutId = setTimeout(() => {
-      // The backend session approach manages redirects via URL naturally so we don't need
-      // to check localStorage anymore. The user will land exactly where they intended.
-      
-      // The only auto-redirect we need to manage here on the frontend now is the generic landing page:
-      // If the user has never completed the quiz, send them to onboarding.
       if (location === "/" && user && user.quizCompleted === false) {
         navigate("/onboarding");
       }
@@ -90,7 +96,7 @@ function Router() {
   return (
     <AuthHandler>
       <QuizGate>
-        <Suspense fallback={<div className="min-h-screen" style={{ background: "var(--cream)" }} />}>
+        <Suspense fallback={<PageLoader />}>
           <Switch>
             <Route path="/" component={Home} />
             <Route path="/onboarding" component={Onboarding} />
