@@ -7,15 +7,11 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { setupAuth } from "./replit_integrations/auth";
 
-const uploadsDir = path.resolve("uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 const app = express();
+
 const httpServer = createServer(app);
 
-app.use("/uploads", express.static(uploadsDir));
+
 
 declare module "http" {
   interface IncomingMessage {
@@ -101,7 +97,8 @@ app.use((req, res, next) => {
   httpServer.listen(
     {
       port,
-      host: "127.0.0.1"
+      host: "0.0.0.0"
+
     },
     () => {
       log(`serving on http://0.0.0.0:${port}`);
