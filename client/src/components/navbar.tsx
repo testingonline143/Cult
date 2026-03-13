@@ -3,24 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogin } from "@/hooks/use-login";
 import { Link, useLocation } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const queryClient = useQueryClient();
-
-
+  const { login } = useLogin();
 
   function handleListClub() {
     if (isAuthenticated) {
       navigate("/create");
     } else {
-      window.location.href = "/api/login?returnTo=/create";
+      login("/create");
     }
   }
 
@@ -115,7 +112,7 @@ export function Navbar() {
                 size="sm"
                 variant="outline"
                 className="rounded-full hidden sm:inline-flex"
-                onClick={() => { window.location.href = "/api/login?returnTo=/home"; }}
+                onClick={() => login("/home")}
                 data-testid="button-sign-in"
               >
                 Sign In
@@ -171,7 +168,7 @@ export function Navbar() {
                   </Button>
                 </div>
               ) : (
-                <Button variant="ghost" size="sm" className="justify-start" onClick={() => { window.location.href = "/api/login?returnTo=/home"; setMobileOpen(false); }} data-testid="button-sign-in-mobile">
+                <Button variant="ghost" size="sm" className="justify-start" onClick={() => { login("/home"); setMobileOpen(false); }} data-testid="button-sign-in-mobile">
                   Sign In
                 </Button>
               )}

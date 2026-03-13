@@ -1,20 +1,18 @@
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-
+import { useLogin } from "@/hooks/use-login";
 
 export function OrganizerSection() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-
+  const { login } = useLogin();
 
   function handleCreateClub() {
     if (user) {
       navigate("/create");
     } else {
-      window.location.href = "/api/login?returnTo=/create";
+      login("/create");
     }
   }
 

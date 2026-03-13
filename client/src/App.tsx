@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogin } from "@/hooks/use-login";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { Loader2 } from "lucide-react";
@@ -68,14 +69,31 @@ function QuizGate({ children }: { children: React.ReactNode }) {
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
+  const { login } = useLogin();
 
   if (isLoading) {
     return <PageLoader />;
   }
 
   if (!isAuthenticated) {
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(location)}`;
-    return <PageLoader />;
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-5"
+        style={{ background: "var(--cream)" }}
+      >
+        <p className="text-base font-medium" style={{ color: "var(--ink)" }}>
+          Sign in to continue
+        </p>
+        <button
+          onClick={() => login(location)}
+          className="rounded-full px-8 py-3 text-sm font-bold text-white"
+          style={{ background: "var(--terra)" }}
+          data-testid="button-protected-sign-in"
+        >
+          Sign In
+        </button>
+      </div>
+    );
   }
 
   return <Component />;

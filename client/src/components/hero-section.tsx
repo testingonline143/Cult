@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Mountain, BookOpen, Bike, Camera, Dumbbell, Palette, Music, Gamepad2, ChefHat, MapPin } from "lucide-react";
 import { CITIES } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { apiRequest } from "@/lib/queryClient";
+import { useLogin } from "@/hooks/use-login";
 
 const FLOATING_ICONS = [
   { Icon: Mountain, label: "Trekking" },
@@ -35,7 +34,7 @@ export function HeroSection() {
   const [, navigate] = useLocation();
   const [cityIndex, setCityIndex] = useState(0);
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { login } = useLogin();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -44,12 +43,11 @@ export function HeroSection() {
     return () => clearInterval(interval);
   }, []);
 
-
   function handleStartClub() {
     if (user) {
       navigate("/create");
     } else {
-      window.location.href = "/api/login?returnTo=/create";
+      login("/create");
     }
   }
 
