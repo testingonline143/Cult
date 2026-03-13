@@ -25,8 +25,7 @@ export default function MembersTab({ clubId }: { clubId: string }) {
   const { data: members = [], isLoading } = useQuery<EnrichedMember[]>({
     queryKey: ["/api/organizer/clubs", clubId, "members"],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/clubs/${clubId}/members`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/organizer/clubs/${clubId}/members`);
       return res.json();
     },
   });

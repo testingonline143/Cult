@@ -6,6 +6,7 @@ import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import type { Club, Event, ClubMoment } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -206,8 +207,7 @@ export default function HomeFeed() {
   const { data: kudoStatus } = useQuery<{ hasGiven: boolean }>({
     queryKey: ["/api/events", kudoPromptEvent?.id, "kudos/status"],
     queryFn: async () => {
-      const res = await fetch(`/api/events/${kudoPromptEvent!.id}/kudos/status`, { credentials: "include" });
-      if (!res.ok) return { hasGiven: false };
+      const res = await apiRequest("GET", `/api/events/${kudoPromptEvent!.id}/kudos/status`);
       return res.json();
     },
     enabled: !!kudoPromptEvent && !!user,
@@ -216,8 +216,7 @@ export default function HomeFeed() {
   const { data: kudoAttendees = [] } = useQuery<{ userId: string; userName: string | null }[]>({
     queryKey: ["/api/events", kudoPromptEvent?.id, "attendees-for-kudo"],
     queryFn: async () => {
-      const res = await fetch(`/api/events/${kudoPromptEvent!.id}/attendees-for-kudo`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/events/${kudoPromptEvent!.id}/attendees-for-kudo`);
       return res.json();
     },
     enabled: !!kudoPromptEvent && !!user,
@@ -283,7 +282,10 @@ export default function HomeFeed() {
       try {
         const formData = new FormData();
         formData.append("file", postImageFile);
-        const res = await fetch("/api/upload/image", { method: "POST", body: formData, credentials: "include" });
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+        const res = await fetch("/api/upload/image", { method: "POST", headers, body: formData });
         const data = await res.json();
         imageUrl = data.url;
       } catch {

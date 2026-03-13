@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -35,11 +35,7 @@ export function UpcomingEvents() {
 
   const rsvpMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      const res = await fetch(`/api/events/${eventId}/rsvp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      const res = await apiRequest("POST", `/api/events/${eventId}/rsvp`);
       if (!res.ok) throw new Error("Failed to RSVP");
       return res.json();
     },

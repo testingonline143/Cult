@@ -5,9 +5,17 @@ import { isAuthenticated } from "./replitAuth";
 export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await authStorage.getUser(userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      const claims = req.user.claims;
+      // When a user logs in via Supabase for the first time, they won't exist in the local 
+      // users table until we upsert them based on their claims.
+      const user = await authStorage.upsertUser({
+        id: claims.sub,
+        email: claims.email || null,
+        firstName: claims.first_name || null,
+        lastName: claims.last_name || null,
+        profileImageUrl: null,
+      });
+
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);

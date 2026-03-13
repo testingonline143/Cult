@@ -101,7 +101,7 @@ function AdminSetupScreen({ userId }: { userId: string }) {
 
   const steps = [
     { num: "1", text: "Click the Copy button below to copy your Admin ID" },
-    { num: "2", text: "Open the Secrets panel in Replit (the lock icon in the left sidebar)" },
+    { num: "2", text: "Open your environment variables (.env file)" },
     { num: "3", text: "Create a new secret named ADMIN_USER_ID" },
     { num: "4", text: "Paste your Admin ID as the value and save" },
     { num: "5", text: "Restart the app — you'll have full admin access" },

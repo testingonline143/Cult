@@ -19,19 +19,25 @@ export function ImageUpload({ value, onChange, label = "Add cover photo", aspect
   async function handleFile(file: File) {
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/upload/image", {
-        method: "POST",
-        credentials: "include",
-        body: form,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Upload failed");
+      const { supabase } = await import("@/lib/supabase");
+      const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.webp`;
+      
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(filename, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        throw new Error(error.message || "Upload failed");
       }
-      const data = await res.json();
-      onChange(data.url);
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filename);
+        
+      onChange(publicUrl);
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {

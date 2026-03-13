@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
+import { isAuthenticated, registerAuthRoutes, supabase } from "./replit_integrations/auth";
 import type { RequestHandler } from "express";
 import { isCrawler, readHtmlTemplate, buildOgHtml, buildClubSvg, buildEventSvg } from "./og";
 
@@ -706,6 +706,9 @@ export async function registerRoutes(
     }
   });
 
+  // Images are now uploaded directly from the frontend to Supabase Storage.
+  // We keep a simple endpoint if any legacy code still calls `/api/upload/image` 
+  // but it's largely deprecated in favor of client-side Upload components.
   app.post("/api/upload/image", isAuthenticated, upload.single("file"), async (req: any, res) => {
     try {
       if (!req.file) {
@@ -713,15 +716,26 @@ export async function registerRoutes(
       }
       
       const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
-      const outputPath = path.resolve("uploads", filename);
       
-      await sharp(req.file.buffer)
+      const webpBuffer = await sharp(req.file.buffer)
         .resize({ width: 1200, withoutEnlargement: true })
         .webp({ quality: 80 })
-        .toFile(outputPath);
+        .toBuffer();
         
-      const url = `/uploads/${filename}`;
-      res.json({ success: true, url });
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(filename, webpBuffer, {
+          contentType: 'image/webp',
+          upsert: true
+        });
+        
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filename);
+      
+      res.json({ success: true, url: publicUrl });
     } catch (err) {
       console.error("Error uploading image:", err);
       res.status(500).json({ success: false, message: "Failed to upload image" });
@@ -735,20 +749,31 @@ export async function registerRoutes(
         return res.status(400).json({ success: false, message: "No image file provided" });
       }
       
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
-      const outputPath = path.resolve("uploads", filename);
+      const filename = `${userId}-${Date.now()}.webp`;
       
-      await sharp(req.file.buffer)
+      const webpBuffer = await sharp(req.file.buffer)
         .resize({ width: 800, withoutEnlargement: true })
         .webp({ quality: 80 })
-        .toFile(outputPath);
+        .toBuffer();
+        
+      const { data, error } = await supabase.storage
+        .from('uploads')
+        .upload(filename, webpBuffer, {
+          contentType: 'image/webp',
+          upsert: true
+        });
+        
+      if (error) throw error;
 
-      const url = `/uploads/${filename}`;
-      const user = await storage.updateUser(userId, { profileImageUrl: url });
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filename);
+        
+      const user = await storage.updateUser(userId, { profileImageUrl: publicUrl });
       if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
       }
-      res.json({ success: true, url, user });
+      res.json({ success: true, url: publicUrl, user });
     } catch (err) {
       console.error("Error uploading photo:", err);
       res.status(500).json({ success: false, message: "Failed to upload photo" });

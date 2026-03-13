@@ -12,12 +12,12 @@ function CoOrganiserSection({ club }: { club: Club }) {
 
   const { data: coOrganisers = [], isLoading: loadingCo } = useQuery<{ userId: string; name: string; profileImageUrl: string | null }[]>({
     queryKey: ["/api/organizer/clubs", club.id, "co-organisers"],
-    queryFn: async () => { const res = await fetch(`/api/organizer/clubs/${club.id}/co-organisers`, { credentials: "include" }); if (!res.ok) return []; return res.json(); },
+    queryFn: async () => { const res = await apiRequest("GET", `/api/organizer/clubs/${club.id}/co-organisers`); return res.json(); },
   });
 
   const { data: members = [] } = useQuery<{ id: string; userId: string; name: string; status: string }[]>({
     queryKey: ["/api/organizer/clubs", club.id, "members"],
-    queryFn: async () => { const res = await fetch(`/api/organizer/clubs/${club.id}/members`, { credentials: "include" }); if (!res.ok) return []; return res.json(); },
+    queryFn: async () => { const res = await apiRequest("GET", `/api/organizer/clubs/${club.id}/members`); return res.json(); },
   });
 
   const coIds = new Set(coOrganisers.map(c => c.userId));

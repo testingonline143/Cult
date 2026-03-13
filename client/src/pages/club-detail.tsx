@@ -115,8 +115,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   const { data: ratingsData } = useQuery<{ average: number; count: number; userRating: { rating: number; review: string | null } | null; hasJoined: boolean }>({
     queryKey: ["/api/clubs", club.id, "ratings"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${club.id}/ratings`, { credentials: "include" });
-      if (!res.ok) return { average: 0, count: 0, userRating: null, hasJoined: false };
+      const res = await apiRequest("GET", `/api/clubs/${club.id}/ratings`);
       return res.json();
     },
   });
@@ -142,8 +141,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   const { data: joinStatus } = useQuery<{ status: string | null; requestId: string | null }>({
     queryKey: ["/api/clubs", club.id, "join-status"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${club.id}/join-status`, { credentials: "include" });
-      if (!res.ok) return { status: null, requestId: null };
+      const res = await apiRequest("GET", `/api/clubs/${club.id}/join-status`);
       return res.json();
     },
     enabled: isAuthenticated,
@@ -151,7 +149,7 @@ function ClubDetailContent({ club }: { club: Club }) {
 
   const leaveMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/clubs/${club.id}/leave`, { method: "DELETE", credentials: "include" });
+      const res = await apiRequest("DELETE", `/api/clubs/${club.id}/leave`);
       if (!res.ok) throw new Error("Failed to leave");
       return res.json();
     },
@@ -280,8 +278,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   const { data: announcements = [] } = useQuery<ClubAnnouncement[]>({
     queryKey: ["/api/clubs", club.id, "announcements"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${club.id}/announcements`);
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/clubs/${club.id}/announcements`);
       return res.json();
     },
   });
@@ -289,8 +286,7 @@ function ClubDetailContent({ club }: { club: Club }) {
   const { data: momentsForGallery = [] } = useQuery<ClubMoment[]>({
     queryKey: ["/api/clubs", club.id, "moments"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${club.id}/moments`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/clubs/${club.id}/moments`);
       return res.json();
     },
   });
@@ -948,7 +944,7 @@ function ClubDetailContent({ club }: { club: Club }) {
         <div className="fixed bottom-0 left-0 right-0 z-40 px-6 py-3.5 flex items-center gap-3" style={{ background: 'var(--cream)', borderTop: '1.5px solid var(--warm-border)' }} data-testid="sticky-join-cta">
           {!isAuthenticated ? (
             <a
-              href="/api/login"
+              href="/login"
               className="block w-full text-center rounded-2xl py-4 font-display font-bold italic text-lg tracking-tight transition-all"
               style={{ background: 'var(--ink)', color: 'var(--cream)' }}
               data-testid="button-signin-to-join"
@@ -992,11 +988,7 @@ function ClubEvents({ clubId, clubName, isAuthenticated }: { clubId: string; clu
 
   const rsvpMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      const res = await fetch(`/api/events/${eventId}/rsvp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      const res = await apiRequest("POST", `/api/events/${eventId}/rsvp`);
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
@@ -1649,7 +1641,7 @@ function CommentsSection({ momentId, isOrganiser }: { momentId: string; isOrgani
           ) : (
             <div className="px-4 py-3" style={{ borderTop: "1px solid var(--warm-border)" }}>
               <a
-                href="/api/login"
+                href="/login"
                 className="text-xs font-semibold"
                 style={{ color: "var(--terra)" }}
                 data-testid="link-sign-in-comment"
@@ -1739,8 +1731,7 @@ function MembersTab({ clubId }: { clubId: string }) {
   const { data: members = [], isLoading } = useQuery<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: string | null; isFoundingMember: boolean | null }[]>({
     queryKey: ["/api/clubs", clubId, "members"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/members`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/clubs/${clubId}/members`);
       return res.json();
     },
   });
@@ -1820,8 +1811,7 @@ function GalleryTab({ clubId }: { clubId: string }) {
   const { data: moments = [], isLoading } = useQuery<ClubMoment[]>({
     queryKey: ["/api/clubs", clubId, "moments"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/moments`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/clubs/${clubId}/moments`);
       return res.json();
     },
   });

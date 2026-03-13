@@ -4,6 +4,7 @@ import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { MapPin, Users, Crosshair, Search, ChevronRight, Sparkles } from "lucide-react";
 import { Navbar } from "@/components/navbar";
+import { apiRequest } from "@/lib/queryClient";
 import type { Club } from "@shared/schema";
 
 interface MatchedClub extends Club {
@@ -17,10 +18,7 @@ export default function MatchedClubs() {
   const { data: matchedClubs = [], isLoading } = useQuery<MatchedClub[]>({
     queryKey: ["/api/quiz/matches"],
     queryFn: async () => {
-      const res = await fetch("/api/quiz/matches", {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch matches");
+      const res = await apiRequest("GET", "/api/quiz/matches");
       return res.json();
     },
     enabled: isAuthenticated,

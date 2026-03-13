@@ -1,10 +1,10 @@
 import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogin } from "@/hooks/use-login";
 import { useLocation, useSearch } from "wouter";
 import { LayoutDashboard, Users, Loader2 } from "lucide-react";
 import type { Club, JoinRequest } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 // ── Lazy-loaded tab components ──────────────────────────────────────────────
 const OverviewTab      = lazy(() => import("./organizer/OverviewTab"));
@@ -37,8 +37,7 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId, isCreator }: {
   const { data: requests = [] } = useQuery<JoinRequest[]>({
     queryKey: ["/api/organizer/join-requests", clubId],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/join-requests/${clubId}`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/organizer/join-requests/${clubId}`);
       return res.json();
     },
   });
@@ -69,7 +68,6 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId, isCreator }: {
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
-  const { login } = useLogin();
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const urlTab = new URLSearchParams(searchString).get("tab") as TabKey | null;
@@ -80,8 +78,7 @@ export default function Organizer() {
   const { data: clubs = [], isLoading, error } = useQuery<Club[]>({
     queryKey: ["/api/organizer/my-clubs"],
     queryFn: async () => {
-      const res = await fetch("/api/organizer/my-clubs", { credentials: "include" });
-      if (!res.ok) { if (res.status === 403) return []; throw new Error("Failed to fetch clubs"); }
+      const res = await apiRequest("GET", "/api/organizer/my-clubs");
       return res.json();
     },
     enabled: isAuthenticated,
@@ -99,7 +96,7 @@ export default function Organizer() {
           </div>
           <h1 className="font-display text-2xl font-bold text-[var(--terra)]" data-testid="text-organizer-title">Organizer Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Sign in to access your club dashboard</p>
-          <button onClick={() => login()} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-organizer-sign-in">Sign In</button>
+          <button onClick={() => { window.location.href = "/login"; }} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-organizer-sign-in">Sign In</button>
         </div>
       </div>
     );

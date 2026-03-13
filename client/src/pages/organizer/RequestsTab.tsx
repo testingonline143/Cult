@@ -11,8 +11,7 @@ export default function RequestsTab({ clubId, club }: { clubId: string; club: Cl
   const { data: requests = [], isLoading } = useQuery<JoinRequest[]>({
     queryKey: ["/api/organizer/join-requests", clubId],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/join-requests/${clubId}`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/organizer/join-requests/${clubId}`);
       return res.json();
     },
   });

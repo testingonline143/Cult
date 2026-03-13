@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogin } from "@/hooks/use-login";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
@@ -11,7 +11,6 @@ import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIc
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { login } = useLogin();
 
   if (isLoading) {
     return (
@@ -50,7 +49,7 @@ export default function Profile() {
             Sign in to view your profile, joined clubs, and upcoming events.
           </p>
           <button
-            onClick={() => login()}
+            onClick={() => { window.location.href = "/login"; }}
             className="rounded-xl px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 text-white"
             style={{ background: 'var(--terra)' }}
             data-testid="button-sign-in-profile"
@@ -101,7 +100,10 @@ function ProfileHeader({ user }: { user: User }) {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("photo", file);
-      const res = await fetch("/api/user/photo", { method: "POST", credentials: "include", body: formData });
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/user/photo", { method: "POST", headers, body: formData });
       if (!res.ok) throw new Error("Failed to upload");
       return res.json();
     },
@@ -372,10 +374,7 @@ function UserEvents({ userId }: { userId: string }) {
   const { data: rsvps = [], isLoading } = useQuery<UserRsvp[]>({
     queryKey: ["/api/user/events", userId],
     queryFn: async () => {
-      const res = await fetch("/api/user/events", {
-        credentials: "include",
-      });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", "/api/user/events");
       return res.json();
     },
   });
@@ -514,10 +513,7 @@ function JoinedClubs({ userId }: { userId: string }) {
   const { data: joinRequests = [], isLoading: loadingRequests } = useQuery<JoinRequest[]>({
     queryKey: ["/api/user/join-requests", userId],
     queryFn: async () => {
-      const res = await fetch("/api/user/join-requests", {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch");
+      const res = await apiRequest("GET", "/api/user/join-requests");
       return res.json();
     },
   });
@@ -714,8 +710,7 @@ function AttendanceSection() {
   const { data: stats = [], isLoading } = useQuery<{ clubId: string; clubName: string; clubEmoji: string; totalRsvps: number; attended: number }[]>({
     queryKey: ["/api/user/attendance-stats"],
     queryFn: async () => {
-      const res = await fetch("/api/user/attendance-stats", { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", "/api/user/attendance-stats");
       return res.json();
     },
   });
@@ -827,8 +822,7 @@ function KudosReceived() {
   const { data: kudos = [], isLoading } = useQuery<{ id: string; kudoType: string; eventTitle: string; createdAt: string | null }[]>({
     queryKey: ["/api/user/kudos"],
     queryFn: async () => {
-      const res = await fetch("/api/user/kudos", { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", "/api/user/kudos");
       return res.json();
     },
     enabled: !!user,

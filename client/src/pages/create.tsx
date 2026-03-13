@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogin } from "@/hooks/use-login";
 import { useLocation, useSearch } from "wouter";
 import { CATEGORIES, CITIES } from "@shared/schema";
 import type { Club } from "@shared/schema";
@@ -16,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 export default function Create() {
   const searchString = useSearch();
@@ -137,13 +136,12 @@ export default function Create() {
 }
 
 function SignInPrompt({ message }: { message: string }) {
-  const { login } = useLogin();
   return (
     <div className="glass-card rounded-xl p-8 text-center space-y-4">
       <LogIn className="w-10 h-10 mx-auto" style={{ color: 'var(--terra)' }} />
       <p className="text-sm text-muted-foreground" data-testid="text-sign-in-prompt">{message}</p>
       <button
-        onClick={() => login()}
+        onClick={() => { window.location.href = "/login"; }}
         className="text-white rounded-xl px-8 py-3 text-sm font-semibold"
         style={{ background: 'var(--terra)' }}
         data-testid="button-sign-in-create"
@@ -196,12 +194,7 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
         motivation: fullDesc || "I want to create this community", // Required field for proposals
       };
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const res = await apiRequest("POST", endpoint, payload);
       if (!res.ok) {
         const data = await res.json().catch(() => ({ message: "Failed to create club" }));
         throw new Error(data.message || "Failed to create club");
@@ -446,19 +439,14 @@ function EventForm({ preselectedClubId, fromEventId }: { preselectedClubId?: str
 
   const createEventMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/clubs/${effectiveClubId}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          title,
-          description,
-          startsAt: new Date(dateTime).toISOString(),
-          locationText,
-          maxCapacity: parseInt(maxCapacity) || 50,
-          recurrenceRule: recurrenceRule !== "none" ? recurrenceRule : null,
-          coverImageUrl: coverImageUrl ?? undefined,
-        }),
+      const res = await apiRequest("POST", `/api/clubs/${effectiveClubId}/events`, {
+        title,
+        description,
+        startsAt: new Date(dateTime).toISOString(),
+        locationText,
+        maxCapacity: parseInt(maxCapacity) || 50,
+        recurrenceRule: recurrenceRule !== "none" ? recurrenceRule : null,
+        coverImageUrl: coverImageUrl ?? undefined,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ message: "Failed to create event" }));

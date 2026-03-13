@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Calendar, Check, Copy, Clock3, Camera, Link2, Globe, Pencil } from "lucide-react";
@@ -29,8 +30,7 @@ function ClubOverview({ club, user, setActiveTab, setContentInitialSection }: { 
   const { data: pendingData } = useQuery<{ count: number }>({
     queryKey: ["/api/organizer/clubs", club.id, "pending-count"],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/clubs/${club.id}/pending-count`, { credentials: "include" });
-      if (!res.ok) return { count: 0 };
+      const res = await apiRequest("GET", `/api/organizer/clubs/${club.id}/pending-count`);
       return res.json();
     },
   });

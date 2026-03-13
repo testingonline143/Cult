@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { BarChart3, TrendingUp, TrendingDown, Medal, UserCheck, Users, Calendar } from "lucide-react";
 
 interface InsightsData {
@@ -23,8 +24,7 @@ export default function InsightsTab({ clubId }: { clubId: string }) {
   const { data: insights, isLoading: insightsLoading } = useQuery<InsightsData>({
     queryKey: ["/api/organizer/clubs", clubId, "insights"],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/clubs/${clubId}/insights`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch insights");
+      const res = await apiRequest("GET", `/api/organizer/clubs/${clubId}/insights`);
       return res.json();
     },
   });
@@ -32,8 +32,7 @@ export default function InsightsTab({ clubId }: { clubId: string }) {
   const { data: analytics, isLoading: analyticsLoading } = useQuery<AnalyticsData>({
     queryKey: ["/api/organizer/clubs", clubId, "analytics"],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/clubs/${clubId}/analytics`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch analytics");
+      const res = await apiRequest("GET", `/api/organizer/clubs/${clubId}/analytics`);
       return res.json();
     },
   });

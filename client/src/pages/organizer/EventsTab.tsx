@@ -70,13 +70,13 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
 
   const { data: attendeeData } = useQuery<{ attendees: AttendeeData[]; checkedInCount: number; totalRsvps: number }>({
     queryKey: ["/api/events", event.id, "attendees"],
-    queryFn: async () => { const res = await fetch(`/api/events/${event.id}/attendees`, { credentials: "include" }); if (!res.ok) return { attendees: [], checkedInCount: 0, totalRsvps: 0 }; return res.json(); },
+    queryFn: async () => { const res = await apiRequest("GET", `/api/events/${event.id}/attendees`); return res.json(); },
     enabled: showAttendees,
   });
 
   const { data: reportData, isLoading: reportLoading } = useQuery<AttendanceReport>({
     queryKey: ["/api/organizer/events", event.id, "attendance"],
-    queryFn: async () => { const res = await fetch(`/api/organizer/events/${event.id}/attendance`, { credentials: "include" }); if (!res.ok) return { attendees: [], goingCount: 0, waitlistCount: 0, checkedInCount: 0 }; return res.json(); },
+    queryFn: async () => { const res = await apiRequest("GET", `/api/organizer/events/${event.id}/attendance`); return res.json(); },
     enabled: showReport,
   });
 

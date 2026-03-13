@@ -43,8 +43,7 @@ export default function PageBuilder() {
   const { data: sections = [], isLoading: sectionsLoading } = useQuery<SectionWithEvents[]>({
     queryKey: ["/api/organizer/clubs", clubId, "page-sections"],
     queryFn: async () => {
-      const res = await fetch(`/api/organizer/clubs/${clubId}/page-sections`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/organizer/clubs/${clubId}/page-sections`);
       return res.json();
     },
     enabled: !!clubId,
@@ -53,8 +52,7 @@ export default function PageBuilder() {
   const { data: clubEvents = [] } = useQuery<Event[]>({
     queryKey: ["/api/clubs", clubId, "events"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/events`, { credentials: "include" });
-      if (!res.ok) return [];
+      const res = await apiRequest("GET", `/api/clubs/${clubId}/events`);
       return res.json();
     },
     enabled: !!clubId,

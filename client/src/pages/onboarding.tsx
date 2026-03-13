@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader as Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { HOBBY_ICONS } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
-import { useLogin } from "@/hooks/use-login";
+import { supabase } from "@/lib/supabase";
 
 const AVAILABILITY_OPTIONS = [
   { value: "early_morning", label: "Early Morning", emoji: "🌅" },
@@ -37,7 +37,6 @@ export default function Onboarding() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const { login } = useLogin();
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
@@ -50,26 +49,34 @@ export default function Onboarding() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!user) {
+        throw new Error("User must be logged in to save onboarding Data");
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session found");
+
       const res = await fetch("/api/quiz", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           interests,
           experienceLevel,
           vibePreference,
           availability,
           collegeOrWork: userType || null,
+          city: user.city || "",
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
-        old ? { ...old, quizCompleted: true } : old
-      );
-      navigate("/home");
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      navigate("/matched-clubs");
     },
     onError: () => {
       setShowLoading(false);
@@ -120,8 +127,7 @@ export default function Onboarding() {
   };
 
   if (!user) {
-    sessionStorage.setItem("redirectAfterAuth", "/onboarding");
-    login("/onboarding");
+    navigate("/");
     return null;
   }
 

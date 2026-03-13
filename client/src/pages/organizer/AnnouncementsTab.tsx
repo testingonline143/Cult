@@ -14,7 +14,7 @@ export default function AnnouncementsTab({ clubId }: { clubId: string }) {
 
   const { data: announcements = [], isLoading } = useQuery<ClubAnnouncement[]>({
     queryKey: ["/api/organizer/clubs", clubId, "announcements"],
-    queryFn: async () => { const res = await fetch(`/api/clubs/${clubId}/announcements`, { credentials: "include" }); if (!res.ok) return []; return res.json(); },
+    queryFn: async () => { const res = await apiRequest("GET", `/api/clubs/${clubId}/announcements`); return res.json(); },
   });
 
   const postMutation = useMutation({

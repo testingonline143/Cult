@@ -3,7 +3,6 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogin } from "@/hooks/use-login";
 import { ArrowLeft, Calendar, MapPin, Users, Share2, CheckCircle2, ExternalLink, Ticket, Crown, AlertCircle, MessageCircle, Send, Repeat } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,6 @@ export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const { login } = useLogin();
   const [justRsvpd, setJustRsvpd] = useState(false);
   const [justWaitlisted, setJustWaitlisted] = useState<number | null>(null);
   const [rsvpError, setRsvpError] = useState<string | null>(null);
@@ -69,8 +67,7 @@ export default function EventDetail() {
   const { data: joinStatusData } = useQuery<{ status: string | null }>({
     queryKey: ["/api/clubs", clubId, "join-status"],
     queryFn: async () => {
-      const res = await fetch(`/api/clubs/${clubId}/join-status`, { credentials: "include" });
-      if (!res.ok) return { status: null };
+      const res = await apiRequest("GET", `/api/clubs/${clubId}/join-status`);
       return res.json();
     },
     enabled: !!clubId && isAuthenticated && !isLoading,
@@ -102,11 +99,7 @@ export default function EventDetail() {
 
   const rsvpMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/events/${id}/rsvp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      const res = await apiRequest("POST", `/api/events/${id}/rsvp`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({ message: "RSVP failed" }));
         throw new Error(data.message || "RSVP failed");
@@ -130,10 +123,7 @@ export default function EventDetail() {
 
   const cancelRsvpMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/events/${id}/rsvp`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await apiRequest("DELETE", `/api/events/${id}/rsvp`);
       if (!res.ok) throw new Error("Failed to cancel RSVP");
       return res.json();
     },
@@ -573,7 +563,7 @@ export default function EventDetail() {
 
             {!isAuthenticated ? (
               <button
-                onClick={() => login()}
+                onClick={() => { window.location.href = "/login"; }}
                 className="flex-[2] rounded-2xl py-4 font-display text-base font-bold italic flex items-center justify-center gap-2 transition-all"
                 style={{ background: 'var(--ink)', color: 'var(--cream)', letterSpacing: '-0.3px' }}
                 data-testid="button-sign-in-rsvp"

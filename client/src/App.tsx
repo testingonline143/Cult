@@ -12,9 +12,8 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { Loader as Loader2 } from "lucide-react";
 
-import Home from "@/pages/home";
-
-const NotFound        = lazy(() => import("@/pages/not-found"));
+const Home            = lazy(() => import("@/pages/home"));
+const Login           = lazy(() => import("@/pages/login"));
 const Admin           = lazy(() => import("@/pages/admin"));
 const OrganizerDashboard = lazy(() => import("@/pages/organizer"));
 const Profile         = lazy(() => import("@/pages/profile"));
@@ -31,6 +30,7 @@ const Notifications   = lazy(() => import("@/pages/notifications"));
 const MemberProfile   = lazy(() => import("@/pages/member-profile"));
 const PublicClub      = lazy(() => import("@/pages/public-club"));
 const PageBuilder     = lazy(() => import("@/pages/page-builder"));
+const NotFound        = lazy(() => import("@/pages/not-found"));
 
 function PageLoader() {
   const [show, setShow] = useState(false);
@@ -50,7 +50,7 @@ function PageLoader() {
   );
 }
 
-const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c", "/create"];
+const QUIZ_EXEMPT_PATHS = ["/", "/login", "/onboarding", "/matched-clubs", "/admin", "/c"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -67,32 +67,22 @@ function QuizGate({ children }: { children: React.ReactNode }) {
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { login } = useLogin();
 
-  if (isLoading) {
-    return <PageLoader />;
-  }
+  useEffect(() => {
+    // Only redirect if authentication check has finished
+    if (!isLoading && !isAuthenticated) {
+      if (typeof navigate === 'function') {
+        navigate(`/login?returnTo=${encodeURIComponent(location)}`);
+      } else {
+         window.location.href = `/login?returnTo=${encodeURIComponent(location)}`;
+      }
+    }
+  }, [isLoading, isAuthenticated, location, navigate]);
 
-  if (!isAuthenticated) {
-    return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center gap-5"
-        style={{ background: "var(--cream)" }}
-      >
-        <p className="text-base font-medium" style={{ color: "var(--ink)" }}>
-          Sign in to continue
-        </p>
-        <button
-          onClick={() => login(location)}
-          className="rounded-full px-8 py-3 text-sm font-bold text-white"
-          style={{ background: "var(--terra)" }}
-          data-testid="button-protected-sign-in"
-        >
-          Sign In
-        </button>
-      </div>
-    );
+  if (isLoading || !isAuthenticated) {
+    return <PageLoader />;
   }
 
   return <Component />;
@@ -139,7 +129,8 @@ function Router() {
         <Suspense fallback={<PageLoader />}>
           <Switch>
             <Route path="/" component={Home} />
-            <Route path="/onboarding" component={Onboarding} />
+            <Route path="/login" component={Login} />
+            <Route path="/onboarding" component={() => <ProtectedRoute component={Onboarding} />} />
             <Route path="/admin" component={Admin} />
             <Route path="/home" component={() => <ProtectedRoute component={HomeFeed} />} />
             <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
@@ -179,3 +170,4 @@ function App() {
 }
 
 export default App;
+
