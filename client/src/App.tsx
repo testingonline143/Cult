@@ -26,7 +26,7 @@ import MemberProfile from "@/pages/member-profile";
 import PublicClub from "@/pages/public-club";
 import PageBuilder from "@/pages/page-builder";
 
-const QUIZ_EXEMPT_PATHS = ["/home", "/onboarding", "/matched-clubs", "/admin", "/organizer", "/scan", "/club", "/event", "/events", "/create", "/notifications", "/explore", "/profile", "/c", "/page-builder"];
+const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();

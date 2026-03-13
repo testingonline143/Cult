@@ -122,16 +122,29 @@ export async function setupAuth(app: Express) {
       if (err || !user) {
         return res.redirect("/api/login");
       }
-      req.logIn(user, (err) => {
+      req.logIn(user, async (err) => {
         if (err) {
           return res.redirect("/api/login");
         }
-        
+
         // Retrieve the stored returnTo path, default to /home
         const returnTo = (req.session as any).returnTo || "/home";
         // Clean it up
         delete (req.session as any).returnTo;
-        
+
+        // Check if the user has completed the onboarding quiz
+        try {
+          const userId = (user as any).claims?.sub;
+          if (userId) {
+            const dbUser = await authStorage.getUser(userId);
+            if (dbUser && dbUser.quizCompleted === false) {
+              return res.redirect("/onboarding");
+            }
+          }
+        } catch {
+          // If check fails, fall through to normal redirect
+        }
+
         return res.redirect(returnTo);
       });
     })(req, res, next);
