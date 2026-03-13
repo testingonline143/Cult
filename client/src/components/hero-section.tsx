@@ -45,9 +45,14 @@ export function HeroSection() {
 
   function handleExploreClubs() {
     if (user) {
-      navigate("/explore");
+      if (!user.quizCompleted) {
+        navigate("/onboarding");
+      } else {
+        navigate("/explore");
+      }
     } else {
-      login("/explore");
+      sessionStorage.setItem("redirectAfterAuth", "/onboarding");
+      login("/onboarding");
     }
   }
 

@@ -104,11 +104,17 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated) return;
+    if (isLoading || !isAuthenticated || !user) return;
 
     const timeoutId = setTimeout(() => {
-      if (location === "/" && user && user.quizCompleted === false) {
-        navigate("/onboarding");
+      if (location === "/") {
+        if (!user.quizCompleted) {
+          navigate("/onboarding");
+        } else {
+          const redirectTo = sessionStorage.getItem("redirectAfterAuth");
+          sessionStorage.removeItem("redirectAfterAuth");
+          navigate(redirectTo || "/home");
+        }
       }
     }, 0);
 

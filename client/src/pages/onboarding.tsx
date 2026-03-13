@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { HOBBY_ICONS } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
+import { useLogin } from "@/hooks/use-login";
 
 const AVAILABILITY_OPTIONS = [
   { value: "early_morning", label: "Early Morning", emoji: "🌅" },
@@ -36,6 +37,7 @@ export default function Onboarding() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { login } = useLogin();
   const [step, setStep] = useState(1);
   const [interests, setInterests] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
@@ -67,7 +69,7 @@ export default function Onboarding() {
       queryClient.setQueryData(["/api/auth/user"], (old: any) =>
         old ? { ...old, quizCompleted: true } : old
       );
-      navigate("/matched-clubs");
+      navigate("/home");
     },
     onError: () => {
       setShowLoading(false);
@@ -118,7 +120,8 @@ export default function Onboarding() {
   };
 
   if (!user) {
-    navigate("/");
+    sessionStorage.setItem("redirectAfterAuth", "/onboarding");
+    login("/onboarding");
     return null;
   }
 
