@@ -9,13 +9,13 @@ const TAB_PATHS = ["/home", "/explore", "/events", "/profile", "/organizer", "/n
 
 export function BottomNav() {
   const [location, navigate] = useLocation();
-  const { user } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { user } = useAuth();
 
   if (!TAB_PATHS.includes(location)) return null;
 
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
-  const isCreator = !!user;
+  const isCreator = isOrganiser;
 
   const leftTabs = [
     { path: "/explore", label: "CLUBS", icon: Users },
@@ -190,6 +190,27 @@ export function BottomNav() {
                     <div>
                       <p className="font-bold text-[15px]" style={{ color: "var(--ink)" }}>Create Post</p>
                       <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>Share a moment with your club</p>
+                    </div>
+                  </Link>
+                )}
+
+                {isOrganiser && (
+                  <Link
+                    href="/profile"
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center gap-4 p-4 rounded-[16px] transition-colors active:scale-[0.98]"
+                    style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)" }}
+                    data-testid="action-my-profile"
+                  >
+                    <div
+                      className="w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(26,20,16,0.07)" }}
+                    >
+                      <User className="w-5 h-5" style={{ color: "var(--ink)" }} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-[15px]" style={{ color: "var(--ink)" }}>My Profile</p>
+                      <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>View and edit your profile</p>
                     </div>
                   </Link>
                 )}

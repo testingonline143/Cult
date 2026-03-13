@@ -101,10 +101,6 @@ export default function HomeFeed() {
   const [selectedKudoType, setSelectedKudoType] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const lastVisitRef = useRef<Date>(
-    new Date(localStorage.getItem("cultfam_feed_last_visit") || 0)
-  );
-  const hasTriedAutoJoin = useRef(false);
 
   useEffect(() => {
     localStorage.setItem("cultfam_feed_last_visit", new Date().toISOString());
@@ -144,14 +140,6 @@ export default function HomeFeed() {
     },
     onError: () => {
       toast({ description: "Could not share post. Try again.", variant: "destructive" });
-    },
-  });
-
-  const autoJoinMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/onboarding/quick-join"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/clubs"] });
-      toast({ description: "Welcome! We've added you to 3 clubs — explore your feed." });
     },
   });
 
@@ -201,21 +189,11 @@ export default function HomeFeed() {
   }, [feedMoments]);
 
   useEffect(() => {
-    console.log("[HomeFeed] userClubs:", userClubs);
     if (selectedClubId === null && userClubs.length > 0) {
       setSelectedClubId(userClubs[0].id);
       setSeenClubs(prev => new Set([...Array.from(prev), userClubs[0].id]));
     }
   }, [userClubs, selectedClubId]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (userClubs.length > 0) return;
-    if (hasTriedAutoJoin.current) return;
-    if (autoJoinMutation.isPending) return;
-    hasTriedAutoJoin.current = true;
-    autoJoinMutation.mutate();
-  }, [user, userClubs]);
 
   const unreadCount = unreadData?.count ?? 0;
 
@@ -412,7 +390,7 @@ export default function HomeFeed() {
               {userClubs.map(club => {
                 const isActive = selectedClubId === club.id;
                 const hasNewPosts = !seenClubs.has(club.id) && feedMoments.some(
-                  m => m.clubId === club.id && new Date(m.createdAt ?? 0) > lastVisitRef.current
+                  m => m.clubId === club.id && new Date(m.createdAt ?? 0) > new Date(localStorage.getItem("cultfam_feed_last_visit") || 0)
                 );
                 return (
                   <button
@@ -508,47 +486,41 @@ export default function HomeFeed() {
           </div>
         )}
 
-        {/* Empty state — user has no joined clubs */}
+        {/* Empty state — user has not joined any clubs yet */}
         {user && userClubs.length === 0 && (
-          autoJoinMutation.isPending ? (
-            <div
-              className="rounded-[20px] p-6 flex flex-col items-center text-center gap-3"
-              style={{ background: "var(--warm-white)", border: "1.5px solid var(--warm-border)" }}
-              data-testid="empty-state-loading"
-            >
-              <div
-                className="w-10 h-10 rounded-full border-[3px] border-t-transparent animate-spin"
-                style={{ borderColor: "var(--terra)", borderTopColor: "transparent" }}
-              />
-              <p className="text-[13px] font-medium" style={{ color: "var(--muted-warm)" }}>
-                Getting your clubs ready…
+          <div
+            className="rounded-[20px] p-6 flex flex-col items-center text-center gap-4"
+            style={{ background: "var(--warm-white)", border: "1.5px dashed rgba(196,98,45,0.35)" }}
+            data-testid="empty-state-no-clubs"
+          >
+            <span className="text-4xl">🏘️</span>
+            <div>
+              <p className="font-display font-bold text-[16px] mb-1" style={{ color: "var(--ink)" }}>
+                You haven't joined a club yet
+              </p>
+              <p className="text-[13px]" style={{ color: "var(--muted-warm)" }}>
+                Join clubs to see their posts, events, and announcements here.
               </p>
             </div>
-          ) : (
-            <div
-              className="rounded-[20px] p-5 flex flex-col items-center text-center gap-3"
-              style={{ background: "var(--warm-white)", border: "1.5px dashed rgba(196,98,45,0.35)" }}
-              data-testid="empty-state-no-clubs"
-            >
-              <span className="text-3xl">🏘️</span>
-              <div>
-                <p className="font-display font-bold text-[15px] mb-1" style={{ color: "var(--ink)" }}>
-                  Join a club to see its feed
-                </p>
-                <p className="text-[12px]" style={{ color: "var(--muted-warm)" }}>
-                  Once you're a member, the club's posts will appear here.
-                </p>
-              </div>
+            <div className="flex flex-col gap-2 w-full">
+              <Link
+                href="/matched-clubs"
+                className="rounded-full px-5 py-2.5 text-[13px] font-bold text-white text-center"
+                style={{ background: "var(--terra)" }}
+                data-testid="button-view-matches"
+              >
+                🎯 See My Matches
+              </Link>
               <Link
                 href="/explore"
-                className="rounded-full px-5 py-2 text-[12px] font-bold text-white"
-                style={{ background: "var(--terra)" }}
+                className="rounded-full px-5 py-2.5 text-[13px] font-semibold text-center"
+                style={{ background: "var(--cream)", border: "1.5px solid var(--warm-border)", color: "var(--ink)" }}
                 data-testid="button-browse-clubs"
               >
-                Browse Clubs
+                Explore All Clubs
               </Link>
             </div>
-          )
+          </div>
         )}
 
         {/* Post Composer */}

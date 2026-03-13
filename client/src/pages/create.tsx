@@ -155,6 +155,8 @@ function SignInPrompt({ message }: { message: string }) {
 function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void }) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const isOrganiser = user?.role === "organiser" || user?.role === "admin";
 
   const [clubName, setClubName] = useState("");
   const [fullDesc, setFullDesc] = useState("");
@@ -169,22 +171,34 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/clubs/create", {
+      const endpoint = isOrganiser ? "/api/clubs/create" : "/api/club-proposals";
+      
+      const payload = isOrganiser ? {
+        name: clubName,
+        category,
+        shortDesc,
+        fullDesc,
+        schedule,
+        location,
+        organizerName,
+        whatsappNumber,
+        city,
+        coverImageUrl: coverImageUrl ?? undefined,
+      } : {
+        clubName: clubName,
+        category,
+        vibe: "casual",
+        shortDesc: fullDesc || shortDesc,
+        city,
+        schedule,
+        motivation: fullDesc || "I want to create this community", // Required field for proposals
+      };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          name: clubName,
-          category,
-          shortDesc,
-          fullDesc,
-          schedule,
-          location,
-          organizerName,
-          whatsappNumber,
-          city,
-          coverImageUrl: coverImageUrl ?? undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ message: "Failed to create club" }));
@@ -198,11 +212,11 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
-      if (data.isProposal) {
-        toast({ title: "Success!", description: data.message });
+      if (!isOrganiser) {
+        toast({ title: "Proposal Submitted!", description: "Your club proposal is pending admin approval." });
         navigate("/home");
       } else {
-        toast({ title: "Success!", description: data.message });
+        toast({ title: "Success!", description: data.message || "Club created live!" });
         onSuccess(clubName, data.club?.id || "");
       }
     },

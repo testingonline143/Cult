@@ -539,11 +539,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clubs/create", isAuthenticated, async (req: any, res) => {
+  app.post("/api/clubs/create", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const currentUserForCheck = await storage.getUser(userId);
-      const isOrganiserOrAdmin = currentUserForCheck && (currentUserForCheck.role === "admin" || currentUserForCheck.role === "organiser");
       const { name, category, shortDesc, fullDesc, schedule, location, organizerName, whatsappNumber, city } = req.body;
 
       if (!name || name.length < 3) {
@@ -590,7 +588,7 @@ export async function registerRoutes(
         foundingTotal: 20,
         bgColor: "#f0f9f0",
         timeOfDay: "morning",
-        isActive: isOrganiserOrAdmin,
+        isActive: true,
         creatorUserId: userId,
         slug: finalSlug,
       });
@@ -617,7 +615,7 @@ export async function registerRoutes(
         await storage.approveJoinRequestWithFoundingCheck(joinReq.id, club.id);
       }
 
-      res.status(201).json({ success: true, message: isOrganiserOrAdmin ? "Club created and live!" : "Club proposed successfully", club, isProposal: !isOrganiserOrAdmin });
+      res.status(201).json({ success: true, message: "Club created and live!", club, isProposal: false });
     } catch (err) {
       console.error("Error creating club:", err);
       res.status(500).json({ success: false, message: "Failed to create club" });
@@ -2165,11 +2163,16 @@ export async function registerRoutes(
         shortDesc: club.shortDesc,
         organizerName: club.organizerName ?? undefined,
       });
+      
+      const pngBuffer = await sharp(Buffer.from(svg))
+        .png()
+        .toBuffer();
+        
       res.set({
-        "Content-Type": "image/svg+xml",
+        "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400",
       });
-      res.send(svg);
+      res.send(pngBuffer);
     } catch (err) {
       console.error("Error generating club OG image:", err);
       res.status(500).send("Error");
@@ -2194,11 +2197,16 @@ export async function registerRoutes(
         clubName,
         clubEmoji,
       });
+      
+      const pngBuffer = await sharp(Buffer.from(svg))
+        .png()
+        .toBuffer();
+        
       res.set({
-        "Content-Type": "image/svg+xml",
+        "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400",
       });
-      res.send(svg);
+      res.send(pngBuffer);
     } catch (err) {
       console.error("Error generating event OG image:", err);
       res.status(500).send("Error");

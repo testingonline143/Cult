@@ -5,26 +5,29 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
-import Admin from "@/pages/admin";
-import OrganizerDashboard from "@/pages/organizer";
-import Profile from "@/pages/profile";
-import Onboarding from "@/pages/onboarding";
-import MatchedClubs from "@/pages/matched-clubs";
-import Explore from "@/pages/explore";
-import Events from "@/pages/events";
-import Create from "@/pages/create";
-import ClubDetail from "@/pages/club-detail";
-import EventDetail from "@/pages/event-detail";
-import HomeFeed from "@/pages/home-feed";
-import ScanEvent from "@/pages/scan-event";
-import Notifications from "@/pages/notifications";
-import MemberProfile from "@/pages/member-profile";
-import PublicClub from "@/pages/public-club";
-import PageBuilder from "@/pages/page-builder";
+
+// Lazy-loaded page chunks — Vite will split each into its own JS file
+// so users only download the code for the page they actually visit.
+const NotFound        = lazy(() => import("@/pages/not-found"));
+const Home            = lazy(() => import("@/pages/home"));
+const Admin           = lazy(() => import("@/pages/admin"));
+const OrganizerDashboard = lazy(() => import("@/pages/organizer"));
+const Profile         = lazy(() => import("@/pages/profile"));
+const Onboarding      = lazy(() => import("@/pages/onboarding"));
+const MatchedClubs    = lazy(() => import("@/pages/matched-clubs"));
+const Explore         = lazy(() => import("@/pages/explore"));
+const Events          = lazy(() => import("@/pages/events"));
+const Create          = lazy(() => import("@/pages/create"));
+const ClubDetail      = lazy(() => import("@/pages/club-detail"));
+const EventDetail     = lazy(() => import("@/pages/event-detail"));
+const HomeFeed        = lazy(() => import("@/pages/home-feed"));
+const ScanEvent       = lazy(() => import("@/pages/scan-event"));
+const Notifications   = lazy(() => import("@/pages/notifications"));
+const MemberProfile   = lazy(() => import("@/pages/member-profile"));
+const PublicClub      = lazy(() => import("@/pages/public-club"));
+const PageBuilder     = lazy(() => import("@/pages/page-builder"));
 
 const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c"];
 
@@ -41,7 +44,7 @@ function QuizGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function ProtectedRoute({ component: Component }: { component: () => JSX.Element | null }) {
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
 
@@ -87,26 +90,28 @@ function Router() {
   return (
     <AuthHandler>
       <QuizGate>
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/onboarding" component={Onboarding} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/home" component={() => <ProtectedRoute component={HomeFeed} />} />
-          <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
-          <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
-          <Route path="/matched-clubs" component={() => <ProtectedRoute component={MatchedClubs} />} />
-          <Route path="/explore" component={() => <ProtectedRoute component={Explore} />} />
-          <Route path="/events" component={() => <ProtectedRoute component={Events} />} />
-          <Route path="/create" component={() => <ProtectedRoute component={Create} />} />
-          <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
-          <Route path="/scan/:eventId" component={() => <ProtectedRoute component={ScanEvent} />} />
-          <Route path="/event/:id" component={() => <ProtectedRoute component={EventDetail} />} />
-          <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
-          <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
-          <Route path="/c/:slug" component={PublicClub} />
-          <Route path="/organizer/page-builder" component={() => <ProtectedRoute component={PageBuilder} />} />
-          <Route component={NotFound} />
-        </Switch>
+        <Suspense fallback={<div className="min-h-screen" style={{ background: "var(--cream)" }} />}>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/onboarding" component={Onboarding} />
+            <Route path="/admin" component={Admin} />
+            <Route path="/home" component={() => <ProtectedRoute component={HomeFeed} />} />
+            <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
+            <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+            <Route path="/matched-clubs" component={() => <ProtectedRoute component={MatchedClubs} />} />
+            <Route path="/explore" component={() => <ProtectedRoute component={Explore} />} />
+            <Route path="/events" component={() => <ProtectedRoute component={Events} />} />
+            <Route path="/create" component={() => <ProtectedRoute component={Create} />} />
+            <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
+            <Route path="/scan/:eventId" component={() => <ProtectedRoute component={ScanEvent} />} />
+            <Route path="/event/:id" component={() => <ProtectedRoute component={EventDetail} />} />
+            <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
+            <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
+            <Route path="/c/:slug" component={PublicClub} />
+            <Route path="/organizer/page-builder" component={() => <ProtectedRoute component={PageBuilder} />} />
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
         <BottomNav />
       </QuizGate>
     </AuthHandler>
