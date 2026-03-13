@@ -117,8 +117,23 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
+    }, (err: any, user: any, info: any) => {
+      if (err || !user) {
+        return res.redirect("/api/login");
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return res.redirect("/api/login");
+        }
+        
+        // Retrieve the stored returnTo path, default to /home
+        const returnTo = (req.session as any).returnTo || "/home";
+        // Clean it up
+        delete (req.session as any).returnTo;
+        
+        return res.redirect(returnTo);
+      });
     })(req, res, next);
   });
 

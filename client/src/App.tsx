@@ -50,8 +50,7 @@ function ProtectedRoute({ component: Component }: { component: () => JSX.Element
   }
 
   if (!isAuthenticated) {
-    localStorage.setItem("cultfam_redirect", location);
-    window.location.href = "/api/login";
+    window.location.href = `/api/login?returnTo=${encodeURIComponent(location)}`;
     return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
   }
 
@@ -67,25 +66,11 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
 
     // Wait for the next tick to ensure we don't interfere with initial renders
     const timeoutId = setTimeout(() => {
-      const pendingAction = localStorage.getItem("cultfam_pending_action");
-      const redirectPath = localStorage.getItem("cultfam_redirect");
-
-      if (pendingAction === "start_club") {
-        localStorage.removeItem("cultfam_pending_action");
-        navigate("/create");
-        return;
-      }
-
-      if (redirectPath && redirectPath !== "/api/login" && redirectPath !== "/") {
-        localStorage.removeItem("cultfam_redirect");
-        navigate(redirectPath);
-        return;
-      }
-
-      // Only auto-redirect from "/" if the user just came back from a login flow.
-      // If there's nothing in localStorage, they intentionally navigated here —
-      // let them see the landing page normally.
-      // The only exception: if the user has never completed the quiz, send them to onboarding.
+      // The backend session approach manages redirects via URL naturally so we don't need
+      // to check localStorage anymore. The user will land exactly where they intended.
+      
+      // The only auto-redirect we need to manage here on the frontend now is the generic landing page:
+      // If the user has never completed the quiz, send them to onboarding.
       if (location === "/" && user && user.quizCompleted === false) {
         navigate("/onboarding");
       }

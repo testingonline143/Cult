@@ -20,8 +20,7 @@ export function Navbar() {
     if (isAuthenticated) {
       navigate("/create");
     } else {
-      localStorage.setItem("cultfam_pending_action", "start_club");
-      window.location.href = "/api/login";
+      window.location.href = "/api/login?returnTo=/create";
     }
   }
 
@@ -116,7 +115,7 @@ export function Navbar() {
                 size="sm"
                 variant="outline"
                 className="rounded-full hidden sm:inline-flex"
-                onClick={() => { window.location.href = "/api/login"; }}
+                onClick={() => { window.location.href = "/api/login?returnTo=/home"; }}
                 data-testid="button-sign-in"
               >
                 Sign In
@@ -172,7 +171,7 @@ export function Navbar() {
                   </Button>
                 </div>
               ) : (
-                <Button variant="ghost" size="sm" className="justify-start" onClick={() => { window.location.href = "/api/login"; setMobileOpen(false); }} data-testid="button-sign-in-mobile">
+                <Button variant="ghost" size="sm" className="justify-start" onClick={() => { window.location.href = "/api/login?returnTo=/home"; setMobileOpen(false); }} data-testid="button-sign-in-mobile">
                   Sign In
                 </Button>
               )}
