@@ -5,8 +5,8 @@ import { authStorage } from "./storage";
 // We create a server-side Supabase client just to verify tokens and fetch user data if needed
 // Note: We use the ANON key here because we just need to verify JWTs matching the project
 export const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || "",
-  process.env.VITE_SUPABASE_ANON_KEY || ""
+  process.env.SUPABASE_URL || "",
+  process.env.SUPABASE_ANON_KEY || ""
 );
 
 export async function setupAuth(app: Express) {
