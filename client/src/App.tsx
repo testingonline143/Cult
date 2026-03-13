@@ -6,15 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogin } from "@/hooks/use-login";
+import { useAuthModal, AuthModalProvider } from "@/hooks/use-auth-modal";
+import { AuthModal } from "@/components/auth-modal";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { Loader as Loader2 } from "lucide-react";
 
-// Home is eagerly imported — it's the entry page for all visitors and
-// should render immediately without waiting for a lazy chunk download.
 import Home from "@/pages/home";
 
-// All other pages are lazy-loaded so users only download what they visit.
 const NotFound        = lazy(() => import("@/pages/not-found"));
 const Admin           = lazy(() => import("@/pages/admin"));
 const OrganizerDashboard = lazy(() => import("@/pages/organizer"));
@@ -125,10 +124,18 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function GlobalAuthModal() {
+  const { showAuthModal, closeAuthModal, signIn, signUp } = useAuthModal();
+  if (!showAuthModal) return null;
+  return <AuthModal onClose={closeAuthModal} onSignIn={signIn} onSignUp={signUp} />;
+}
+
 function Router() {
   return (
-    <AuthHandler>
-      <QuizGate>
+    <AuthModalProvider>
+      <GlobalAuthModal />
+      <AuthHandler>
+        <QuizGate>
         <Suspense fallback={<PageLoader />}>
           <Switch>
             <Route path="/" component={Home} />
@@ -151,9 +158,10 @@ function Router() {
             <Route component={NotFound} />
           </Switch>
         </Suspense>
-        <BottomNav />
-      </QuizGate>
-    </AuthHandler>
+          <BottomNav />
+        </QuizGate>
+      </AuthHandler>
+    </AuthModalProvider>
   );
 }
 
