@@ -82,6 +82,10 @@ export async function setupAuth(app: Express) {
   const registeredStrategies = new Set<string>();
 
   // Helper function to ensure strategy exists for a domain
+  function getAuthDomain(req: { hostname: string }): string {
+    return process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() || req.hostname;
+  }
+
   const ensureStrategy = (domain: string) => {
     const strategyName = `replitauth:${domain}`;
     if (!registeredStrategies.has(strategyName)) {
@@ -103,7 +107,8 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
+    const domain = getAuthDomain(req);
+    ensureStrategy(domain);
     const returnTo = req.query.returnTo as string | undefined;
     if (returnTo && returnTo.startsWith("/")) {
       (req.session as any).returnTo = returnTo;
@@ -113,15 +118,16 @@ export async function setupAuth(app: Express) {
     } else {
       delete (req.session as any).isPopup;
     }
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    passport.authenticate(`replitauth:${domain}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const domain = getAuthDomain(req);
+    ensureStrategy(domain);
+    passport.authenticate(`replitauth:${domain}`, {
       failureRedirect: "/api/login",
     }, (err: any, user: any, info: any) => {
       if (err || !user) {
