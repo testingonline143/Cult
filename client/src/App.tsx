@@ -82,14 +82,12 @@ function AuthHandler({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // If we are on the landing page ("/") and authenticated,
-      // route to the appropriate main view.
-      if (location === "/") {
-        if (user && user.quizCompleted === false) {
-           navigate("/onboarding");
-        } else {
-           navigate("/home");
-        }
+      // Only auto-redirect from "/" if the user just came back from a login flow.
+      // If there's nothing in localStorage, they intentionally navigated here —
+      // let them see the landing page normally.
+      // The only exception: if the user has never completed the quiz, send them to onboarding.
+      if (location === "/" && user && user.quizCompleted === false) {
+        navigate("/onboarding");
       }
     }, 0);
 
