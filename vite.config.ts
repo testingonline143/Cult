@@ -43,6 +43,7 @@ export default defineConfig({
       "class-variance-authority",
       "lucide-react",
       "date-fns",
+      "@supabase/supabase-js",
       "@radix-ui/react-dialog",
       "@radix-ui/react-dropdown-menu",
       "@radix-ui/react-select",
