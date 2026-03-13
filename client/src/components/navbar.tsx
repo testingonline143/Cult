@@ -69,15 +69,15 @@ export function Navbar() {
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--terra)" }} />
               <span className="text-xl font-display font-black tracking-tight transition-colors duration-300" style={{ color: textColor }}>CultFam</span>
             </Link>
-            <Link
-              href="/explore"
-              className="hidden sm:flex items-center gap-1 text-sm transition-colors duration-300"
+            <button
+              onClick={() => isAuthenticated ? navigate("/explore") : login("/explore")}
+              className="hidden sm:flex items-center gap-1 text-sm transition-colors duration-300 bg-transparent border-0 cursor-pointer"
               style={{ color: mutedColor }}
               data-testid="link-explore"
             >
               <Compass className="w-4 h-4" />
               Explore
-            </Link>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -149,10 +149,15 @@ export function Navbar() {
             style={{ background: "rgba(245,240,232,0.95)", backdropFilter: "blur(16px)", borderColor: "var(--warm-border)" }}
           >
             <div className="px-4 py-3 flex flex-col gap-1">
-              <Link href="/explore" className="flex items-center gap-2 text-sm font-medium px-3 py-1.5" style={{ color: "var(--ink)" }} onClick={() => setMobileOpen(false)} data-testid="link-explore-mobile">
+              <button
+                className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 bg-transparent border-0 cursor-pointer w-full text-left"
+                style={{ color: "var(--ink)" }}
+                onClick={() => { isAuthenticated ? navigate("/explore") : login("/explore"); setMobileOpen(false); }}
+                data-testid="link-explore-mobile"
+              >
                 <Compass className="w-4 h-4" />
                 Explore Clubs
-              </Link>
+              </button>
               {isAuthenticated ? (
                 <div className="flex flex-col gap-1 mt-2">
                   <Link href="/profile" className="text-sm font-medium transition-colors px-3 py-1.5" style={{ color: "var(--ink)" }} data-testid="link-profile-mobile" onClick={() => setMobileOpen(false)}>

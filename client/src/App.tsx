@@ -51,7 +51,7 @@ function PageLoader() {
   );
 }
 
-const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c", "/explore", "/club", "/event"];
+const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -132,7 +132,7 @@ function Router() {
             <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
             <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
             <Route path="/matched-clubs" component={() => <ProtectedRoute component={MatchedClubs} />} />
-            <Route path="/explore" component={Explore} />
+            <Route path="/explore" component={() => <ProtectedRoute component={Explore} />} />
             <Route path="/events" component={() => <ProtectedRoute component={Events} />} />
             <Route path="/create" component={() => <ProtectedRoute component={Create} />} />
             <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />

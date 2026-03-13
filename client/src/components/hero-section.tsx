@@ -43,6 +43,14 @@ export function HeroSection() {
     return () => clearInterval(interval);
   }, []);
 
+  function handleExploreClubs() {
+    if (user) {
+      navigate("/explore");
+    } else {
+      login("/explore");
+    }
+  }
+
   function handleStartClub() {
     if (user) {
       navigate("/create");
@@ -130,7 +138,7 @@ export function HeroSection() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
         >
           <button
-            onClick={() => navigate("/explore")}
+            onClick={handleExploreClubs}
             className="rounded-full px-10 py-4 text-base font-bold transition-all"
             style={{
               background: "var(--terra)",
