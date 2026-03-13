@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { insertJoinRequestSchema, insertQuizAnswersSchema, insertEventSchema, CATEGORY_EMOJI } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { isAuthenticated, registerAuthRoutes, supabase } from "./replit_integrations/auth";
+import { isAuthenticated, registerAuthRoutes, supabase } from "./auth";
 import type { RequestHandler } from "express";
 import { isCrawler, readHtmlTemplate, buildOgHtml, buildClubSvg, buildEventSvg } from "./og";
 

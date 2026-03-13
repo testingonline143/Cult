@@ -5,7 +5,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { setupAuth } from "./replit_integrations/auth";
+import { setupAuth } from "./auth";
 
 const app = express();
 
