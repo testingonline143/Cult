@@ -77,9 +77,19 @@ export function useLogin() {
         return;
       }
 
-      pollRef.current = setInterval(() => {
+      pollRef.current = setInterval(async () => {
         if (popup.closed) {
           cleanup();
+
+          try {
+            await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+            const user = queryClient.getQueryData(["/api/auth/user"]);
+            if (user) {
+              navigate(returnTo);
+            }
+          } catch (err) {
+            console.warn("[use-login] popup-close auth refresh failed", err);
+          }
         }
       }, 500);
     },
