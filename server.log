@@ -22,4 +22,4 @@ Error seeding database: error: password authentication failed for user "postgres
   line: '329',
   routine: 'auth_failed'
 }
-10:56:48 AM [express] serving on port 5000
+10:59:28 AM [express] serving on port 5000
