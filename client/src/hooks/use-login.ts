@@ -11,28 +11,52 @@ import { useCallback, useEffect, useRef } from "react";
  * from loading inside an iframe, so a direct redirect would escape to the
  * top-level browser frame and break the preview context.
  * A popup window sidesteps this entirely: OAuth completes in the popup,
- * the popup posts a message back to the opener, and the opener refreshes
- * its auth state — all without leaving the preview frame.
+ * the popup broadcasts an auth-complete message via BroadcastChannel,
+ * and the parent receives it and refreshes its auth state — all without
+ * leaving the preview frame.
  *
  * Falls back to a regular redirect if the popup is blocked.
  */
 export function useLogin() {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
-  const popupRef = useRef<Window | null>(null);
-  const listenerRef = useRef<((e: MessageEvent) => void) | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const cleanup = useCallback(() => {
+    if (channelRef.current) {
+      channelRef.current.close();
+      channelRef.current = null;
+    }
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    return () => {
-      if (listenerRef.current) {
-        window.removeEventListener("message", listenerRef.current);
-      }
-    };
-  }, []);
+    return cleanup;
+  }, [cleanup]);
 
   const login = useCallback(
     (returnTo = "/home") => {
       const loginUrl = `/api/login?returnTo=${encodeURIComponent(returnTo)}`;
+
+      cleanup();
+
+      const bc = new BroadcastChannel("cultfam_auth");
+      channelRef.current = bc;
+
+      bc.onmessage = (e) => {
+        if (e.data?.type !== "cultfam_auth_complete") return;
+
+        cleanup();
+
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
+        const dest: string = e.data.returnTo || "/home";
+        navigate(dest);
+      };
 
       const width = 500;
       const height = 680;
@@ -43,36 +67,18 @@ export function useLogin() {
       const popup = window.open(loginUrl, "cultfam_login", features);
 
       if (!popup || popup.closed) {
-        // Popup blocked — fall back to full-page redirect
+        cleanup();
         window.location.href = loginUrl;
         return;
       }
 
-      popupRef.current = popup;
-
-      // Remove any previous listener
-      if (listenerRef.current) {
-        window.removeEventListener("message", listenerRef.current);
-      }
-
-      const handler = (e: MessageEvent) => {
-        if (e.origin !== window.location.origin) return;
-        if (e.data?.type !== "cultfam_auth_complete") return;
-
-        window.removeEventListener("message", handler);
-        listenerRef.current = null;
-
-        // Re-fetch auth state so the UI updates immediately
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-
-        const dest: string = e.data.returnTo || "/home";
-        navigate(dest);
-      };
-
-      listenerRef.current = handler;
-      window.addEventListener("message", handler);
+      pollRef.current = setInterval(() => {
+        if (popup.closed) {
+          cleanup();
+        }
+      }, 500);
     },
-    [queryClient, navigate]
+    [queryClient, navigate, cleanup]
   );
 
   return { login };

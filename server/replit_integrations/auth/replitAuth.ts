@@ -131,18 +131,15 @@ export async function setupAuth(app: Express) {
         const returnTo = (req.session as any).returnTo || "/home";
         delete (req.session as any).returnTo;
 
-        // Serve an HTML page that works in both popup and direct-redirect mode.
-        // If the app opened login in a popup (window.opener exists), post a
-        // message back to the parent frame so it can update its auth state
-        // without a full-page reload, then close the popup.
-        // Otherwise fall back to a normal server-side redirect.
         const safeReturnTo = returnTo.startsWith("/") ? returnTo : "/home";
         res.send(`<!DOCTYPE html><html><head><title>Signing in...</title></head><body>
 <script>
 (function(){
   var dest = ${JSON.stringify(safeReturnTo)};
-  if (window.opener && !window.opener.closed) {
-    window.opener.postMessage({ type: "cultfam_auth_complete", returnTo: dest }, window.location.origin);
+  if (typeof BroadcastChannel !== "undefined") {
+    var bc = new BroadcastChannel("cultfam_auth");
+    bc.postMessage({ type: "cultfam_auth_complete", returnTo: dest });
+    bc.close();
     window.close();
   } else {
     window.location.href = dest;
