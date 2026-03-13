@@ -14,8 +14,7 @@ export function OrganizerSection() {
     if (user) {
       navigate("/create");
     } else {
-      localStorage.setItem("cultfam_pending_action", "start_club");
-      window.location.href = "/api/login";
+      window.location.href = "/api/login?returnTo=/create";
     }
   }
 

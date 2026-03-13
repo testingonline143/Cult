@@ -101,10 +101,7 @@ export default function HomeFeed() {
   const [selectedKudoType, setSelectedKudoType] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    localStorage.setItem("cultfam_feed_last_visit", new Date().toISOString());
-  }, []);
+  const sessionStartRef = useRef<Date>(new Date());
 
   const likeMutation = useMutation({
     mutationFn: (momentId: string) => apiRequest("POST", `/api/moments/${momentId}/like`),
@@ -143,14 +140,6 @@ export default function HomeFeed() {
     },
   });
 
-  useEffect(() => {
-    if (!user) return;
-    const pending = localStorage.getItem("cultfam_pending_action");
-    if (pending === "start_club") {
-      localStorage.removeItem("cultfam_pending_action");
-      navigate("/create");
-    }
-  }, [user?.id]);
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
@@ -390,7 +379,7 @@ export default function HomeFeed() {
               {userClubs.map(club => {
                 const isActive = selectedClubId === club.id;
                 const hasNewPosts = !seenClubs.has(club.id) && feedMoments.some(
-                  m => m.clubId === club.id && new Date(m.createdAt ?? 0) > new Date(localStorage.getItem("cultfam_feed_last_visit") || 0)
+                  m => m.clubId === club.id && new Date(m.createdAt ?? 0) > sessionStartRef.current
                 );
                 return (
                   <button

@@ -17,7 +17,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add("light");
-    localStorage.setItem("cultfam-theme", "light");
   }, []);
 
   const toggleTheme = () => {};
