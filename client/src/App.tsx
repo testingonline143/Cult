@@ -51,14 +51,14 @@ function PageLoader() {
   );
 }
 
-const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c"];
+const QUIZ_EXEMPT_PATHS = ["/", "/onboarding", "/matched-clubs", "/admin", "/c", "/create"];
 
 function QuizGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    if (user && user.quizCompleted === false && !QUIZ_EXEMPT_PATHS.some(p => location === p || location.startsWith(p + "/"))) {
+    if (user && !user.quizCompleted && !QUIZ_EXEMPT_PATHS.some(p => location === p || location.startsWith(p + "/"))) {
       navigate("/onboarding");
     }
   }, [user, location, navigate]);
