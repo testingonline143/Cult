@@ -98,13 +98,14 @@ function ProfileHeader({ user }: { user: User }) {
 
   const photoMutation = useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("photo", file);
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
-      const res = await fetch("/api/user/photo", { method: "POST", headers, body: formData });
-      if (!res.ok) throw new Error("Failed to upload");
+      const filename = `avatars/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.webp`;
+      const { error } = await supabase.storage
+        .from("uploads")
+        .upload(filename, file, { cacheControl: "3600", upsert: true });
+      if (error) throw new Error(error.message);
+      const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(filename);
+      const res = await apiRequest("PATCH", "/api/user/profile", { profileImageUrl: publicUrl });
+      if (!res.ok) throw new Error("Failed to save photo");
       return res.json();
     },
     onSuccess: () => {

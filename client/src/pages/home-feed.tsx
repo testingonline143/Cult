@@ -280,14 +280,13 @@ export default function HomeFeed() {
     let imageUrl: string | undefined;
     if (postImageFile) {
       try {
-        const formData = new FormData();
-        formData.append("file", postImageFile);
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
-        const res = await fetch("/api/upload/image", { method: "POST", headers, body: formData });
-        const data = await res.json();
-        imageUrl = data.url;
+        const filename = `posts/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.webp`;
+        const { data, error } = await supabase.storage
+          .from('uploads')
+          .upload(filename, postImageFile, { cacheControl: '3600', upsert: true });
+        if (error) throw new Error(error.message);
+        const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(filename);
+        imageUrl = publicUrl;
       } catch {
         toast({ description: "Image upload failed. Posting without image.", variant: "destructive" });
       }
