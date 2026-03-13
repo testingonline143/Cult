@@ -10,6 +10,7 @@ if (!dbUrl) {
 
 export const pool = new pg.Pool({
   connectionString: dbUrl || "postgresql://localhost/placeholder",
+  connectionTimeoutMillis: 5000,
 });
 
 export const db = drizzle(pool, { schema });
