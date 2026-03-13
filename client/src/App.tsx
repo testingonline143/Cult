@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLogin } from "@/hooks/use-login";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
-import { Loader2 } from "lucide-react";
+import { Loader as Loader2 } from "lucide-react";
 
 // Home is eagerly imported — it's the entry page for all visitors and
 // should render immediately without waiting for a lazy chunk download.
