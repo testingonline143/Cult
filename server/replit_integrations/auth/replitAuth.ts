@@ -132,19 +132,6 @@ export async function setupAuth(app: Express) {
         // Clean it up
         delete (req.session as any).returnTo;
 
-        // Check if the user has completed the onboarding quiz
-        try {
-          const userId = (user as any).claims?.sub;
-          if (userId) {
-            const dbUser = await authStorage.getUser(userId);
-            if (dbUser && dbUser.quizCompleted === false) {
-              return res.redirect("/onboarding");
-            }
-          }
-        } catch {
-          // If check fails, fall through to normal redirect
-        }
-
         return res.redirect(returnTo);
       });
     })(req, res, next);

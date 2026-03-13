@@ -132,7 +132,7 @@ export function HeroSection() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
         >
           <button
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/explore")}
             className="rounded-full px-10 py-4 text-base font-bold transition-all"
             style={{
               background: "var(--terra)",
