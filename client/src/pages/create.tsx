@@ -154,6 +154,7 @@ function SignInPrompt({ message }: { message: string }) {
 
 function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const [clubName, setClubName] = useState("");
   const [fullDesc, setFullDesc] = useState("");
@@ -196,7 +197,14 @@ function ClubForm({ onSuccess }: { onSuccess: (name: string, id: string) => void
       queryClient.invalidateQueries({ queryKey: ["/api/organizer/my-club"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clubs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      onSuccess(clubName, data.club?.id || "");
+      
+      if (data.isProposal) {
+        toast({ title: "Success!", description: data.message });
+        navigate("/home");
+      } else {
+        toast({ title: "Success!", description: data.message });
+        onSuccess(clubName, data.club?.id || "");
+      }
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });

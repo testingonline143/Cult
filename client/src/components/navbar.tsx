@@ -4,7 +4,7 @@ import { Menu, X, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 export function Navbar() {
@@ -14,22 +14,11 @@ export function Navbar() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
-  const becomeCreatorMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
-        old ? { ...old, wantsToCreate: true } : old
-      );
-      navigate("/create");
-    },
-    onError: () => {
-      navigate("/create");
-    },
-  });
+
 
   function handleListClub() {
     if (isAuthenticated) {
-      becomeCreatorMutation.mutate();
+      navigate("/create");
     } else {
       localStorage.setItem("cultfam_pending_action", "start_club");
       window.location.href = "/api/login";
@@ -137,10 +126,9 @@ export function Navbar() {
               size="sm"
               className="rounded-full hidden sm:inline-flex"
               onClick={handleListClub}
-              disabled={becomeCreatorMutation.isPending}
               data-testid="button-list-club-nav"
             >
-              {becomeCreatorMutation.isPending ? "Setting up..." : "List Your Club"}
+              List Your Club
             </Button>
             <Button
               size="icon"
@@ -192,10 +180,9 @@ export function Navbar() {
                 size="sm"
                 className="mt-2 rounded-full"
                 onClick={() => { handleListClub(); setMobileOpen(false); }}
-                disabled={becomeCreatorMutation.isPending}
                 data-testid="button-list-club-mobile"
               >
-                {becomeCreatorMutation.isPending ? "Setting up..." : "List Your Club"}
+                List Your Club
               </Button>
             </div>
           </motion.div>

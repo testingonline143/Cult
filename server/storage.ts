@@ -113,7 +113,6 @@ export interface IStorage {
   getOrganizerInsights(clubId: string): Promise<{ totalMembers: number; pendingRequests: number; totalEvents: number; avgAttendanceRate: number; topEvent: { title: string; attended: number; total: number } | null; recentJoins: { name: string; date: Date | null }[]; recentRsvps: { userName: string; eventTitle: string; date: Date | null }[] }>;
   getUserApprovedClubs(userId: string): Promise<Club[]>;
   getFeedMoments(limit?: number, userId?: string): Promise<(ClubMoment & { clubName: string; clubEmoji: string; clubLocation: string; commentCount: number; userHasLiked: boolean; authorName: string | null; authorUserId: string | null })[]>;
-  becomeCreator(userId: string): Promise<void>;
   getClubAnalytics(clubId: string): Promise<{
     memberGrowth: { week: string; count: number }[];
     perEventStats: { id: string; title: string; date: string; rsvps: number; attended: number; rate: number; isCancelled: boolean | null }[];
@@ -1267,10 +1266,6 @@ export class DatabaseStorage implements IStorage {
     return { memberGrowth, perEventStats, mostActiveMembers, engagementRate, noShowRate };
   }
 
-  async becomeCreator(userId: string): Promise<void> {
-    await db.update(users).set({ wantsToCreate: true }).where(eq(users.id, userId));
-  }
-
   async getClubsForOrganiser(userId: string): Promise<Club[]> {
     const created = await db.select().from(clubs).where(eq(clubs.creatorUserId, userId));
     const coManaged = await db.select().from(clubs).where(
@@ -1620,34 +1615,7 @@ export class DatabaseStorage implements IStorage {
     return rows.map(r => ({ userId: r.userId, userName: r.userName }));
   }
 
-  async getClubBySlug(slug: string): Promise<Club | undefined> {
-    const [club] = await db.select().from(clubs).where(eq(clubs.slug, slug));
-    return club;
-  }
 
-  async updateClubSlug(clubId: string, slug: string): Promise<Club | undefined> {
-    const [updated] = await db.update(clubs).set({ slug }).where(eq(clubs.id, clubId)).returning();
-    return updated;
-  }
-
-  async generateSlugForClub(clubId: string): Promise<string | null> {
-    const club = await this.getClub(clubId);
-    if (!club) return null;
-    if (club.slug) return club.slug;
-
-    let base = (club.name || "club").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    if (base.length < 2) base = "club";
-    let candidate = base;
-    let suffix = 1;
-    while (true) {
-      const existing = await this.getClubBySlug(candidate);
-      if (!existing) break;
-      candidate = `${base}-${suffix}`;
-      suffix++;
-    }
-    await this.updateClubSlug(clubId, candidate);
-    return candidate;
-  }
 
   async getPageSections(clubId: string): Promise<ClubPageSection[]> {
     return db.select().from(clubPageSections)

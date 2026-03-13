@@ -130,18 +130,6 @@ export default function HomeFeed() {
     },
   });
 
-  const becomeCreatorMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
-        old ? { ...old, wantsToCreate: true } : old
-      );
-      navigate("/create");
-    },
-    onError: () => {
-      navigate("/create");
-    },
-  });
 
   const createPostMutation = useMutation({
     mutationFn: async ({ clubId, caption, imageUrl }: { clubId: string; caption: string; imageUrl?: string }) => {
@@ -172,7 +160,7 @@ export default function HomeFeed() {
     const pending = localStorage.getItem("cultfam_pending_action");
     if (pending === "start_club") {
       localStorage.removeItem("cultfam_pending_action");
-      becomeCreatorMutation.mutate();
+      navigate("/create");
     }
   }, [user?.id]);
 
@@ -216,7 +204,7 @@ export default function HomeFeed() {
     console.log("[HomeFeed] userClubs:", userClubs);
     if (selectedClubId === null && userClubs.length > 0) {
       setSelectedClubId(userClubs[0].id);
-      setSeenClubs(prev => new Set([...prev, userClubs[0].id]));
+      setSeenClubs(prev => new Set([...Array.from(prev), userClubs[0].id]));
     }
   }, [userClubs, selectedClubId]);
 
@@ -431,7 +419,7 @@ export default function HomeFeed() {
                     key={club.id}
                     onClick={() => {
                       setSelectedClubId(club.id);
-                      setSeenClubs(prev => new Set([...prev, club.id]));
+                      setSeenClubs(prev => new Set([...Array.from(prev), club.id]));
                     }}
                     className="flex flex-col items-center gap-2 shrink-0"
                     style={{ minWidth: 72 }}

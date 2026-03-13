@@ -1,6 +1,4 @@
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
 import { CategoryShowcase } from "@/components/activity-ticker";
@@ -8,17 +6,9 @@ import { ClubsSection } from "@/components/clubs-section";
 import { ProcessSection } from "@/components/process-section";
 import { OrganizerSection } from "@/components/organizer-section";
 import { Footer } from "@/components/footer";
-import { useAuth } from "@/hooks/use-auth";
 import type { Club } from "@shared/schema";
 
 export default function Home() {
-  const { user } = useAuth();
-  const [, navigate] = useLocation();
-
-  useEffect(() => {
-    if (user) navigate("/home");
-  }, [user, navigate]);
-
   const { data: clubs = [], isLoading } = useQuery<(Club & { recentJoins?: number })[]>({
     queryKey: ["/api/clubs-with-activity"],
   });

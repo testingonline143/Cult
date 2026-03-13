@@ -543,14 +543,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const currentUserForCheck = await storage.getUser(userId);
-      if (
-        currentUserForCheck &&
-        currentUserForCheck.role !== "organiser" &&
-        currentUserForCheck.role !== "admin" &&
-        currentUserForCheck.wantsToCreate !== true
-      ) {
-        return res.status(403).json({ success: false, message: "Not authorised to create clubs" });
-      }
+      const isOrganiserOrAdmin = currentUserForCheck && (currentUserForCheck.role === "admin" || currentUserForCheck.role === "organiser");
       const { name, category, shortDesc, fullDesc, schedule, location, organizerName, whatsappNumber, city } = req.body;
 
       if (!name || name.length < 3) {
@@ -597,7 +590,7 @@ export async function registerRoutes(
         foundingTotal: 20,
         bgColor: "#f0f9f0",
         timeOfDay: "morning",
-        isActive: true,
+        isActive: isOrganiserOrAdmin,
         creatorUserId: userId,
         slug: finalSlug,
       });
@@ -624,7 +617,7 @@ export async function registerRoutes(
         await storage.approveJoinRequestWithFoundingCheck(joinReq.id, club.id);
       }
 
-      res.status(201).json({ success: true, message: "Club created and live!", club });
+      res.status(201).json({ success: true, message: isOrganiserOrAdmin ? "Club created and live!" : "Club proposed successfully", club, isProposal: !isOrganiserOrAdmin });
     } catch (err) {
       console.error("Error creating club:", err);
       res.status(500).json({ success: false, message: "Failed to create club" });
@@ -675,17 +668,6 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error fetching user clubs:", err);
       res.status(500).json({ message: "Failed to fetch user clubs" });
-    }
-  });
-
-  app.patch("/api/user/become-creator", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      await storage.becomeCreator(userId);
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Error setting creator intent:", err);
-      res.status(500).json({ message: "Failed to update creator status" });
     }
   });
 

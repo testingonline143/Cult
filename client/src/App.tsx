@@ -43,12 +43,14 @@ function QuizGate({ children }: { children: React.ReactNode }) {
 
 function ProtectedRoute({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
 
   if (isLoading) {
     return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
   }
 
   if (!isAuthenticated) {
+    localStorage.setItem("cultfam_redirect", location);
     window.location.href = "/api/login";
     return <div className="min-h-screen" style={{ background: "var(--cream)" }} />;
   }
@@ -56,31 +58,75 @@ function ProtectedRoute({ component: Component }: { component: () => JSX.Element
   return <Component />;
 }
 
+function AuthHandler({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+
+    // Wait for the next tick to ensure we don't interfere with initial renders
+    const timeoutId = setTimeout(() => {
+      const pendingAction = localStorage.getItem("cultfam_pending_action");
+      const redirectPath = localStorage.getItem("cultfam_redirect");
+
+      if (pendingAction === "start_club") {
+        localStorage.removeItem("cultfam_pending_action");
+        navigate("/create");
+        return;
+      }
+
+      if (redirectPath && redirectPath !== "/api/login" && redirectPath !== "/") {
+        localStorage.removeItem("cultfam_redirect");
+        navigate(redirectPath);
+        return;
+      }
+
+      // If we are on the landing page ("/") and authenticated,
+      // route to the appropriate main view.
+      if (location === "/") {
+        if (user && user.quizCompleted === false) {
+           navigate("/onboarding");
+        } else {
+           navigate("/home");
+        }
+      }
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+
+  }, [user, isAuthenticated, isLoading, location, navigate]);
+
+  return <>{children}</>;
+}
+
 function Router() {
   return (
-    <QuizGate>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/onboarding" component={Onboarding} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/home" component={() => <ProtectedRoute component={HomeFeed} />} />
-        <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
-        <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
-        <Route path="/matched-clubs" component={() => <ProtectedRoute component={MatchedClubs} />} />
-        <Route path="/explore" component={() => <ProtectedRoute component={Explore} />} />
-        <Route path="/events" component={() => <ProtectedRoute component={Events} />} />
-        <Route path="/create" component={() => <ProtectedRoute component={Create} />} />
-        <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
-        <Route path="/scan/:eventId" component={() => <ProtectedRoute component={ScanEvent} />} />
-        <Route path="/event/:id" component={() => <ProtectedRoute component={EventDetail} />} />
-        <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
-        <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
-        <Route path="/c/:slug" component={PublicClub} />
-        <Route path="/organizer/page-builder" component={() => <ProtectedRoute component={PageBuilder} />} />
-        <Route component={NotFound} />
-      </Switch>
-      <BottomNav />
-    </QuizGate>
+    <AuthHandler>
+      <QuizGate>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/onboarding" component={Onboarding} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/home" component={() => <ProtectedRoute component={HomeFeed} />} />
+          <Route path="/organizer" component={() => <ProtectedRoute component={OrganizerDashboard} />} />
+          <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+          <Route path="/matched-clubs" component={() => <ProtectedRoute component={MatchedClubs} />} />
+          <Route path="/explore" component={() => <ProtectedRoute component={Explore} />} />
+          <Route path="/events" component={() => <ProtectedRoute component={Events} />} />
+          <Route path="/create" component={() => <ProtectedRoute component={Create} />} />
+          <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
+          <Route path="/scan/:eventId" component={() => <ProtectedRoute component={ScanEvent} />} />
+          <Route path="/event/:id" component={() => <ProtectedRoute component={EventDetail} />} />
+          <Route path="/club/:id" component={() => <ProtectedRoute component={ClubDetail} />} />
+          <Route path="/member/:id" component={() => <ProtectedRoute component={MemberProfile} />} />
+          <Route path="/c/:slug" component={PublicClub} />
+          <Route path="/organizer/page-builder" component={() => <ProtectedRoute component={PageBuilder} />} />
+          <Route component={NotFound} />
+        </Switch>
+        <BottomNav />
+      </QuizGate>
+    </AuthHandler>
   );
 }
 

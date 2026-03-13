@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Mountain, BookOpen, Bike, Camera, Dumbbell, Palette, Music, Gamepad2, ChefHat, MapPin } from "lucide-react";
@@ -44,22 +44,10 @@ export function HeroSection() {
     return () => clearInterval(interval);
   }, []);
 
-  const becomeCreatorMutation = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/user/become-creator"),
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], (old: any) =>
-        old ? { ...old, wantsToCreate: true } : old
-      );
-      navigate("/create");
-    },
-    onError: () => {
-      navigate("/create");
-    },
-  });
 
   function handleStartClub() {
     if (user) {
-      becomeCreatorMutation.mutate();
+      navigate("/create");
     } else {
       localStorage.setItem("cultfam_pending_action", "start_club");
       window.location.href = "/api/login";
@@ -158,17 +146,15 @@ export function HeroSection() {
           </button>
           <button
             onClick={handleStartClub}
-            disabled={becomeCreatorMutation.isPending}
             className="rounded-full px-8 py-4 text-sm font-medium transition-all"
             style={{
               background: "transparent",
               border: "1.5px solid rgba(255,255,255,0.25)",
               color: "rgba(255,255,255,0.85)",
-              opacity: becomeCreatorMutation.isPending ? 0.7 : 1,
             }}
             data-testid="button-start-club"
           >
-            {becomeCreatorMutation.isPending ? "Setting up..." : "Start a Club"}
+            Start a Club
           </button>
         </motion.div>
 

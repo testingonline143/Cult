@@ -15,7 +15,7 @@ export function BottomNav() {
   if (!TAB_PATHS.includes(location)) return null;
 
   const isOrganiser = user?.role === "organiser" || user?.role === "admin";
-  const isCreator = !!user && (user.wantsToCreate === true || isOrganiser);
+  const isCreator = !!user;
 
   const leftTabs = [
     { path: "/explore", label: "CLUBS", icon: Users },

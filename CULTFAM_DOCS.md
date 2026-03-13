@@ -137,13 +137,13 @@ Roles are stored in the `users.role` database column. The admin is additionally 
 - Give kudos to other attendees after an event
 
 **What they cannot do:**
-- Create clubs (unless `wantsToCreate` flag is set — see below)
+- Create clubs (Submits a proposal that is reviewed by Admins)
 - Create events
 - Access the organiser dashboard
 - Access the admin portal
 
-**Special flag — `wantsToCreate: true`:**
-When a user expresses intent to create a club (via the FAB or profile), their `wantsToCreate` flag is set to `true`. This unlocks the club creation form. Once they create a club, they are automatically promoted to `organiser`.
+**Club Proposals:**
+When a regular user creates a club, it is created with `isActive: false`. These clubs act as proposals. Admins can view and approve these pending clubs from the Inactive Clubs section in their Admin Dashboard.
 
 ---
 
@@ -232,11 +232,9 @@ Access is dual-gated: the user's role must be `"admin"` OR their user ID must ma
 ### Creating a Club (as an aspiring organiser)
 ```
 1. Tap FAB → "Create a Club"
-2. If wantsToCreate is false → confirmation screen sets the flag
-3. Fill in club details (name, category, description, schedule, location, organiser name, WhatsApp)
-4. Club goes live immediately
-5. Creator is auto-promoted to organiser and auto-joined as founding member
-6. Organiser Dashboard becomes accessible
+2. Club is submitted as a proposal (`isActive: false`)
+3. Admins approve the proposal via Admin Dashboard
+4. On approval, club is activated and user is promoted to `organiser`
 ```
 
 ---
@@ -253,7 +251,7 @@ Access is dual-gated: the user's role must be `"admin"` OR their user ID must ma
 | `/events` | Upcoming events list | All authenticated users |
 | `/event/:id` | Event detail + RSVP | All authenticated users |
 | `/club/:id` | Club detail page | All authenticated users |
-| `/create` | Create a club form | Users with `wantsToCreate: true` or organisers |
+| `/create` | Create a club form | All users (Proposals/Insta-Create) |
 | `/organizer` | Organiser dashboard | `organiser` or `admin` role |
 | `/profile` | My profile | All authenticated users |
 | `/member/:id` | Public member profile | All authenticated users |
@@ -531,7 +529,7 @@ Platform-wide counters:
 
 #### `users`
 The authenticated user. Managed by Replit Auth.
-Key fields: `id`, `email`, `firstName`, `lastName`, `profileImageUrl`, `bio`, `city`, `role` (`"user"` / `"organiser"` / `"admin"`), `quizCompleted`, `wantsToCreate`
+Key fields: `id`, `email`, `firstName`, `lastName`, `profileImageUrl`, `bio`, `city`, `role` (`"user"` / `"organiser"` / `"admin"`), `quizCompleted`
 
 #### `sessions`
 Auth session storage (managed by Replit Auth integration).
@@ -710,7 +708,7 @@ When creating an event with a recurrence rule, the server generates 5 instances 
 | GET | `/api/user/join-requests` | My join requests |
 | PATCH | `/api/user/profile` | Update my profile |
 | POST | `/api/user/photo` | Upload profile photo |
-| PATCH | `/api/user/become-creator` | Set wantsToCreate flag |
+
 | POST | `/api/quiz` | Submit onboarding quiz |
 | GET | `/api/quiz/matches` | Get quiz-matched clubs |
 | POST | `/api/events/:id/rsvp` | RSVP to event |
