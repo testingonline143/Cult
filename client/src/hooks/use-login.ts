@@ -44,6 +44,11 @@ export function useLogin() {
 
       cleanup();
 
+      if (typeof BroadcastChannel === "undefined") {
+        window.location.href = loginUrl;
+        return;
+      }
+
       const bc = new BroadcastChannel("cultfam_auth");
       channelRef.current = bc;
 
