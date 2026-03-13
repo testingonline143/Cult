@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogin } from "@/hooks/use-login";
 import { useLocation, useSearch } from "wouter";
 import { CATEGORIES, CITIES } from "@shared/schema";
 import type { Club } from "@shared/schema";
@@ -136,12 +137,13 @@ export default function Create() {
 }
 
 function SignInPrompt({ message }: { message: string }) {
+  const { login } = useLogin();
   return (
     <div className="glass-card rounded-xl p-8 text-center space-y-4">
       <LogIn className="w-10 h-10 mx-auto" style={{ color: 'var(--terra)' }} />
       <p className="text-sm text-muted-foreground" data-testid="text-sign-in-prompt">{message}</p>
       <button
-        onClick={() => { window.location.href = "/api/login"; }}
+        onClick={() => login()}
         className="text-white rounded-xl px-8 py-3 text-sm font-semibold"
         style={{ background: 'var(--terra)' }}
         data-testid="button-sign-in-create"

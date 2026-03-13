@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogin } from "@/hooks/use-login";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Camera, CheckCircle2, XCircle, AlertTriangle, Users, Calendar, MapPin, Clock, Search, X, UserCheck, Sun } from "lucide-react";
 import type { Event } from "@shared/schema";
@@ -38,6 +39,7 @@ export default function ScanEvent() {
   const { eventId } = useParams<{ eventId: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login } = useLogin();
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [manualSearch, setManualSearch] = useState("");
@@ -224,7 +226,7 @@ export default function ScanEvent() {
           <h1 className="font-display text-xl font-bold text-foreground">Scanner Access Required</h1>
           <p className="text-sm text-muted-foreground">Sign in as the event organizer to scan tickets</p>
           <button
-            onClick={() => { window.location.href = "/api/login"; }}
+            onClick={() => login()}
             className="w-full bg-[var(--terra)] text-white rounded-2xl py-3 text-sm font-semibold"
             data-testid="button-scanner-sign-in"
           >

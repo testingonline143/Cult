@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogin } from "@/hooks/use-login";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
@@ -10,6 +11,7 @@ import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIc
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { login } = useLogin();
 
   if (isLoading) {
     return (
@@ -48,7 +50,7 @@ export default function Profile() {
             Sign in to view your profile, joined clubs, and upcoming events.
           </p>
           <button
-            onClick={() => { window.location.href = "/api/login"; }}
+            onClick={() => login()}
             className="rounded-xl px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 text-white"
             style={{ background: 'var(--terra)' }}
             data-testid="button-sign-in-profile"

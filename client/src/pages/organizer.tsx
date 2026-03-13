@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogin } from "@/hooks/use-login";
 import { useLocation, useSearch } from "wouter";
 import { LayoutDashboard, Users, Loader2 } from "lucide-react";
 import type { Club, JoinRequest } from "@shared/schema";
@@ -68,6 +69,7 @@ function RequestsTabBar({ activeTab, setActiveTab, clubId, isCreator }: {
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Organizer() {
   const { user, isAuthenticated } = useAuth();
+  const { login } = useLogin();
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const urlTab = new URLSearchParams(searchString).get("tab") as TabKey | null;
@@ -97,7 +99,7 @@ export default function Organizer() {
           </div>
           <h1 className="font-display text-2xl font-bold text-[var(--terra)]" data-testid="text-organizer-title">Organizer Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Sign in to access your club dashboard</p>
-          <button onClick={() => { window.location.href = "/api/login"; }} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-organizer-sign-in">Sign In</button>
+          <button onClick={() => login()} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-organizer-sign-in">Sign In</button>
         </div>
       </div>
     );
