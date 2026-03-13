@@ -5,17 +5,15 @@ import { useCallback, useEffect, useRef } from "react";
 /**
  * Opens the Replit OAuth flow in a small popup window.
  *
- * Why a popup instead of a full-page redirect?
- * The app may run inside the Replit workspace preview (an iframe).
- * Replit's OAuth consent page sets X-Frame-Options headers that prevent it
- * from loading inside an iframe, so a direct redirect would escape to the
- * top-level browser frame and break the preview context.
- * A popup window sidesteps this entirely: OAuth completes in the popup,
- * the popup broadcasts an auth-complete message via BroadcastChannel,
- * and the parent receives it and refreshes its auth state — all without
- * leaving the preview frame.
+ * The popup completes OAuth and broadcasts an auth-complete message via
+ * BroadcastChannel. The parent receives it, refreshes auth, and navigates.
  *
- * Falls back to a regular redirect if the popup is blocked.
+ * Two fallback layers:
+ * 1. If BroadcastChannel fails silently, a poll detects popup close and
+ *    refetches auth + navigates if the user is now authenticated.
+ * 2. If the popup is blocked entirely, falls back to a full-page redirect.
+ *    The server detects this (no popup=1 flag) and does a simple 302
+ *    redirect to the destination after OAuth completes.
  */
 export function useLogin() {
   const queryClient = useQueryClient();
@@ -41,6 +39,7 @@ export function useLogin() {
   const login = useCallback(
     (returnTo = "/home") => {
       const loginUrl = `/api/login?returnTo=${encodeURIComponent(returnTo)}`;
+      const popupUrl = `${loginUrl}&popup=1`;
 
       cleanup();
 
@@ -52,14 +51,17 @@ export function useLogin() {
       const bc = new BroadcastChannel("cultfam_auth");
       channelRef.current = bc;
 
-      bc.onmessage = (e) => {
+      bc.onmessage = async (e) => {
         if (e.data?.type !== "cultfam_auth_complete") return;
 
         cleanup();
 
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-
         const dest: string = e.data.returnTo || "/home";
+        try {
+          await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+        } catch {
+          // ignore
+        }
         navigate(dest);
       };
 
@@ -69,7 +71,7 @@ export function useLogin() {
       const top = Math.max(0, (window.screen.height - height) / 2);
       const features = `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`;
 
-      const popup = window.open(loginUrl, "cultfam_login", features);
+      const popup = window.open(popupUrl, "cultfam_login", features);
 
       if (!popup || popup.closed) {
         cleanup();
@@ -78,18 +80,17 @@ export function useLogin() {
       }
 
       pollRef.current = setInterval(async () => {
-        if (popup.closed) {
-          cleanup();
+        if (!popup.closed) return;
+        cleanup();
 
-          try {
-            await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
-            const user = queryClient.getQueryData(["/api/auth/user"]);
-            if (user) {
-              navigate(returnTo);
-            }
-          } catch (err) {
-            console.warn("[use-login] popup-close auth refresh failed", err);
+        try {
+          await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+          const user = queryClient.getQueryData(["/api/auth/user"]);
+          if (user) {
+            navigate(returnTo);
           }
+        } catch (err) {
+          console.warn("[use-login] popup-close auth refresh failed", err);
         }
       }, 500);
     },

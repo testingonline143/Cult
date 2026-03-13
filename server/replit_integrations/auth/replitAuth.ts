@@ -108,6 +108,11 @@ export async function setupAuth(app: Express) {
     if (returnTo && returnTo.startsWith("/")) {
       (req.session as any).returnTo = returnTo;
     }
+    if (req.query.popup === "1") {
+      (req.session as any).isPopup = true;
+    } else {
+      delete (req.session as any).isPopup;
+    }
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
@@ -127,11 +132,17 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
 
-        // Retrieve the stored returnTo path, default to /home
         const returnTo = (req.session as any).returnTo || "/home";
+        const isPopup = (req.session as any).isPopup === true;
         delete (req.session as any).returnTo;
+        delete (req.session as any).isPopup;
 
         const safeReturnTo = returnTo.startsWith("/") ? returnTo : "/home";
+
+        if (!isPopup) {
+          return res.redirect(safeReturnTo);
+        }
+
         res.send(`<!DOCTYPE html><html><head><title>Signing in...</title></head><body>
 <script>
 (function(){
@@ -140,10 +151,8 @@ export async function setupAuth(app: Express) {
     var bc = new BroadcastChannel("cultfam_auth");
     bc.postMessage({ type: "cultfam_auth_complete", returnTo: dest });
     bc.close();
-    window.close();
-  } else {
-    window.location.href = dest;
   }
+  window.close();
 })();
 </script>
 <p style="font-family:sans-serif;text-align:center;margin-top:40px">Completing sign-in…</p>
