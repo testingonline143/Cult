@@ -82,8 +82,8 @@ export async function setupAuth(app: Express) {
   const registeredStrategies = new Set<string>();
 
   // Helper function to ensure strategy exists for a domain
-  function getAuthDomain(req: { hostname: string }): string {
-    return process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() || req.hostname;
+  function getAuthDomain(req: { hostname: string; protocol: string }): string {
+    return process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() ?? req.hostname;
   }
 
   const ensureStrategy = (domain: string) => {
@@ -172,7 +172,7 @@ export async function setupAuth(app: Express) {
       res.redirect(
         client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          post_logout_redirect_uri: `https://${getAuthDomain(req)}`,
         }).href
       );
     });
