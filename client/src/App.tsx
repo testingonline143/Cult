@@ -5,14 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { Loader2 } from "lucide-react";
 
-// Lazy-loaded page chunks — Vite will split each into its own JS file
-// so users only download the code for the page they actually visit.
+// Home is eagerly imported — it's the entry page for all visitors and
+// should render immediately without waiting for a lazy chunk download.
+import Home from "@/pages/home";
+
+// All other pages are lazy-loaded so users only download what they visit.
 const NotFound        = lazy(() => import("@/pages/not-found"));
-const Home            = lazy(() => import("@/pages/home"));
 const Admin           = lazy(() => import("@/pages/admin"));
 const OrganizerDashboard = lazy(() => import("@/pages/organizer"));
 const Profile         = lazy(() => import("@/pages/profile"));
@@ -31,12 +33,19 @@ const PublicClub      = lazy(() => import("@/pages/public-club"));
 const PageBuilder     = lazy(() => import("@/pages/page-builder"));
 
 function PageLoader() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 200);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div
       className="min-h-screen flex items-center justify-center"
       style={{ background: "var(--cream)" }}
     >
-      <Loader2 className="h-8 w-8 animate-spin opacity-40" />
+      {show && <Loader2 className="h-8 w-8 animate-spin opacity-40" />}
     </div>
   );
 }
