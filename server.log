@@ -1,4 +1,4 @@
-7:21:17 PM [express] serving on http://0.0.0.0:5000
+7:24:00 PM [express] serving on http://0.0.0.0:3000
 Error seeding database: error: password authentication failed for user "postgres"
     at /tmp/cc-agent/64695686/project/dist/index.cjs:76:13330
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
