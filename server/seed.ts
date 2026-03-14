@@ -168,6 +168,11 @@ const SEED_CLUBS = [
 ];
 
 export async function seedDatabase() {
+  if (!process.env.DATABASE_URL) {
+    console.log("[seed] DATABASE_URL not set, skipping database seeding");
+    return;
+  }
+
   try {
     const existing = await db.select().from(clubs);
     if (existing.length > 0) {
