@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
-import { LayoutDashboard, Users, Loader2 } from "lucide-react";
+import { LayoutDashboard, Users, Loader2, ShieldCheck } from "lucide-react";
 import type { Club, JoinRequest } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -123,8 +123,8 @@ export default function Organizer() {
             <Users className="w-8 h-8 text-muted-foreground" />
           </div>
           <h1 className="font-display text-2xl font-bold text-[var(--terra)]" data-testid="text-no-club-title">No Clubs Yet</h1>
-          <p className="text-sm text-muted-foreground mt-1">You haven't created any clubs yet. Create one to get started!</p>
-          <button onClick={() => navigate("/create")} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-go-create-club">Create a Club</button>
+          <p className="text-sm text-muted-foreground mt-1">You aren't managing any clubs yet. Create one or ask a club owner to add you as a co-organizer.</p>
+          <button onClick={() => navigate("/create")} className="w-full bg-[var(--terra)] text-white rounded-md py-3 text-sm font-semibold" data-testid="button-go-create-club">Propose a Club</button>
         </div>
       </div>
     );
@@ -136,7 +136,14 @@ export default function Organizer() {
         <div className="flex items-center justify-between gap-2 mb-6 flex-wrap">
           <div>
             <h1 className="font-display text-xl font-bold text-[var(--terra)]" data-testid="text-organizer-dashboard">{club.emoji} {club.name}</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Organizer Dashboard</p>
+            {user?.id !== club.creatorUserId ? (
+              <div className="flex items-center gap-1 mt-0.5">
+                <ShieldCheck className="w-3 h-3 text-[var(--terra)]" />
+                <p className="text-xs font-medium text-[var(--terra)]" data-testid="text-co-organizer-badge">Co-organizer</p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-0.5">Organizer Dashboard</p>
+            )}
           </div>
         </div>
 
