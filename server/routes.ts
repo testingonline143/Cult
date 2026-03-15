@@ -846,6 +846,7 @@ export async function registerRoutes(
         endsAt: baseEndsAt,
         locationText: req.body.locationText,
         maxCapacity: parseInt(req.body.maxCapacity) || 20,
+        coverImageUrl: req.body.coverImageUrl || null,
         recurrenceRule,
       };
       const event = await storage.createEvent(eventData);
@@ -1847,6 +1848,28 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error cancelling event:", err);
       res.status(500).json({ message: "Failed to cancel event" });
+    }
+  });
+
+  app.post("/api/clubs/:clubId/events/:eventId/extend-series", isAuthenticated, requireRole("organiser", "admin"), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const club = await storage.getClub(req.params.clubId);
+      if (!club || !(await storage.isClubManager(club.id, userId))) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      const seedEvent = await storage.getEvent(req.params.eventId);
+      if (!seedEvent || seedEvent.clubId !== req.params.clubId) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      if (!seedEvent.recurrenceRule) {
+        return res.status(400).json({ message: "Event is not part of a recurring series" });
+      }
+      const newEvents = await storage.extendEventSeries(req.params.clubId, seedEvent.title, seedEvent.recurrenceRule);
+      res.json({ success: true, count: newEvents.length, events: newEvents });
+    } catch (err) {
+      console.error("Error extending event series:", err);
+      res.status(500).json({ message: "Failed to extend series" });
     }
   });
 

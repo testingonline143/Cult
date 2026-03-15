@@ -58,6 +58,7 @@ export interface IStorage {
   getEvent(id: string): Promise<Event | undefined>;
   getEventsByClub(clubId: string): Promise<Event[]>;
   getUpcomingEvents(city?: string, limit?: number): Promise<(Event & { clubName: string; clubEmoji: string; rsvpCount: number })[]>;
+  extendEventSeries(clubId: string, title: string, recurrenceRule: string): Promise<Event[]>;
   createRsvp(rsvp: InsertEventRsvp): Promise<EventRsvp>;
   cancelRsvp(eventId: string, userId: string): Promise<void>;
   getRsvpsByEvent(eventId: string): Promise<(EventRsvp & { userName: string | null })[]>;
@@ -452,6 +453,35 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async extendEventSeries(clubId: string, title: string, recurrenceRule: string): Promise<Event[]> {
+    const seriesEvents = await db.select().from(events)
+      .where(and(eq(events.clubId, clubId), eq(events.title, title), eq(events.recurrenceRule, recurrenceRule)))
+      .orderBy(desc(events.startsAt));
+    if (seriesEvents.length === 0) return [];
+    const latest = seriesEvents[0];
+    const baseStartsAt = new Date(latest.startsAt);
+    const created: Event[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const nextStartsAt = new Date(baseStartsAt);
+      if (recurrenceRule === "weekly") nextStartsAt.setDate(nextStartsAt.getDate() + 7 * i);
+      else if (recurrenceRule === "biweekly") nextStartsAt.setDate(nextStartsAt.getDate() + 14 * i);
+      else if (recurrenceRule === "monthly") nextStartsAt.setMonth(nextStartsAt.getMonth() + i);
+      const [newEvent] = await db.insert(events).values({
+        clubId,
+        title: latest.title,
+        description: latest.description,
+        locationText: latest.locationText,
+        locationUrl: latest.locationUrl,
+        startsAt: nextStartsAt,
+        maxCapacity: latest.maxCapacity,
+        coverImageUrl: latest.coverImageUrl,
+        recurrenceRule,
+      }).returning();
+      created.push(newEvent);
+    }
+    return created;
+  }
+
   async getEvent(id: string): Promise<Event | undefined> {
     const [event] = await db.select().from(events).where(eq(events.id, id));
     return event;
@@ -492,9 +522,21 @@ export class DatabaseStorage implements IStorage {
           : and(gte(events.startsAt, now), ne(events.isCancelled, true))
       )
       .orderBy(events.startsAt)
-      .limit(limit);
+      .limit(limit * 4);
 
-    return baseQuery;
+    const rows = await baseQuery;
+    const seen = new Set<string>();
+    const deduped: typeof rows = [];
+    for (const row of rows) {
+      if (row.recurrenceRule) {
+        const seriesKey = `${row.clubId}__${row.title}__${row.recurrenceRule}`;
+        if (seen.has(seriesKey)) continue;
+        seen.add(seriesKey);
+      }
+      deduped.push(row);
+      if (deduped.length >= limit) break;
+    }
+    return deduped;
   }
 
   async createRsvp(rsvp: InsertEventRsvp): Promise<EventRsvp> {

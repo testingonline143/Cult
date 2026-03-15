@@ -4,22 +4,38 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { ImageUpload } from "@/components/image-upload";
-import { Calendar, MapPin, Users, QrCode, Check, Copy, Loader2, Pencil, Clock, X, AlertTriangle, Link2, Zap, BarChart3, Download, Repeat, UserCheck, Clock3, Ban, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, MapPin, Users, QrCode, Check, Copy, Loader2, Pencil, Clock, AlertTriangle, Link2, Zap, BarChart3, Download, Repeat, UserCheck, Clock3, Ban, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import type { Event, EventRsvp } from "@shared/schema";
 
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 type AttendanceRow = { userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: string | null; phone: string | null };
 type AttendanceReport = { attendees: AttendanceRow[]; goingCount: number; waitlistCount: number; checkedInCount: number };
 
-function RecurringEventGroup({ group, clubId, onDuplicate }: { group: { key: string; rule: string; label: string; events: (Event & { rsvpCount: number })[] }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void }) {
+function RecurringEventGroup({ group, clubId, onDuplicate, onExtend, extendPending }: { group: { key: string; rule: string; label: string; events: (Event & { rsvpCount: number })[] }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void; onExtend: (event: Event & { rsvpCount: number }) => void; extendPending: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const now = new Date();
+  const allPast = group.events.every(e => new Date(e.startsAt) < now && !e.isCancelled);
+  const anyActive = group.events.some(e => new Date(e.startsAt) >= now && !e.isCancelled);
+  const seedEvent = group.events[group.events.length - 1];
   return (
     <div className="bg-[var(--warm-white)] border-[1.5px] border-[var(--warm-border)] overflow-hidden" style={{ borderRadius: 18 }} data-testid={`recurring-group-${group.key}`}>
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-3 p-4 text-left" data-testid={`button-toggle-group-${group.key}`}>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--terra-pale)' }}><Repeat className="w-4 h-4 text-[var(--terra)]" /></div>
-        <div className="flex-1 min-w-0"><span className="font-semibold text-sm text-foreground block truncate">{group.label}</span></div>
+        <div className="flex-1 min-w-0">
+          <span className="font-semibold text-sm text-foreground block truncate">{group.label}</span>
+          {allPast && <span className="text-[11px] text-muted-foreground">All instances completed</span>}
+          {anyActive && <span className="text-[11px] text-[var(--terra)]">Series active</span>}
+        </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
       </button>
+      {allPast && (
+        <div className="px-4 pb-4 pt-0">
+          <button onClick={() => onExtend(seedEvent)} disabled={extendPending} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border-[1.5px] border-dashed border-[rgba(196,98,45,0.4)] text-[var(--terra)] disabled:opacity-50" style={{ background: 'var(--terra-pale)' }} data-testid={`button-extend-series-${group.key}`}>
+            {extendPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {extendPending ? "Scheduling..." : "Schedule next 4 instances"}
+          </button>
+        </div>
+      )}
       {expanded && <div className="border-t border-[var(--warm-border)] space-y-0">{group.events.map((event) => <EventCard key={event.id} event={event} clubId={clubId} onDuplicate={onDuplicate} />)}</div>}
     </div>
   );
@@ -245,10 +261,31 @@ export default function EventsTab({ clubId }: { clubId: string }) {
     onError: (err: Error) => setCreateError(err.message || "Failed to create event"),
   });
 
+  const { toast } = useToast();
+
+  const extendMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const res = await apiRequest("POST", `/api/clubs/${clubId}/events/${eventId}/extend-series`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clubs", clubId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({ title: `Series extended — ${data.count} new instances scheduled` });
+    },
+    onError: () => toast({ title: "Failed to extend series", variant: "destructive" }),
+  });
+
   const handleDuplicate = (event: Event & { rsvpCount: number }) => {
     setTitle(event.title); setDescription(event.description||""); setLocationText(event.locationText);
-    setMaxCapacity(String(event.maxCapacity)); setStartsAt(""); setCreateError(""); setDuplicatingFrom(event.title); setShowCreate(true);
+    setMaxCapacity(String(event.maxCapacity)); setStartsAt(""); setCreateError(""); setDuplicatingFrom(event.title);
+    setRecurrenceRule(event.recurrenceRule || "none");
+    setShowCreate(true);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  };
+
+  const handleExtend = (event: Event & { rsvpCount: number }) => {
+    extendMutation.mutate(event.id);
   };
 
   const resetForm = () => { setTitle(""); setDescription(""); setStartsAt(""); setLocationText(""); setMaxCapacity("20"); setRecurrenceRule("none"); setCoverImageUrl(null); setCreateError(""); setDuplicatingFrom(null); };
@@ -300,7 +337,7 @@ export default function EventsTab({ clubId }: { clubId: string }) {
             }
             standalone.push(ev);processed.add(ev.id);
           }
-          return (<>{todayEvents.map(event=><EventTodayBanner key={`today-${event.id}`} event={event}/>)}{grouped.map(group=><RecurringEventGroup key={group.key} group={group} clubId={clubId} onDuplicate={handleDuplicate}/>)}{standalone.map(event=><EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate}/>)}</>);
+          return (<>{todayEvents.map(event=><EventTodayBanner key={`today-${event.id}`} event={event}/>)}{grouped.map(group=><RecurringEventGroup key={group.key} group={group} clubId={clubId} onDuplicate={handleDuplicate} onExtend={handleExtend} extendPending={extendMutation.isPending}/>)}{standalone.map(event=><EventCard key={event.id} event={event} clubId={clubId} onDuplicate={handleDuplicate}/>)}</>);
         })()}</div>
       )}
     </div>
