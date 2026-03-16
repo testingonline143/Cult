@@ -683,7 +683,7 @@ export async function registerRoutes(
   app.patch("/api/user/profile", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { name, bio, city, profileImageUrl } = req.body;
+      const { name, bio, city, profileImageUrl, interests } = req.body;
       
       const updates: Record<string, any> = {};
       
@@ -704,6 +704,17 @@ export async function registerRoutes(
 
       if (profileImageUrl !== undefined) {
         updates.profileImageUrl = profileImageUrl;
+      }
+
+      if (interests !== undefined) {
+        if (!Array.isArray(interests)) {
+          return res.status(400).json({ success: false, message: "Interests must be an array" });
+        }
+        // Validate and sanitize: max 15 tags, each max 30 chars
+        updates.interests = interests
+          .slice(0, 15)
+          .map((t: any) => String(t).trim())
+          .filter((t: string) => t.length > 0 && t.length <= 30);
       }
 
       if (Object.keys(updates).length === 0) {
@@ -796,12 +807,11 @@ export async function registerRoutes(
       }
       const rsvps = await storage.getRsvpsByEvent(event.id);
       const club = await storage.getClub(event.clubId);
-      const waitlistCount = await storage.getWaitlistCount(event.id);
       let myRsvp = null;
       if (req.user?.claims?.sub) {
         myRsvp = await storage.getUserRsvp(event.id, req.user.claims.sub);
       }
-      res.json({ ...event, rsvps, club, waitlistCount, myRsvp });
+      res.json({ ...event, rsvps, club, myRsvp });
     } catch (err) {
       console.error("Error fetching event:", err);
       res.status(500).json({ message: "Failed to fetch event" });
@@ -903,15 +913,9 @@ export async function registerRoutes(
       if (existingRsvp && existingRsvp.status === "going") {
         return res.json({ success: true, rsvp: existingRsvp, alreadyRsvpd: true });
       }
-      if (existingRsvp && existingRsvp.status === "waitlisted") {
-        const position = await storage.getUserWaitlistPosition(event.id, userId);
-        return res.json({ success: true, rsvp: existingRsvp, waitlisted: true, position });
-      }
       const rsvpCount = await storage.getRsvpCount(event.id);
       if (rsvpCount >= event.maxCapacity) {
-        const rsvp = await storage.createRsvp({ eventId: event.id, userId, status: "waitlisted" });
-        const position = await storage.getUserWaitlistPosition(event.id, userId);
-        return res.json({ success: true, rsvp, waitlisted: true, position });
+        return res.status(400).json({ success: false, message: "Event is at full capacity." });
       }
       const rsvp = await storage.createRsvp({ eventId: event.id, userId, status: "going" });
       const eventDate = new Date(event.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
@@ -933,23 +937,7 @@ export async function registerRoutes(
   app.delete("/api/events/:id/rsvp", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const existingRsvp = await storage.getUserRsvp(req.params.id, userId);
       await storage.cancelRsvp(req.params.id, userId);
-      if (existingRsvp?.status === "going") {
-        const promoted = await storage.promoteFirstFromWaitlist(req.params.id);
-        if (promoted) {
-          const event = await storage.getEvent(req.params.id);
-          const eventDate = event ? new Date(event.startsAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) : "";
-          await storage.createNotification({
-            userId: promoted.userId,
-            type: "waitlist_promoted",
-            title: "You're off the waitlist!",
-            message: `A spot opened up for ${event?.title || "the event"}${eventDate ? ` on ${eventDate}` : ""}. You're now confirmed!`,
-            linkUrl: `/event/${req.params.id}`,
-            isRead: false,
-          });
-        }
-      }
       res.json({ success: true });
     } catch (err) {
       console.error("Error cancelling RSVP:", err);
@@ -1118,18 +1106,12 @@ export async function registerRoutes(
   app.delete("/api/clubs/:id/leave", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const existing = await storage.hasExistingJoinRequest(req.params.id, userId);
-      if (!existing) {
-        return res.status(404).json({ message: "You are not a member of this club" });
-      }
-      if (existing.status === "approved") {
-        await storage.decrementMemberCount(req.params.id);
-      }
-      await storage.deleteJoinRequest(existing.id);
+      await storage.leaveClub(req.params.id as string, userId);
       res.json({ success: true });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error leaving club:", err);
-      res.status(500).json({ message: "Failed to leave club" });
+      const status = err.message === "User is not a member of this club" ? 404 : 500;
+      res.status(status).json({ message: err.message || "Failed to leave club" });
     }
   });
 
@@ -1902,6 +1884,7 @@ export async function registerRoutes(
         bio: user.bio ?? null,
         city: user.city ?? null,
         profileImageUrl: user.profileImageUrl ?? null,
+        interests: (user as any).interests ?? [],
         role: user.role ?? "member",
         clubs: userClubs.map(c => ({ id: c.id, name: c.name, emoji: c.emoji, category: c.category })),
       });
@@ -2283,7 +2266,7 @@ export async function registerRoutes(
       if (!isCrawler(req.headers["user-agent"])) return next();
       const club = await storage.getClub(req.params.id as string);
       if (!club) return next();
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
       const template = await readHtmlTemplate();
       const html = buildOgHtml(template, {
         title: `${club.emoji} ${club.name} | CultFam Tirupati`,
@@ -2304,7 +2287,7 @@ export async function registerRoutes(
       if (!isCrawler(req.headers["user-agent"])) return next();
       const event = await storage.getEvent(req.params.id as string);
       if (!event) return next();
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
       const d = new Date(event.startsAt);
       const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -2405,7 +2388,7 @@ export async function registerRoutes(
       if (!isCrawler(req.headers["user-agent"])) return next();
       const club = await storage.getClubBySlug(req.params.slug as string);
       if (!club) return next();
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
       const template = await readHtmlTemplate();
       const html = buildOgHtml(template, {
         title: `${club.emoji} ${club.name} | CultFam Tirupati`,

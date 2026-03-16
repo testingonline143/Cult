@@ -9,7 +9,7 @@ import type { Event, EventRsvp } from "@shared/schema";
 
 type AttendeeData = EventRsvp & { userName: string | null; checkedIn: boolean | null; checkedInAt: Date | null };
 type AttendanceRow = { userId: string; userName: string | null; status: string; checkedIn: boolean | null; checkedInAt: string | null; phone: string | null };
-type AttendanceReport = { attendees: AttendanceRow[]; goingCount: number; waitlistCount: number; checkedInCount: number };
+type AttendanceReport = { attendees: AttendanceRow[]; goingCount: number; checkedInCount: number };
 
 function RecurringEventGroup({ group, clubId, onDuplicate, onExtend, extendPending }: { group: { key: string; rule: string; label: string; events: (Event & { rsvpCount: number })[] }; clubId: string; onDuplicate: (event: Event & { rsvpCount: number }) => void; onExtend: (event: Event & { rsvpCount: number }) => void; extendPending: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -113,7 +113,7 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
 
   const handleDownloadCsv = () => {
     if (!reportData) return;
-    const rows = reportData.attendees.map(a => [`"${a.userName??""}"`, `"${a.phone??""}"`, a.status==="going"?"Going":"Waitlisted", a.checkedIn?"Yes":"No", a.checkedInAt?new Date(a.checkedInAt).toLocaleString("en-IN"):"—"].join(","));
+    const rows = reportData.attendees.map(a => [`"${a.userName??""}"`, `"${a.phone??""}"`, "Going", a.checkedIn?"Yes":"No", a.checkedInAt?new Date(a.checkedInAt).toLocaleString("en-IN"):"—"].join(","));
     const csv = [["Name","Phone","RSVP","Checked In","Time"].join(","), ...rows].join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     Object.assign(document.createElement("a"), { href: url, download: `${event.title.replace(/\s+/g,"_")}_attendance.csv` }).click();
@@ -197,13 +197,12 @@ function EventCard({ event, clubId, onDuplicate }: { event: Event & { rsvpCount:
                   <div className="flex items-center gap-3 flex-wrap" data-testid={`report-summary-${event.id}`}>
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]"><Users className="w-3 h-3 text-muted-foreground"/><span className="text-[11px] font-semibold">{reportData?.goingCount??0} Going</span></div>
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--terra-pale)] border border-[rgba(196,98,45,0.2)]"><UserCheck className="w-3 h-3" style={{color:"var(--terra)"}}/><span className="text-[11px] font-semibold" style={{color:"var(--terra)"}}>{reportData?.checkedInCount??0} Checked In</span></div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--warm-white)] border border-[var(--warm-border)]"><Clock3 className="w-3 h-3 text-muted-foreground"/><span className="text-[11px] font-semibold text-muted-foreground">{reportData?.waitlistCount??0} Waitlisted</span></div>
                   </div>
                   {(reportData?.attendees.length??0)>0 ? (
                     <div className="overflow-x-auto" data-testid={`report-table-${event.id}`}>
                       <table className="w-full text-[11px]">
                         <thead><tr className="border-b border-[var(--warm-border)]"><th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Name</th><th className="text-left py-1.5 pr-3 font-semibold text-muted-foreground">Status</th><th className="text-left py-1.5 font-semibold text-muted-foreground">Checked In</th></tr></thead>
-                        <tbody>{reportData!.attendees.map((a,i)=>(<tr key={i} className="border-b border-[var(--warm-border)] last:border-0" data-testid={`report-row-${event.id}-${i}`}><td className="py-1.5 pr-3 font-medium">{a.userName??"—"}</td><td className="py-1.5 pr-3"><span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${a.status==="going"?"bg-green-100 text-green-700":"bg-orange-100 text-orange-700"}`}>{a.status==="going"?"Going":"Waitlisted"}</span></td><td className="py-1.5">{a.checkedIn?<span className="text-[var(--terra)] font-semibold">{a.checkedInAt?new Date(a.checkedInAt).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"Yes"}</span>:<span className="text-muted-foreground">—</span>}</td></tr>))}</tbody>
+                        <tbody>{reportData!.attendees.map((a,i)=>(<tr key={i} className="border-b border-[var(--warm-border)] last:border-0" data-testid={`report-row-${event.id}-${i}`}><td className="py-1.5 pr-3 font-medium">{a.userName??"—"}</td><td className="py-1.5 pr-3"><span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Going</span></td><td className="py-1.5">{a.checkedIn?<span className="text-[var(--terra)] font-semibold">{a.checkedInAt?new Date(a.checkedInAt).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"Yes"}</span>:<span className="text-muted-foreground">—</span>}</td></tr>))}</tbody>
                       </table>
                     </div>
                   ) : <p className="text-[11px] text-muted-foreground text-center py-2">No RSVPs for this event</p>}

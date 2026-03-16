@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Download, Calendar, CheckCircle2, Medal, Loader2, UserMinus } from "lucide-react";
+import { Users, Download, Calendar, CheckCircle2, Medal, Loader2, UserMinus, Tag } from "lucide-react";
 
 type EnrichedMember = {
   id: string;
@@ -12,6 +12,7 @@ type EnrichedMember = {
   profileImageUrl: string | null;
   bio: string | null;
   city: string | null;
+  interests: string[] | null;
   joinedAt: string | null;
   isFoundingMember: boolean | null;
   eventsAttended: number;
@@ -149,6 +150,16 @@ export default function MembersTab({ clubId }: { clubId: string }) {
                       {member.eventsAttended} event{member.eventsAttended !== 1 ? "s" : ""} attended
                     </span>
                   </div>
+                  {member.interests && member.interests.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {member.interests.map(tag => (
+                        <span key={tag} className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "var(--terra-pale)", color: "var(--terra)", border: "1px solid rgba(196,98,45,0.15)" }}>
+                          <Tag className="w-2 h-2" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="shrink-0">
                   {removingId === member.id ? (

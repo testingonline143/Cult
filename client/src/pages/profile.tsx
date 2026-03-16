@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
 import type { JoinRequest, Club } from "@shared/schema";
 import type { User } from "@shared/models/auth";
-import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck, Medal, PlusCircle } from "lucide-react";
+import { ArrowLeft, Edit2, Check, X, Calendar, MapPin, RefreshCw, User as UserIcon, Users, LogIn, Camera, Loader2, LayoutDashboard, ChevronRight, LogOut, Clock3, CheckCircle2, XCircle, Ticket, ChevronDown, BarChart3, ShieldCheck, Medal, PlusCircle, Plus, Tag } from "lucide-react";
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -82,6 +82,8 @@ function ProfileHeader({ user }: { user: User }) {
   const [editName, setEditName] = useState(user.firstName || "");
   const [editBio, setEditBio] = useState(user.bio || "");
   const [editCity, setEditCity] = useState(user.city || "");
+  const [editInterests, setEditInterests] = useState<string[]>((user as any).interests || []);
+  const [interestInput, setInterestInput] = useState("");
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -129,7 +131,7 @@ function ProfileHeader({ user }: { user: User }) {
   };
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { name: string; bio: string; city: string }) => {
+    mutationFn: async (data: { name: string; bio: string; city: string; interests: string[] }) => {
       const res = await apiRequest("PATCH", "/api/user/profile", data);
       return res.json();
     },
@@ -143,12 +145,23 @@ function ProfileHeader({ user }: { user: User }) {
     },
   });
 
+  const addInterest = () => {
+    const tag = interestInput.trim();
+    if (!tag || tag.length > 30 || editInterests.includes(tag) || editInterests.length >= 15) return;
+    setEditInterests([...editInterests, tag]);
+    setInterestInput("");
+  };
+
+  const removeInterest = (tag: string) => {
+    setEditInterests(editInterests.filter((t) => t !== tag));
+  };
+
   const handleSave = () => {
     if (!editName || editName.length < 2) {
       setError("Name must be at least 2 characters");
       return;
     }
-    updateMutation.mutate({ name: editName, bio: editBio, city: editCity });
+    updateMutation.mutate({ name: editName, bio: editBio, city: editCity, interests: editInterests });
   };
 
   const displayName = user.firstName || user.email || "User";
@@ -225,6 +238,42 @@ function ProfileHeader({ user }: { user: User }) {
                 />
                 <p className="text-xs text-muted-foreground text-right mt-0.5">{editBio.length}/200</p>
               </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Interests <span className="text-[10px] opacity-60">({editInterests.length}/15)</span></label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {editInterests.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.25)' }}>
+                      {tag}
+                      <button onClick={() => removeInterest(tag)} className="ml-0.5 hover:opacity-70" type="button"><X className="w-2.5 h-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={interestInput}
+                    onChange={(e) => setInterestInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } }}
+                    placeholder="e.g. Beginner Runner, Design Nerd"
+                    maxLength={30}
+                    className="flex-1 px-3 py-1.5 rounded-md border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    style={{ borderColor: 'var(--warm-border)', background: 'var(--cream)' }}
+                    data-testid="input-interest-tag"
+                  />
+                  <button
+                    type="button"
+                    onClick={addInterest}
+                    disabled={!interestInput.trim() || editInterests.length >= 15}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold disabled:opacity-40 text-white flex items-center gap-1"
+                    style={{ background: 'var(--terra)' }}
+                    data-testid="button-add-interest"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Press Enter or click Add. Max 15 tags.</p>
+              </div>
               {error && <p className="text-xs text-destructive" data-testid="text-edit-error">{error}</p>}
               <div className="flex gap-2 flex-wrap">
                 <button
@@ -238,7 +287,7 @@ function ProfileHeader({ user }: { user: User }) {
                   {updateMutation.isPending ? "Saving..." : "Save"}
                 </button>
                 <button
-                  onClick={() => { setEditing(false); setEditName(user.firstName || ""); setEditBio(user.bio || ""); setEditCity(user.city || ""); setError(""); }}
+                  onClick={() => { setEditing(false); setEditName(user.firstName || ""); setEditBio(user.bio || ""); setEditCity(user.city || ""); setEditInterests((user as any).interests || []); setInterestInput(""); setError(""); }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-md glass-card text-muted-foreground text-xs font-semibold"
                   data-testid="button-cancel-edit"
                 >
@@ -262,6 +311,16 @@ function ProfileHeader({ user }: { user: User }) {
               {user.email && <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-profile-email">{user.email}</p>}
               {user.city && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap"><MapPin className="w-3 h-3" /> {user.city}</p>}
               {user.bio && <p className="text-sm text-foreground mt-2" data-testid="text-profile-bio">{user.bio}</p>}
+              {(user as any).interests?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2" data-testid="interests-list">
+                  {((user as any).interests as string[]).map((tag: string) => (
+                    <span key={tag} className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full" style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.25)' }}>
+                      <Tag className="w-2.5 h-2.5" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-2 flex-wrap mt-2">
                 {totalAttended > 0 && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--terra-pale)', color: 'var(--terra)', border: '1px solid rgba(196,98,45,0.25)' }} data-testid="badge-attended-total">

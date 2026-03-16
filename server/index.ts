@@ -8,6 +8,7 @@ import { createServer } from "http";
 import { setupAuth } from "./auth";
 
 const app = express();
+app.set("trust proxy", true);
 
 const httpServer = createServer(app);
 

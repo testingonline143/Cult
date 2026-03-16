@@ -1,6 +1,6 @@
 import { useParams, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, MapPin, Users, Shield } from "lucide-react";
+import { ChevronLeft, MapPin, Users, Shield, Tag } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +11,7 @@ interface MemberPublicProfile {
   bio: string | null;
   city: string | null;
   profileImageUrl: string | null;
+  interests?: string[];
   role: string;
   clubs: { id: string; name: string; emoji: string; category: string }[];
 }
@@ -154,6 +155,25 @@ export default function MemberProfile() {
             >
               "{profile.bio}"
             </p>
+          )}
+
+          {profile.interests && profile.interests.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2" data-testid="interests-list">
+              {profile.interests.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+                  style={{
+                    background: "var(--terra-pale)",
+                    color: "var(--terra)",
+                    border: "1px solid rgba(196,98,45,0.2)"
+                  }}
+                >
+                  <Tag className="w-2.5 h-2.5" />
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 

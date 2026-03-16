@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   bio: text("bio"),
   city: text("city"),
+  interests: text("interests").array(),
   role: text("role").default("user").notNull(),
   quizCompleted: boolean("quiz_completed").default(false),
   createdAt: timestamp("created_at").defaultNow(),

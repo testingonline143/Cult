@@ -40,6 +40,7 @@ export interface IStorage {
   approveJoinRequest(id: string): Promise<JoinRequest | undefined>;
   rejectJoinRequest(id: string): Promise<JoinRequest | undefined>;
   deleteJoinRequest(id: string): Promise<void>;
+  leaveClub(clubId: string, userId: string): Promise<void>;
   getPendingJoinRequestCount(clubId: string): Promise<number>;
   getApprovedMembersByClub(clubId: string): Promise<JoinRequest[]>;
   hasExistingJoinRequest(clubId: string, userId: string): Promise<JoinRequest | undefined>;
@@ -50,9 +51,6 @@ export interface IStorage {
   getQuizAnswers(userId: string): Promise<QuizAnswers | undefined>;
   searchClubs(params: { search?: string; category?: string; city?: string; vibe?: string; timeOfDay?: string }): Promise<Club[]>;
   getUserAttendanceStats(userId: string): Promise<{ clubId: string; clubName: string; clubEmoji: string; totalRsvps: number; attended: number }[]>;
-  getWaitlistCount(eventId: string): Promise<number>;
-  getUserWaitlistPosition(eventId: string, userId: string): Promise<number>;
-  promoteFirstFromWaitlist(eventId: string): Promise<EventRsvp | undefined>;
   getMemberDirectory(clubId: string): Promise<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: Date | null }[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   getEvent(id: string): Promise<Event | undefined>;
@@ -288,6 +286,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(joinRequests).where(eq(joinRequests.id, id));
   }
 
+  async leaveClub(clubId: string, userId: string): Promise<void> {
+    await db.delete(joinRequests)
+      .where(and(
+        eq(joinRequests.clubId, clubId),
+        eq(joinRequests.userId, userId),
+        eq(joinRequests.status, "approved")
+      ));
+  }
+
   async getJoinRequest(id: string): Promise<JoinRequest | undefined> {
     const [request] = await db.select().from(joinRequests).where(eq(joinRequests.id, id));
     return request;
@@ -401,39 +408,7 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async getWaitlistCount(eventId: string): Promise<number> {
-    const [result] = await db.select({ count: sql<number>`count(*)::int` })
-      .from(eventRsvps)
-      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.status, "waitlisted")));
-    return result?.count ?? 0;
-  }
 
-  async getUserWaitlistPosition(eventId: string, userId: string): Promise<number> {
-    const userRsvp = await this.getUserRsvp(eventId, userId);
-    if (!userRsvp || userRsvp.status !== "waitlisted") return 0;
-    const [result] = await db.select({ count: sql<number>`count(*)::int` })
-      .from(eventRsvps)
-      .where(and(
-        eq(eventRsvps.eventId, eventId),
-        eq(eventRsvps.status, "waitlisted"),
-        sql`${eventRsvps.createdAt} <= ${userRsvp.createdAt}`
-      ));
-    return result?.count ?? 1;
-  }
-
-  async promoteFirstFromWaitlist(eventId: string): Promise<EventRsvp | undefined> {
-    const [first] = await db.select()
-      .from(eventRsvps)
-      .where(and(eq(eventRsvps.eventId, eventId), eq(eventRsvps.status, "waitlisted")))
-      .orderBy(eventRsvps.createdAt)
-      .limit(1);
-    if (!first) return undefined;
-    const [promoted] = await db.update(eventRsvps)
-      .set({ status: "going" })
-      .where(eq(eventRsvps.id, first.id))
-      .returning();
-    return promoted;
-  }
 
   async getMemberDirectory(clubId: string): Promise<{ userId: string | null; name: string; profileImageUrl: string | null; joinedAt: Date | null }[]> {
     return db.select({
@@ -1823,7 +1798,7 @@ export class DatabaseStorage implements IStorage {
     return result?.count ?? 0;
   }
 
-  async getClubMembersEnriched(clubId: string): Promise<{ id: string; userId: string | null; name: string; phone: string; profileImageUrl: string | null; bio: string | null; city: string | null; joinedAt: Date | null; isFoundingMember: boolean | null; eventsAttended: number }[]> {
+  async getClubMembersEnriched(clubId: string): Promise<{ id: string; userId: string | null; name: string; phone: string; profileImageUrl: string | null; bio: string | null; city: string | null; interests: string[] | null; joinedAt: Date | null; isFoundingMember: boolean | null; eventsAttended: number }[]> {
     const attendanceSubquery = db
       .select({
         userId: eventRsvps.userId,
@@ -1844,6 +1819,7 @@ export class DatabaseStorage implements IStorage {
         profileImageUrl: users.profileImageUrl,
         bio: users.bio,
         city: users.city,
+        interests: users.interests,
         joinedAt: joinRequests.createdAt,
         isFoundingMember: joinRequests.isFoundingMember,
         eventsAttended: sql<number>`coalesce(${attendanceSubquery.count}, 0)`.as("events_attended"),
