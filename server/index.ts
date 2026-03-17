@@ -98,6 +98,7 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
+  log(`Attempting to start server on port ${port}...`);
   httpServer.listen(
     {
       port,
@@ -105,7 +106,10 @@ app.use((req, res, next) => {
 
     },
     () => {
-      log(`serving on http://0.0.0.0:${port}`);
+      log(`Serving on http://0.0.0.0:${port}`);
+      if (port !== 5000) {
+        log(`Note: Standard Bolt/StackBlitz previews expect port 5000. Current PORT is ${port}.`);
+      }
     },
   );
 })();
