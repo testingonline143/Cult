@@ -1863,21 +1863,54 @@ export class MockStorage implements IStorage {
 
   constructor() {
     // Seed some mock data for Bolt.new demo
-    const mockUser: User = {
+    const demoUser: User = {
       id: "demo-user-id",
       email: "demo@example.com",
       firstName: "Demo",
       lastName: "User",
-      profileImageUrl: null,
+      profileImageUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop",
       bio: "This is a demo profile running in Mock Mode.",
       city: "Tirupati",
-      interests: ["Running", "Coding"],
+      interests: ["Running", "Coding", "Trekking"],
       role: "admin",
       quizCompleted: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    this.users.set(mockUser.id, mockUser);
+    this.users.set(demoUser.id, demoUser);
+
+    // Add sibling mock users for directory demo
+    const mockUsers: User[] = [
+      {
+        id: "mock-user-2",
+        email: "priya@example.com",
+        firstName: "Priya",
+        lastName: "Sharma",
+        profileImageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&h=128&fit=crop",
+        bio: "Avid reader and trekker.",
+        city: "Tirupati",
+        interests: ["Books", "Trekking", "Nature"],
+        role: "member",
+        quizCompleted: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "mock-user-3",
+        email: "rahul@example.com",
+        firstName: "Rahul",
+        lastName: "Reddy",
+        profileImageUrl: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=128&h=128&fit=crop",
+        bio: "Cycling enthusiast.",
+        city: "Tirupati",
+        interests: ["Cycling", "Fitness", "Tech"],
+        role: "member",
+        quizCompleted: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
+    mockUsers.forEach(u => this.users.set(u.id, u));
 
     const mockClub: Club = {
       id: "mock-club-1",
@@ -1885,36 +1918,56 @@ export class MockStorage implements IStorage {
       category: "fitness",
       emoji: "🏃",
       shortDesc: "The biggest running club in Tirupati.",
-      fullDesc: "Join us for weekly runs and fitness workshops.",
+      fullDesc: "Join us for weekly runs and fitness workshops. We explore different parts of the city every Saturday morning.",
       organizerName: "Demo User",
       organizerYears: "5",
-      organizerAvatar: null,
-      organizerResponse: null,
-      memberCount: 150,
-      schedule: "Sat morning",
-      location: "SV University",
+      organizerAvatar: demoUser.profileImageUrl,
+      organizerResponse: "Fast",
+      memberCount: 152,
+      schedule: "Sat morning, 6:00 AM",
+      location: "SV University Stadium",
       city: "Tirupati",
-      vibe: "active",
+      vibe: "Active & Energetic",
       activeSince: "2023",
-      whatsappNumber: "9999999999",
+      whatsappNumber: "919000000000",
       healthStatus: "green",
-      healthLabel: "Very Active",
+      healthLabel: "Highly Active",
       lastActive: "Today",
       foundingTaken: 5,
       foundingTotal: 20,
       bgColor: "#fef3c7",
       timeOfDay: "morning",
       isActive: true,
-      highlights: ["Community", "Health"],
+      highlights: ["Experienced Coaches", "Weekend Long Runs", "Beginner Friendly"],
       creatorUserId: "demo-user-id",
       coOrganiserUserIds: [],
       joinQuestion1: "Why do you want to join?",
-      joinQuestion2: "What is your fitness level?",
-      coverImageUrl: null,
+      joinQuestion2: "What is your target distance?",
+      coverImageUrl: "https://images.unsplash.com/photo-1552674605-db6ffd4afd71?w=800&q=80",
       slug: "tirupati-runners",
       createdAt: new Date(),
     };
     this.clubs.set(mockClub.id, mockClub);
+
+    const mockEvent: Event = {
+      id: "mock-event-1",
+      clubId: mockClub.id,
+      title: "Weekend Sunrise Run",
+      description: "A steady 5k/10k run around the campus. Refreshments provided after.",
+      date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      startTime: "06:00 AM",
+      endTime: "08:00 AM",
+      locationText: "SV University Stadium",
+      locationUrl: null,
+      capacity: 50,
+      isWaitlisted: false,
+      whatsappLink: "https://chat.whatsapp.com/demo",
+      coverImageUrl: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&q=80",
+      status: "upcoming",
+      recurrenceRule: null,
+      createdAt: new Date(),
+    };
+    this.events.set(mockEvent.id, mockEvent);
   }
 
   // Basic User Methods
@@ -1938,10 +1991,40 @@ export class MockStorage implements IStorage {
   async getClubsByCreator(id: string) { return Array.from(this.clubs.values()).filter(c => c.creatorUserId === id); }
   async searchClubs() { return Array.from(this.clubs.values()); }
 
-  // Stub methods to prevent crashes (return empty defaults)
-  async getUpcomingEvents() { return []; }
-  async getEventsByClub() { return []; }
-  async getStats() { return { totalMembers: 1, totalClubs: 1, upcomingEvents: 0 }; }
+  // Advanced Methods
+  async getClubMembersEnriched(clubId: string) {
+    // Return mock users mapped to the enriched member format
+    return Array.from(this.users.values()).map(user => ({
+      id: `request-${user.id}`,
+      userId: user.id,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+      phone: "919000000000",
+      profileImageUrl: user.profileImageUrl,
+      bio: user.bio,
+      city: user.city,
+      joinedAt: new Date(),
+      isFoundingMember: false,
+      eventsAttended: 0,
+    }));
+  }
+
+  async getUpcomingEvents(_city?: string, _limit?: number) {
+    return Array.from(this.events.values()).map(event => ({
+      ...event,
+      clubName: "Tirupati Runners",
+      clubEmoji: "🏃",
+      rsvpCount: 15
+    }));
+  }
+
+  async getEventsByClub(clubId: string) { return Array.from(this.events.values()).filter(e => e.clubId === clubId); }
+  async getStats() { 
+    return { 
+      totalMembers: this.users.size, 
+      totalClubs: this.clubs.size, 
+      upcomingEvents: this.events.size 
+    }; 
+  }
   async getRsvpsByUser() { return []; }
   async getNotificationsByUser() { return []; }
   async getUnreadNotificationCount() { return 0; }
@@ -2076,7 +2159,6 @@ export class MockStorage implements IStorage {
   getClubProposal: any = (...args: any[]) => this.stub(undefined);
   getPendingProposalCount: any = (...args: any[]) => this.stub(0);
   getEventAttendanceReport: any = (...args: any[]) => this.stub([]);
-  getClubMembersEnriched: any = (...args: any[]) => this.stub([]);
 }
 
 export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MockStorage();
