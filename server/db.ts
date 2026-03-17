@@ -8,10 +8,12 @@ if (!dbUrl) {
   console.warn("\n[db] DATABASE_URL is not set — the server will run in Mock Mode for local/demo testing.");
 }
 
-export const pool = new pg.Pool({
-  connectionString: dbUrl || "postgresql://localhost/placeholder",
-  connectionTimeoutMillis: 5000,
-});
+// Only initialize the pool if we have a database URL
+export const pool = new pg.Pool(
+  dbUrl 
+    ? { connectionString: dbUrl, connectionTimeoutMillis: 5000 }
+    : { connectionString: "postgresql://no-db-url:5432/mock", connectionTimeoutMillis: 1 }
+);
 
 pool.on('error', (err) => {
   // Gracefully handle connection errors in environments without DB
