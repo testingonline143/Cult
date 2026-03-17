@@ -1419,6 +1419,7 @@ export async function registerRoutes(
       } else {
         clubsList = await storage.getClubs();
       }
+      console.log(`[api] /api/clubs-with-activity returned ${clubsList.length} clubs`);
       const recentJoins = await storage.getClubsWithRecentJoins();
       const clubsWithActivity = clubsList.map(club => ({
         ...club,
