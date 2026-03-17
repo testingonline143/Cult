@@ -11,7 +11,11 @@ if (!dbUrl) {
 // Only initialize the pool if we have a database URL
 export const pool = new pg.Pool(
   dbUrl 
-    ? { connectionString: dbUrl, connectionTimeoutMillis: 5000 }
+    ? { 
+        connectionString: dbUrl, 
+        connectionTimeoutMillis: 5000,
+        ssl: dbUrl.includes("supabase.co") ? { rejectUnauthorized: false } : false
+      }
     : { connectionString: "postgresql://no-db-url:5432/mock", connectionTimeoutMillis: 1 }
 );
 
