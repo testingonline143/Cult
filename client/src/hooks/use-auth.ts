@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { User as DBUser } from "@shared/models/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,9 +16,14 @@ export function useAuth() {
 
   // 1. Listen to Supabase Auth state changes
   useEffect(() => {
+    if (!supabaseConfigured) {
+      setIsAuthLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSessionUser(session?.user ?? null);
-      setIsAuthLoading(false); // Done loading initial auth state
+      setIsAuthLoading(false);
     });
 
     const {
@@ -27,7 +32,6 @@ export function useAuth() {
       setSessionUser(session?.user ?? null);
       setIsAuthLoading(false);
       if (!session) {
-        // Clear DB user cache on sign out
         queryClient.setQueryData(["/api/auth/user"], null);
       }
     });
