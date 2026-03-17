@@ -70,10 +70,11 @@ app.use((req, res, next) => {
 (async () => {
   setupAuth(app);
 
-  const { seedDatabase } = await import("./seed");
-  seedDatabase().catch(err => {
-    console.error("Delayed database seeding failed:", err);
-  });
+  // Temporarily disabled seeding - Supabase RLS requires proper authentication
+  // const { seedDatabase } = await import("./seed");
+  // seedDatabase().catch(err => {
+  //   console.error("Delayed database seeding failed:", err);
+  // });
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
