@@ -1855,4 +1855,228 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+
+export class MockStorage implements IStorage {
+  private users: Map<string, User> = new Map();
+  private clubs: Map<string, Club> = new Map();
+  private events: Map<string, Event> = new Map();
+
+  constructor() {
+    // Seed some mock data for Bolt.new demo
+    const mockUser: User = {
+      id: "demo-user-id",
+      email: "demo@example.com",
+      firstName: "Demo",
+      lastName: "User",
+      profileImageUrl: null,
+      bio: "This is a demo profile running in Mock Mode.",
+      city: "Tirupati",
+      interests: ["Running", "Coding"],
+      role: "admin",
+      quizCompleted: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(mockUser.id, mockUser);
+
+    const mockClub: Club = {
+      id: "mock-club-1",
+      name: "Tirupati Runners",
+      category: "fitness",
+      emoji: "🏃",
+      shortDesc: "The biggest running club in Tirupati.",
+      fullDesc: "Join us for weekly runs and fitness workshops.",
+      organizerName: "Demo User",
+      organizerYears: "5",
+      organizerAvatar: null,
+      organizerResponse: null,
+      memberCount: 150,
+      schedule: "Sat morning",
+      location: "SV University",
+      city: "Tirupati",
+      vibe: "active",
+      activeSince: "2023",
+      whatsappNumber: "9999999999",
+      healthStatus: "green",
+      healthLabel: "Very Active",
+      lastActive: "Today",
+      foundingTaken: 5,
+      foundingTotal: 20,
+      bgColor: "#fef3c7",
+      timeOfDay: "morning",
+      isActive: true,
+      highlights: ["Community", "Health"],
+      creatorUserId: "demo-user-id",
+      coOrganiserUserIds: [],
+      joinQuestion1: "Why do you want to join?",
+      joinQuestion2: "What is your fitness level?",
+      coverImageUrl: null,
+      slug: "tirupati-runners",
+      createdAt: new Date(),
+    };
+    this.clubs.set(mockClub.id, mockClub);
+  }
+
+  // Basic User Methods
+  async getUser(id: string) { return this.users.get(id); }
+  async updateUser(id: string, data: Partial<User>) {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updated = { ...user, ...data };
+    this.users.set(id, updated);
+    return updated;
+  }
+  async updateUserRole(userId: string, role: string) {
+    return this.updateUser(userId, { role });
+  }
+
+  // Basic Club Methods
+  async getClubs() { return Array.from(this.clubs.values()); }
+  async getClub(id: string) { return this.clubs.get(id); }
+  async getClubBySlug(slug: string) { return Array.from(this.clubs.values()).find(c => c.slug === slug); }
+  async getClubsByCategory(cat: string) { return Array.from(this.clubs.values()).filter(c => c.category === cat); }
+  async getClubsByCreator(id: string) { return Array.from(this.clubs.values()).filter(c => c.creatorUserId === id); }
+  async searchClubs() { return Array.from(this.clubs.values()); }
+
+  // Stub methods to prevent crashes (return empty defaults)
+  async getUpcomingEvents() { return []; }
+  async getEventsByClub() { return []; }
+  async getStats() { return { totalMembers: 1, totalClubs: 1, upcomingEvents: 0 }; }
+  async getRsvpsByUser() { return []; }
+  async getNotificationsByUser() { return []; }
+  async getUnreadNotificationCount() { return 0; }
+  async getJoinRequestsByUser() { return []; }
+  async getUserApprovedClubs() { return Array.from(this.clubs.values()); }
+  async getFeedMoments() { return []; }
+  async getClubRatings() { return []; }
+  async getClubAverageRating() { return { average: 0, count: 0 }; }
+  async hasUserJoinedClub() { return true; }
+  async isClubManager() { return true; }
+  async getUserJoinStatus() { return { status: "approved", requestId: "mock-1" }; }
+
+  // Helper to satisfy TS for unimplemented methods
+  private async stub<T>(val: T): Promise<T> { return val; }
+
+  // Fill in placeholders for remaining interface methods (mapped as stubs)
+  createClub: any = (...args: any[]) => this.stub({ ...args[0], id: "new-club", createdAt: new Date() });
+  updateClub: any = (...args: any[]) => this.stub(undefined);
+  incrementMemberCount: any = (...args: any[]) => this.stub(undefined);
+  decrementMemberCount: any = (...args: any[]) => this.stub(undefined);
+  createJoinRequest: any = (...args: any[]) => this.stub({ ...args[0], id: "req-1", status: "pending", createdAt: new Date() });
+  getJoinRequests: any = (...args: any[]) => this.stub([]);
+  getJoinRequestsByClub: any = (...args: any[]) => this.stub([]);
+  getJoinRequestsByPhone: any = (...args: any[]) => this.stub([]);
+  getJoinRequest: any = (...args: any[]) => this.stub(undefined);
+  markJoinRequestDone: any = (...args: any[]) => this.stub(undefined);
+  approveJoinRequest: any = (...args: any[]) => this.stub(undefined);
+  rejectJoinRequest: any = (...args: any[]) => this.stub(undefined);
+  deleteJoinRequest: any = (...args: any[]) => this.stub();
+  leaveClub: any = (...args: any[]) => this.stub();
+  getPendingJoinRequestCount: any = (...args: any[]) => this.stub(0);
+  getApprovedMembersByClub: any = (...args: any[]) => this.stub([]);
+  hasExistingJoinRequest: any = (...args: any[]) => this.stub(undefined);
+  saveQuizAnswers: any = (...args: any[]) => this.stub({ ...args[0], id: "q-1", createdAt: new Date() });
+  getQuizAnswers: any = (...args: any[]) => this.stub(undefined);
+  getUserAttendanceStats: any = (...args: any[]) => this.stub([]);
+  getMemberDirectory: any = (...args: any[]) => this.stub([]);
+  createEvent: any = (...args: any[]) => this.stub({ ...args[0], id: "ev-1", createdAt: new Date() });
+  getEvent: any = (...args: any[]) => this.stub(undefined);
+  extendEventSeries: any = (...args: any[]) => this.stub([]);
+  createRsvp: any = (...args: any[]) => this.stub({ ...args[0], id: "rsvp-1", createdAt: new Date() });
+  cancelRsvp: any = (...args: any[]) => this.stub();
+  getRsvpsByEvent: any = (...args: any[]) => this.stub([]);
+  getUserRsvp: any = (...args: any[]) => this.stub(undefined);
+  getRsvpCount: any = (...args: any[]) => this.stub(0);
+  getCheckedInCount: any = (...args: any[]) => this.stub(0);
+  getEventAttendees: any = (...args: any[]) => this.stub([]);
+  getClubActivity: any = (...args: any[]) => this.stub({ recentJoins: 0, recentJoinNames: [], totalEvents: 0, lastEventDate: null });
+  getRecentActivityFeed: any = (...args: any[]) => this.stub([]);
+  getClubsWithRecentJoins: any = (...args: any[]) => this.stub({});
+  getRsvpById: any = (...args: any[]) => this.stub(undefined);
+  getRsvpByToken: any = (...args: any[]) => this.stub(undefined);
+  checkInRsvpByToken: any = (...args: any[]) => this.stub(undefined);
+  checkInRsvpById: any = (...args: any[]) => this.stub(undefined);
+  getUserRating: any = (...args: any[]) => this.stub(undefined);
+  upsertRating: any = (...args: any[]) => this.stub({});
+  getClubFaqs: any = (...args: any[]) => this.stub([]);
+  createFaq: any = (...args: any[]) => this.stub({});
+  updateFaq: any = (...args: any[]) => this.stub(undefined);
+  deleteFaq: any = (...args: any[]) => this.stub();
+  getClubSchedule: any = (...args: any[]) => this.stub([]);
+  createScheduleEntry: any = (...args: any[]) => this.stub({});
+  updateScheduleEntry: any = (...args: any[]) => this.stub(undefined);
+  deleteScheduleEntry: any = (...args: any[]) => this.stub();
+  getClubMoments: any = (...args: any[]) => this.stub([]);
+  createMoment: any = (...args: any[]) => this.stub({});
+  updateMoment: any = (...args: any[]) => this.stub(undefined);
+  deleteMoment: any = (...args: any[]) => this.stub();
+  getCommentsByMoment: any = (...args: any[]) => this.stub([]);
+  createComment: any = (...args: any[]) => this.stub({});
+  deleteComment: any = (...args: any[]) => this.stub();
+  getMomentById: any = (...args: any[]) => this.stub(undefined);
+  getJoinRequestCountByClub: any = (...args: any[]) => this.stub(0);
+  createNotification: any = (...args: any[]) => this.stub({});
+  markNotificationRead: any = (...args: any[]) => this.stub(undefined);
+  markAllNotificationsRead: any = (...args: any[]) => this.stub();
+  updateEvent: any = (...args: any[]) => this.stub(undefined);
+  cancelEvent: any = (...args: any[]) => this.stub(undefined);
+  getMembersPreview: any = (...args: any[]) => this.stub([]);
+  getAdminAnalytics: any = (...args: any[]) => this.stub({ totalUsers: 1, totalClubs: 1, activeClubs: 1, totalEvents: 1, totalRsvps: 1, totalCheckins: 1, totalMoments: 1, totalComments: 1, newUsersThisWeek: 0, newEventsThisWeek: 0, newJoinsThisWeek: 0, cityCounts: [] });
+  getAdminActivityFeed: any = (...args: any[]) => this.stub({ recentJoins: [], recentClubs: [], recentEvents: [] });
+  getAllUsers: any = (...args: any[]) => this.stub([]);
+  getAllEventsAdmin: any = (...args: any[]) => this.stub([]);
+  getOrganizerInsights: any = (...args: any[]) => this.stub({ totalMembers: 0, pendingRequests: 0, totalEvents: 0, avgAttendanceRate: 0, topEvent: null, recentJoins: [], recentRsvps: [] });
+  getClubAnalytics: any = (...args: any[]) => this.stub({ memberGrowth: [], perEventStats: [], mostActiveMembers: [], engagementRate: 0, noShowRate: 0 });
+  getClubsForOrganiser: any = (...args: any[]) => this.stub([]);
+  getClubAnnouncements: any = (...args: any[]) => this.stub([]);
+  createAnnouncement: any = (...args: any[]) => this.stub({});
+  deleteAnnouncement: any = (...args: any[]) => this.stub();
+  getClubMemberUserIds: any = (...args: any[]) => this.stub([]);
+  getClubPolls: any = (...args: any[]) => this.stub([]);
+  createPoll: any = (...args: any[]) => this.stub({});
+  deletePoll: any = (...args: any[]) => this.stub();
+  closePoll: any = (...args: any[]) => this.stub();
+  castVote: any = (...args: any[]) => this.stub();
+  addCoOrganiser: any = (...args: any[]) => this.stub();
+  removeCoOrganiser: any = (...args: any[]) => this.stub();
+  likeMoment: any = (...args: any[]) => this.stub();
+  unlikeMoment: any = (...args: any[]) => this.stub();
+  getMomentLikeStatus: any = (...args: any[]) => this.stub(false);
+  getPublicClubMembers: any = (...args: any[]) => this.stub([]);
+  getUserFoundingClubs: any = (...args: any[]) => this.stub([]);
+  getEventComments: any = (...args: any[]) => this.stub([]);
+  createEventComment: any = (...args: any[]) => this.stub({});
+  approveJoinRequestWithFoundingCheck: any = (...args: any[]) => this.stub(undefined);
+  getUserAdminDetail: any = (...args: any[]) => this.stub({ clubs: [], events: [], moments: [], joinRequests: [] });
+  getAllPollsAdmin: any = (...args: any[]) => this.stub([]);
+  closePollAdmin: any = (...args: any[]) => this.stub();
+  broadcastNotification: any = (...args: any[]) => this.stub(0);
+  getWeeklyGrowth: any = (...args: any[]) => this.stub([]);
+  updateClubHealth: any = (...args: any[]) => this.stub();
+  createKudo: any = (...args: any[]) => this.stub({});
+  hasGivenKudo: any = (...args: any[]) => this.stub(false);
+  getKudosByReceiver: any = (...args: any[]) => this.stub([]);
+  getEventAttendeesForKudo: any = (...args: any[]) => this.stub([]);
+  autoJoinSampleClubs: any = (...args: any[]) => this.stub([]);
+  updateClubSlug: any = (...args: any[]) => this.stub(undefined);
+  generateSlugForClub: any = (...args: any[]) => this.stub(null);
+  getPageSections: any = (...args: any[]) => this.stub([]);
+  createPageSection: any = (...args: any[]) => this.stub({});
+  updatePageSection: any = (...args: any[]) => this.stub(undefined);
+  deletePageSection: any = (...args: any[]) => this.stub();
+  reorderPageSections: any = (...args: any[]) => this.stub();
+  getSectionEvents: any = (...args: any[]) => this.stub([]);
+  addSectionEvent: any = (...args: any[]) => this.stub({});
+  removeSectionEvent: any = (...args: any[]) => this.stub();
+  getPublicPageData: any = (...args: any[]) => this.stub({ club: args[0] ? this.clubs.get(args[0]) || Array.from(this.clubs.values())[0] : Array.from(this.clubs.values())[0], sections: [], announcements: [], schedule: [], moments: [], memberCount: 0, upcomingEventCount: 0, pastEventCount: 0, rating: null });
+  createClubProposal: any = (...args: any[]) => this.stub({});
+  getClubProposalsByUser: any = (...args: any[]) => this.stub([]);
+  getAllClubProposals: any = (...args: any[]) => this.stub([]);
+  updateClubProposalStatus: any = (...args: any[]) => this.stub(undefined);
+  getClubProposal: any = (...args: any[]) => this.stub(undefined);
+  getPendingProposalCount: any = (...args: any[]) => this.stub(0);
+  getEventAttendanceReport: any = (...args: any[]) => this.stub([]);
+  getClubMembersEnriched: any = (...args: any[]) => this.stub([]);
+}
+
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MockStorage();
