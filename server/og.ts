@@ -38,9 +38,9 @@ export function isCrawler(ua: string | undefined): boolean {
 export async function readHtmlTemplate(): Promise<string> {
   let templatePath: string;
   if (process.env.NODE_ENV === "production") {
-    templatePath = path.resolve(import.meta.dirname, "public", "index.html");
+    templatePath = path.resolve(process.cwd(), "dist", "public", "index.html");
   } else {
-    templatePath = path.resolve(import.meta.dirname, "..", "client", "index.html");
+    templatePath = path.resolve(process.cwd(), "client", "index.html");
   }
   return fs.promises.readFile(templatePath, "utf-8");
 }
