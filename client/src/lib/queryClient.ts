@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { supabase } from "./supabase";
+import { supabase, supabaseConfigured } from "./supabase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -9,9 +9,16 @@ async function throwIfResNotOk(res: Response) {
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    return { Authorization: `Bearer ${session.access_token}` };
+  if (!supabaseConfigured || !supabase) {
+    return {};
+  }
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return { Authorization: `Bearer ${session.access_token}` };
+    }
+  } catch (err) {
+    console.error('[queryClient] Error getting auth session:', err);
   }
   return {};
 }

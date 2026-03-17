@@ -190,7 +190,10 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getClubs(): Promise<Club[]> {
-    return db.select().from(clubs);
+    console.log('[storage] getClubs called');
+    const result = await db.select().from(clubs);
+    console.log(`[storage] getClubs returned ${result.length} clubs`);
+    return result;
   }
 
   async getClubsByCategory(category: string): Promise<Club[]> {
@@ -2161,4 +2164,6 @@ export class MockStorage implements IStorage {
   getEventAttendanceReport: any = (...args: any[]) => this.stub([]);
 }
 
-export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MockStorage();
+const hasDbUrl = !!process.env.DATABASE_URL;
+console.log(`[storage] DATABASE_URL present: ${hasDbUrl}, using ${hasDbUrl ? 'DatabaseStorage' : 'MockStorage'}`);
+export const storage = hasDbUrl ? new DatabaseStorage() : new MockStorage();

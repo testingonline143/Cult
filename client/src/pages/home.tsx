@@ -9,9 +9,14 @@ import { Footer } from "@/components/footer";
 import type { Club } from "@shared/schema";
 
 export default function Home() {
-  const { data: clubs = [], isLoading } = useQuery<(Club & { recentJoins?: number })[]>({
+  const { data: clubs = [], isLoading, error, isError } = useQuery<(Club & { recentJoins?: number })[]>({
     queryKey: ["/api/clubs-with-activity"],
   });
+
+  if (isError) {
+    console.error('[home] clubs query error:', error);
+  }
+  console.log('[home] clubs:', clubs.length, 'isLoading:', isLoading);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--cream)" }}>
